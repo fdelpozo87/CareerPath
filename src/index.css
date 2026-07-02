@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --color-primary: #f97316;
+  --color-primary-dark: #ea580c;
+  --color-background: #fafafa;
+  --color-foreground: #111111;
+  --color-text-muted: #6b7280;
+  --color-border-color: #e5e7eb;
+
+  /* AI Intelligence tokens */
+  --color-ai-glow-1: #E0D7FF;
+  --color-ai-glow-2: #D2E7FF;
+  --color-ai-glow-3: #FFF0E5;
+  --color-ai-tint: rgba(210, 231, 255, 0.07);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-family-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1 { @apply text-4xl font-semibold tracking-tight md:text-5xl; }
+  h2 { @apply text-3xl font-semibold tracking-tight md:text-4xl; }
+  h3 { @apply text-xl font-semibold tracking-tight; }
+  h4 { @apply text-base font-medium; }
+}
+
+/* ── AI Animations ─────────────────────────────────────────────────────────── */
+
+@keyframes ai-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes ai-reveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ai-pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+/* ── Component Classes ─────────────────────────────────────────────────────── */
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl border-0 px-6 py-3 font-semibold text-white transition-all duration-150 hover:shadow-md active:scale-95;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    cursor: pointer;
+    letter-spacing: -0.01em;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border bg-white px-6 py-3 font-semibold transition-all duration-150 hover:shadow-md active:scale-95;
+    color: #f97316;
+    border-color: #e5e7eb;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+  }
+  .section-container {
+    @apply mx-auto max-w-6xl px-4 md:px-8;
+  }
+  .card {
+    @apply rounded-2xl border bg-white p-6;
+    border-color: #e5e7eb;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  }
+
+  /* AI Active — spinning shimmer ring */
+  .ai-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #E0D7FF 0%, #D2E7FF 33%, #FFF0E5 66%, #E0D7FF 100%);
+    animation: ai-spin 2.5s linear infinite;
+  }
+
+  /* AI Resolved — fade-in + slide-up for result content */
+  .ai-result {
+    animation: ai-reveal 0.15s ease-out forwards;
+  }
+
+  /* AI content tint — marks AI-generated content */
+  .ai-tint {
+    background: rgba(210, 231, 255, 0.07);
+    border: 1px solid rgba(210, 231, 255, 0.3);
+  }
+}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { DiagnosisResult } from './DiagnosisFlow'
 import type { DiscoveryResult } from './DiscoveryFlow'
+import { trackEvent } from '../lib/tracking'
+import { callAi } from '../lib/aiClient'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -118,21 +119,13 @@ async function generateActionPlan(
   timeframe: string,
   ajuste: string,
 ): Promise<ActionPlanResult> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-
-  if (!apiKey || apiKey === 'AIza...') {
-    await new Promise((r) => setTimeout(r, 3000))
+  const response = await callAi([{ text: buildActionPlanPrompt(diagnosis, discovery, timeframe, ajuste) }])
+  if ('demo' in response) {
+    await new Promise((r) => setTimeout(r, 1500))
     return DEMO_ACTION_PLAN
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
-
-  const result = await model.generateContent(
-    buildActionPlanPrompt(diagnosis, discovery, timeframe, ajuste),
-  )
-  const text = result.response.text().trim()
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  const jsonMatch = response.text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('La IA no devolvió un plan válido. Intentá de nuevo.')
 
   return JSON.parse(jsonMatch[0]) as ActionPlanResult
@@ -405,6 +398,50 @@ function ActionPlanResult({
           Empezar de nuevo
         </button>
       </div>
+
+      <ApropiacionFeedback />
+    </div>
+  )
+}
+
+// ── Feedback de apropiación (guardrail sección 6.4 del PRD) ─────────────────
+
+const FEEDBACK_OPTIONS = [
+  { value: 'propio', label: 'Es mío — lo pensé yo, la IA me ayudó a ordenarlo' },
+  { value: 'mixto', label: 'A medias — algo siento propio, algo me lo resolvió' },
+  { value: 'resuelto', label: 'Siento que la IA me lo resolvió por mí' },
+] as const
+
+function ApropiacionFeedback() {
+  const [sent, setSent] = useState<string | null>(null)
+
+  const handleSelect = (value: string) => {
+    trackEvent('action_plan_feedback', { answer: value })
+    setSent(value)
+  }
+
+  return (
+    <div className="mt-8 rounded-2xl border border-border-color bg-white p-6">
+      {sent ? (
+        <p className="text-sm text-text-muted">Gracias por la respuesta — nos ayuda a mejorar el proceso.</p>
+      ) : (
+        <>
+          <p className="mb-4 text-sm font-medium text-foreground">
+            ¿Sentís que este plan es tuyo, o que te lo armó la IA?
+          </p>
+          <div className="flex flex-col gap-2">
+            {FEEDBACK_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => handleSelect(opt.value)}
+                className="rounded-xl border border-border-color px-4 py-2.5 text-left text-sm text-foreground transition hover:border-primary hover:bg-orange-50"
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -435,6 +472,7 @@ export function ActionPlanFlow({
       const r = await generateActionPlan(diagnosisResult, discoveryResult, tf, ajuste)
       setResult(r)
       setStep('result')
+      trackEvent('action_plan_completed', { timeframe: tf })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido')
       setStep('setup')

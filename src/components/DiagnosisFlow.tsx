@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { trackEvent } from '../lib/tracking'
+import { callAi, fileToBase64, type AiPart } from '../lib/aiClient'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -101,15 +102,6 @@ Respondé ÚNICAMENTE con un JSON válido, sin texto adicional, con esta estruct
 Notas: el campo tipoDeFreno debe ser exactamente "Aptitud", "Actitud" o "Mixto". Usá 'vos'. Sin frases corporativas vacías. SOLO el JSON.`
 }
 
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve((reader.result as string).split(',')[1])
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
 const DEMO_RESULT: DiagnosisResult = {
   perfilActual:
     'Profesional con sólida trayectoria técnica en consultoría, actualmente en un punto de inflexión entre consolidar su expertise o dar un salto hacia roles de mayor impacto estratégico. Sus respuestas revelan alguien que sabe ejecutar muy bien, pero que empieza a cuestionar si está en el lugar correcto para crecer.',
@@ -135,17 +127,7 @@ const DEMO_RESULT: DiagnosisResult = {
 }
 
 async function analyzeWithGemini(answers: Answers, cvFile: File | null): Promise<DiagnosisResult> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-
-  if (!apiKey || apiKey === 'AIza...') {
-    await new Promise((r) => setTimeout(r, 3000))
-    return DEMO_RESULT
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
-
-  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = []
+  const parts: AiPart[] = []
 
   if (cvFile) {
     const base64 = await fileToBase64(cvFile)
@@ -154,10 +136,13 @@ async function analyzeWithGemini(answers: Answers, cvFile: File | null): Promise
 
   parts.push({ text: buildPrompt(answers, !!cvFile) })
 
-  const result = await model.generateContent(parts)
-  const text = result.response.text().trim()
+  const response = await callAi(parts)
+  if ('demo' in response) {
+    await new Promise((r) => setTimeout(r, 1500))
+    return DEMO_RESULT
+  }
 
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  const jsonMatch = response.text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('La IA no devolvió un diagnóstico válido. Intentá de nuevo.')
 
   return JSON.parse(jsonMatch[0]) as DiagnosisResult
@@ -596,6 +581,7 @@ export function DiagnosisFlow({ onBack, onDiscovery }: { onBack: () => void; onD
       const r = await analyzeWithGemini(answers, cvFile)
       setResult(r)
       setStep('summary')
+      trackEvent('diagnosis_completed', { hasCv: !!cvFile })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido')
       setStep('cv-upload')
@@ -646,7 +632,14 @@ export function DiagnosisFlow({ onBack, onDiscovery }: { onBack: () => void; onD
           </div>
         )}
 
-        {step === 'intro' && <IntroScreen onStart={() => setStep('questions')} />}
+        {step === 'intro' && (
+          <IntroScreen
+            onStart={() => {
+              trackEvent('diagnosis_started')
+              setStep('questions')
+            }}
+          />
+        )}
         {step === 'questions' && (
           <QuestionsScreen
             answers={answers}

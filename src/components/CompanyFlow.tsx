@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { callAi, fileToBase64, type AiPart } from '../lib/aiClient'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -313,31 +313,12 @@ const DEMO_CRECIMIENTO: CompanyDiagnosisResult = {
 
 // ── Gemini API ──────────────────────────────────────────────────────────────
 
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve((reader.result as string).split(',')[1])
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
 async function analyzeWithGemini(
   ctx: CollaboratorContext,
   answers: Answers,
   docFile: File | null,
 ): Promise<CompanyDiagnosisResult> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-
-  if (!apiKey || apiKey === 'AIza...') {
-    await new Promise((r) => setTimeout(r, 3000))
-    return ctx.casoTipo === 'rendimiento' ? DEMO_RENDIMIENTO : DEMO_CRECIMIENTO
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
-
-  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = []
+  const parts: AiPart[] = []
 
   if (docFile) {
     const base64 = await fileToBase64(docFile)
@@ -351,9 +332,13 @@ async function analyzeWithGemini(
 
   parts.push({ text: prompt })
 
-  const result = await model.generateContent(parts)
-  const text = result.response.text().trim()
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  const response = await callAi(parts)
+  if ('demo' in response) {
+    await new Promise((r) => setTimeout(r, 1500))
+    return ctx.casoTipo === 'rendimiento' ? DEMO_RENDIMIENTO : DEMO_CRECIMIENTO
+  }
+
+  const jsonMatch = response.text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('La IA no devolvió un análisis válido. Intentá de nuevo.')
 
   return JSON.parse(jsonMatch[0]) as CompanyDiagnosisResult

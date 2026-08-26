@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { DiagnosisResult } from './DiagnosisFlow'
+import { trackEvent } from '../lib/tracking'
+import { callAi } from '../lib/aiClient'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -121,20 +122,13 @@ async function analyzeDiscovery(
   diagnosis: DiagnosisResult,
   answers: DiscoveryAnswers,
 ): Promise<DiscoveryResult> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-
-  if (!apiKey || apiKey === 'AIza...') {
-    await new Promise((r) => setTimeout(r, 3000))
+  const response = await callAi([{ text: buildDiscoveryPrompt(diagnosis, answers) }])
+  if ('demo' in response) {
+    await new Promise((r) => setTimeout(r, 1500))
     return DEMO_DISCOVERY_RESULT
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
-
-  const result = await model.generateContent(buildDiscoveryPrompt(diagnosis, answers))
-  const text = result.response.text().trim()
-
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  const jsonMatch = response.text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('La IA no devolvió un plan válido. Intentá de nuevo.')
 
   return JSON.parse(jsonMatch[0]) as DiscoveryResult
@@ -517,6 +511,7 @@ export function DiscoveryFlow({
       const r = await analyzeDiscovery(diagnosisResult, answers)
       setResult(r)
       setStep('result')
+      trackEvent('discovery_completed')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido')
       setStep('questions')

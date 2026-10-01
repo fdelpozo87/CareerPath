@@ -5,7 +5,7 @@ export default function Footer() {
         <div className="mb-10 grid gap-8 text-sm md:grid-cols-3">
           <div>
             <div className="mb-3 text-base font-semibold tracking-tight text-foreground">
-              Career<span className="text-primary">Path</span>
+              Career<span className="text-primary-ink">Path</span>
             </div>
             <p className="text-text-muted">Tu próximo paso de carrera, pensado con vos.</p>
           </div>
@@ -15,6 +15,7 @@ export default function Footer() {
               <li><a href="#" className="transition-colors hover:text-foreground">Inicio</a></li>
               <li><a href="#profesional" className="transition-colors hover:text-foreground">Para Profesionales</a></li>
               <li><a href="#empresa" className="transition-colors hover:text-foreground">Para Empresas</a></li>
+              <li><a href="#privacidad" className="transition-colors hover:text-foreground">Privacidad y términos</a></li>
             </ul>
           </div>
           <div>

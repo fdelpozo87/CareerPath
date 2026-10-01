@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { callAi, fileToBase64, type AiPart } from '../lib/aiClient'
+import { callCompanyAnalysis, fileToBase64 } from '../lib/aiClient'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -115,112 +115,6 @@ const QUESTIONS_CRECIMIENTO = [
   },
 ]
 
-// ── Prompts ─────────────────────────────────────────────────────────────────
-
-function buildRendimientoPrompt(ctx: CollaboratorContext, answers: Answers, hasDoc: boolean): string {
-  return `Sos un HR Coach y consultor de Desarrollo Organizacional con 20 años de experiencia en América Latina.
-
-Tu rol es ayudar a líderes y responsables de RRHH a preparar conversaciones de feedback y gestionar situaciones de rendimiento. Aplicás el modelo GROW y la distinción Aptitud/Actitud para diagnosticar.
-
-Un líder o profesional de RRHH consulta sobre un colaborador que está mostrando bajo rendimiento o cambio de comportamiento.
-
-PERFIL DEL COLABORADOR:
-- Rol: ${ctx.rol}
-- Seniority: ${ctx.seniority}
-- Tiempo en el equipo: ${ctx.tiempo}
-${hasDoc ? '- Se adjuntó documentación adicional (evaluación de desempeño u otro)' : ''}
-
-RESPUESTAS DEL LÍDER:
-**Situación observada**: ${answers['observacion'] || '(sin respuesta)'}
-**Contexto y timing**: ${answers['contexto'] || '(sin respuesta)'}
-**Conversaciones previas**: ${answers['conversaciones'] || '(sin respuesta)'}
-**Resultado que busca**: ${answers['objetivo'] || '(sin respuesta)'}
-
-ANÁLISIS REQUERIDO:
-- Clasificá la brecha: APTITUD (no sabe o no puede), ACTITUD (no quiere o no está motivado) o MIXTO
-- Identificá si los síntomas apuntan a causas de negocio, equipo, personales o de liderazgo
-- Las hipótesis deben ser preguntas abiertas, no veredictos sobre el colaborador
-- La guía de conversación: qué decir para abrir, preguntas potentes, cómo cerrar con un acuerdo concreto
-- El plan 70-20-10: 70% en el trabajo, 20% de otros, 10% formal
-- Los próximos pasos son para EL LÍDER, no para el colaborador
-- El mensaje al líder debe ser honesto — incluyendo su propio rol en la situación
-
-Respondé ÚNICAMENTE con JSON válido, sin texto adicional:
-{
-  "perfilDelColaborador": "2-3 oraciones sobre cómo se ve el colaborador desde lo que describió el líder",
-  "situacionCentral": "La tensión o paradoja central de esta situación en 1-2 oraciones",
-  "tipoDeBrecha": "Aptitud",
-  "fortalezasDelColaborador": ["fortaleza observable 1", "fortaleza observable 2", "fortaleza observable 3"],
-  "hipotesisPrincipales": ["¿Y si el problema real es...?", "hipótesis alternativa 2", "hipótesis 3"],
-  "guiaDeConversacion": {
-    "apertura": "Tono y frase de entrada para abrir la conversación desde la curiosidad, no el juicio",
-    "preguntasClave": ["Pregunta para explorar qué está pasando desde la perspectiva del colaborador", "Pregunta sobre el contexto o el cambio", "Pregunta sobre lo que necesita", "Pregunta de compromiso bilateral"],
-    "cierre": "Cómo cerrar la conversación con un acuerdo concreto y revisable"
-  },
-  "planDeAccion": {
-    "bloque70": ["Acción en el trabajo 1", "Acción en el trabajo 2"],
-    "bloque20": ["Interacción con otros 1", "Interacción con otros 2"],
-    "bloque10": ["Formación o recurso formal sugerido"]
-  },
-  "proximosPasos": ["Paso concreto para el líder esta semana", "Paso 2 en los próximos 30 días"],
-  "mensajeParaElLider": "Un párrafo honesto y directo al líder. Con al menos una pregunta que lo invite a reflexionar sobre su propio rol en esta situación."
-}
-
-tipoDeBrecha debe ser exactamente "Aptitud", "Actitud" o "Mixto". Usá vos. Sin frases corporativas vacías. SOLO el JSON.`
-}
-
-function buildCrecimientoPrompt(ctx: CollaboratorContext, answers: Answers, hasDoc: boolean): string {
-  return `Sos un HR Coach y consultor de Desarrollo Organizacional con 20 años de experiencia en América Latina.
-
-Tu rol es ayudar a líderes y RRHH a diseñar planes de desarrollo y preparar conversaciones de crecimiento de carrera. Aplicás el modelo 70-20-10 y el marco GROW.
-
-Un líder o profesional de RRHH consulta sobre un colaborador que quiere crecer o cambiar de rol/área.
-
-PERFIL DEL COLABORADOR:
-- Rol: ${ctx.rol}
-- Seniority: ${ctx.seniority}
-- Tiempo en el equipo: ${ctx.tiempo}
-${hasDoc ? '- Se adjuntó documentación adicional (evaluación de desempeño u otro)' : ''}
-
-RESPUESTAS DEL LÍDER:
-**Aspiración del colaborador**: ${answers['aspiracion'] || '(sin respuesta)'}
-**Fortalezas y brecha actual**: ${answers['brechaActual'] || '(sin respuesta)'}
-**Oportunidades disponibles**: ${answers['oportunidades'] || '(sin respuesta)'}
-**Alineación con el negocio**: ${answers['alineacion'] || '(sin respuesta)'}
-
-ANÁLISIS REQUERIDO:
-- Clasificá si el caso es principalmente CRECIMIENTO (dentro del área) o MOVILIDAD (cambio de área/rol)
-- Identificá fortalezas reales que el colaborador tiene pero no está valorando completamente
-- Las hipótesis deben iluminar lo que el líder todavía no está viendo sobre la situación
-- La guía de conversación es para una 1:1 de carrera: apertura, preguntas de exploración, cierre con plan bilateral
-- El plan 70-20-10 debe ser concreto y ejecutable en los próximos 90 días
-- Los próximos pasos son para EL LÍDER: qué hacer esta semana para activar el desarrollo
-- El mensaje al líder debe reconocer la oportunidad y nombrar la complejidad real
-
-Respondé ÚNICAMENTE con JSON válido, sin texto adicional:
-{
-  "perfilDelColaborador": "2-3 oraciones sobre el potencial y el momento de carrera de este colaborador",
-  "situacionCentral": "La oportunidad central y la tensión si la hay, en 1-2 oraciones",
-  "tipoDeBrecha": "Crecimiento",
-  "fortalezasDelColaborador": ["fortaleza que ya tiene 1", "fortaleza que ya tiene 2", "fortaleza que ya tiene 3"],
-  "hipotesisPrincipales": ["¿Y si lo que realmente necesita este colaborador es...?", "hipótesis alternativa 2", "hipótesis 3"],
-  "guiaDeConversacion": {
-    "apertura": "Tono y frase de entrada para abrir la conversación de carrera desde el reconocimiento",
-    "preguntasClave": ["Pregunta para explorar la aspiración real", "Pregunta sobre la brecha desde su perspectiva", "Pregunta sobre obstáculos reales", "Pregunta de compromiso y próximo paso"],
-    "cierre": "Cómo cerrar con un plan co-construido y una fecha de revisión"
-  },
-  "planDeAccion": {
-    "bloque70": ["Proyecto o responsabilidad que desarrolla la habilidad clave 1", "Proyecto o responsabilidad 2"],
-    "bloque20": ["Mentoreo o exposición a personas clave 1", "Feedback estructurado o red interna/externa 2"],
-    "bloque10": ["Formación formal o certificación sugerida"]
-  },
-  "proximosPasos": ["Paso concreto para el líder esta semana", "Paso 2 en los próximos 30 días"],
-  "mensajeParaElLider": "Un párrafo honesto y motivador al líder. Con al menos una pregunta sobre qué puede hacer él/ella para acelerar este desarrollo."
-}
-
-tipoDeBrecha debe ser exactamente "Crecimiento" o "Movilidad". Usá vos. Sin frases corporativas vacías. SOLO el JSON.`
-}
-
 // ── Demo results ────────────────────────────────────────────────────────────
 
 const DEMO_RENDIMIENTO: CompanyDiagnosisResult = {
@@ -318,30 +212,17 @@ async function analyzeWithGemini(
   answers: Answers,
   docFile: File | null,
 ): Promise<CompanyDiagnosisResult> {
-  const parts: AiPart[] = []
-
-  if (docFile) {
-    const base64 = await fileToBase64(docFile)
-    parts.push({ inlineData: { mimeType: 'application/pdf', data: base64 } })
-  }
-
-  const prompt =
-    ctx.casoTipo === 'rendimiento'
-      ? buildRendimientoPrompt(ctx, answers, !!docFile)
-      : buildCrecimientoPrompt(ctx, answers, !!docFile)
-
-  parts.push({ text: prompt })
-
-  const response = await callAi(parts)
+  // El prompt se arma en el servidor (server/company.ts): acá solo van los datos.
+  const response = await callCompanyAnalysis({
+    contexto: ctx,
+    respuestas: answers,
+    pdfBase64: docFile ? await fileToBase64(docFile) : undefined,
+  })
   if ('demo' in response) {
     await new Promise((r) => setTimeout(r, 1500))
     return ctx.casoTipo === 'rendimiento' ? DEMO_RENDIMIENTO : DEMO_CRECIMIENTO
   }
-
-  const jsonMatch = response.text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('La IA no devolvió un análisis válido. Intentá de nuevo.')
-
-  return JSON.parse(jsonMatch[0]) as CompanyDiagnosisResult
+  return response.data as CompanyDiagnosisResult
 }
 
 // ── Step: Intro ─────────────────────────────────────────────────────────────
@@ -356,7 +237,7 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
         >
           <span className="text-2xl">◈</span>
         </div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Para Líderes y RRHH</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary-ink">Para Líderes y RRHH</p>
         <h2 className="mb-3">Preparar conversación de desarrollo</h2>
         <p className="leading-relaxed text-text-muted">
           Describís la situación de un colaborador y la IA te genera un{' '}
@@ -376,7 +257,7 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
             'Próximos pasos concretos para vos como líder',
           ].map((item) => (
             <li key={item} className="flex items-start gap-2.5 text-sm text-text-muted">
-              <span className="mt-0.5 font-bold text-primary">→</span>
+              <span className="mt-0.5 font-bold text-primary-ink">→</span>
               {item}
             </li>
           ))}
@@ -500,6 +381,8 @@ function ContextForm({
             return (
               <button
                 key={opt.value}
+                type="button"
+                aria-pressed={selected}
                 onClick={() => setCasoTipo(opt.value)}
                 className="rounded-2xl border p-5 text-left transition-all"
                 style={{
@@ -663,38 +546,43 @@ function DocUploadScreen({
       </div>
 
       {/* Drop zone */}
-      <div
+      {/* Botón real (no un div clickeable): recibe foco y se activa con Enter/Espacio. */}
+      <button
+        type="button"
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
         onClick={() => inputRef.current?.click()}
-        className="mb-6 cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all"
+        aria-label={file ? `Documento: ${file.name}. Activar para elegir otro PDF` : 'Elegir el documento del colaborador en PDF'}
+        className="mb-6 block w-full cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all"
         style={{
-          borderColor: dragOver ? '#f97316' : file ? '#10b981' : '#e5e7eb',
-          background: dragOver ? 'rgba(249,115,22,0.04)' : file ? '#f0fdf4' : 'white',
+          borderColor: dragOver ? '#c2410c' : file ? '#047857' : '#e5e7eb',
+          background: dragOver ? 'rgba(194,65,12,0.04)' : file ? '#f0fdf4' : 'white',
         }}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf,application/pdf"
-          className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
-        />
         {file ? (
           <>
-            <div className="mb-2 text-3xl text-green-500">✓</div>
-            <p className="font-semibold text-green-700">{file.name}</p>
-            <p className="mt-1 text-xs text-text-muted">{(file.size / 1024).toFixed(0)} KB · Click para cambiar</p>
+            <span className="mb-2 block text-3xl text-green-700" aria-hidden="true">✓</span>
+            <span className="block font-semibold text-green-800">{file.name}</span>
+            <span className="mt-1 block text-xs text-text-muted">{(file.size / 1024).toFixed(0)} KB · Click para cambiar</span>
           </>
         ) : (
           <>
-            <div className="mb-3 text-3xl text-text-muted">↑</div>
-            <p className="font-medium text-foreground">Arrastrá el documento acá o hacé click</p>
-            <p className="mt-1 text-xs text-text-muted">Evaluación de desempeño, feedback 360, perfil — Solo PDF · Máx 10 MB</p>
+            <span className="mb-3 block text-3xl text-text-muted" aria-hidden="true">↑</span>
+            <span className="block font-medium text-foreground">Arrastrá el documento acá o hacé click</span>
+            <span className="mt-1 block text-xs text-text-muted">Evaluación de desempeño, feedback 360, perfil — Solo PDF · Máx 10 MB</span>
           </>
         )}
-      </div>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        className="hidden"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleFile(f) }}
+      />
 
       <div className="flex gap-3">
         <button
@@ -836,7 +724,7 @@ function ResultScreen({
 
         {/* Mensaje para el líder — AI tint, prominente */}
         <div className="ai-tint rounded-2xl p-6" style={{ borderLeft: '3px solid #f97316' }}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Para vos como líder</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary-ink">Para vos como líder</p>
           <p className="italic leading-relaxed text-foreground">"{result.mensajeParaElLider}"</p>
         </div>
 
@@ -870,7 +758,7 @@ function ResultScreen({
             <ul className="space-y-2">
               {result.fortalezasDelColaborador.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm text-text-muted">
-                  <span className="mt-0.5 font-bold text-primary">·</span>
+                  <span className="mt-0.5 font-bold text-primary-ink">·</span>
                   {f}
                 </li>
               ))}
@@ -881,7 +769,7 @@ function ResultScreen({
             <ol className="space-y-3">
               {result.hipotesisPrincipales.map((h, i) => (
                 <li key={i} className="flex gap-2.5">
-                  <span className="mt-0.5 shrink-0 text-sm font-semibold text-primary">{i + 1}.</span>
+                  <span className="mt-0.5 shrink-0 text-sm font-semibold text-primary-ink">{i + 1}.</span>
                   <p className="text-sm leading-relaxed text-text-muted">{h}</p>
                 </li>
               ))}
@@ -907,7 +795,7 @@ function ResultScreen({
                     key={i}
                     className="flex gap-3 rounded-xl border border-border-color bg-white p-3.5"
                   >
-                    <span className="shrink-0 text-sm font-bold text-primary">{i + 1}</span>
+                    <span className="shrink-0 text-sm font-bold text-primary-ink">{i + 1}</span>
                     <p className="text-sm leading-relaxed text-foreground">{p}</p>
                   </li>
                 ))}
@@ -1066,9 +954,9 @@ export function CompanyFlow({ onBack }: { onBack: () => void }) {
             ← Inicio
           </button>
           <span className="text-base font-semibold tracking-tight text-foreground">
-            Career<span className="text-primary">Path</span>
+            Career<span className="text-primary-ink">Path</span>
           </span>
-          <span className="ml-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+          <span className="ml-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary-ink">
             Empresas
           </span>
           {stepLabels[step] && (

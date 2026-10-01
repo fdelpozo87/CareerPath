@@ -4,9 +4,11 @@
   --font-family-sans: 'Inter', system-ui, sans-serif;
   --color-primary: #f97316;
   --color-primary-dark: #ea580c;
+  /* Naranja para texto y botones con texto blanco: contraste AA (≥4.5:1). */
+  --color-primary-ink: #c2410c;
   --color-background: #fafafa;
   --color-foreground: #111111;
-  --color-text-muted: #6b7280;
+  --color-text-muted: #636a76;
   --color-border-color: #e5e7eb;
 
   /* AI Intelligence tokens */
@@ -50,19 +52,24 @@
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center rounded-xl border-0 px-6 py-3 font-semibold text-white transition-all duration-150 hover:shadow-md active:scale-95;
-    background: linear-gradient(135deg, #f97316, #ea580c);
+    background: linear-gradient(135deg, #c2410c, #b53a09);
     cursor: pointer;
     letter-spacing: -0.01em;
   }
   .btn-secondary {
     @apply inline-flex items-center justify-center rounded-xl border bg-white px-6 py-3 font-semibold transition-all duration-150 hover:shadow-md active:scale-95;
-    color: #f97316;
+    color: #c2410c;
     border-color: #e5e7eb;
     cursor: pointer;
     letter-spacing: -0.01em;
   }
   .section-container {
     @apply mx-auto max-w-6xl px-4 md:px-8;
+  }
+  /* Foco visible para navegación con teclado. */
+  :where(a, button, input, textarea, select, summary):focus-visible {
+    outline: 2px solid #c2410c;
+    outline-offset: 2px;
   }
   .card {
     @apply rounded-2xl border bg-white p-6;

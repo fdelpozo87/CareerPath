@@ -19,6 +19,15 @@ export type FunnelEvent =
   | 'action_plan_completed'
   | 'action_plan_feedback'
   | 'company_analysis_completed'
+  | 'path_selected'
+  | 'session_resumed'
+  | 'stage_completed'
+  | 'profile_reading_completed'
+  | 'derivation_shown'
+  | 'report_generated'
+  | 'commitments_saved'
+  | 'onboarding_dismissed'
+  | 'privacy_viewed'
 
 export function trackEvent(event: FunnelEvent, props?: Record<string, string | number | boolean>) {
   track(event, { sessionId: getSessionId(), ...props })

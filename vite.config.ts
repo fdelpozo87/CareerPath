@@ -2,59 +2,62 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// Dev-only: sirve /api/analyze localmente con `npm run dev`, espejando
-// api/analyze.ts, para no depender de `vercel dev` (que pide login) solo
-// para probar los flujos de IA en desarrollo. Vercel usa api/analyze.ts
-// directamente en producción — este plugin no corre ahí.
-function devAnalyzeApi(geminiApiKey: string | undefined): Plugin {
+// Dev-only: sirve /api/coach, /api/analyze y /api/access con `npm run dev` usando la misma
+// capa que las funciones de Vercel (server/endpoints.ts), cargada con
+// ssrLoadModule para que los cambios en el servidor se tomen sin reiniciar.
+// En producción Vercel usa api/*.ts; este plugin no corre ahí.
+const MAX_BODY_BYTES = 4_500_000 // mismo tope que Vercel
+
+function devApi(geminiApiKey: string | undefined): Plugin {
   return {
-    name: 'dev-analyze-api',
+    name: 'dev-api',
     apply: 'serve',
     configureServer(server) {
-      server.middlewares.use('/api/analyze', async (req, res) => {
-        if (req.method !== 'POST') {
-          res.statusCode = 405
-          res.end(JSON.stringify({ error: 'Method not allowed' }))
-          return
-        }
-
-        if (!geminiApiKey) {
+      for (const endpoint of ['coach', 'analyze', 'access'] as const) {
+        server.middlewares.use(`/api/${endpoint}`, async (req, res) => {
           res.setHeader('Content-Type', 'application/json')
-          res.end(JSON.stringify({ demo: true }))
-          return
-        }
-
-        try {
-          const chunks: Buffer[] = []
-          for await (const chunk of req) chunks.push(chunk as Buffer)
-          const { parts } = JSON.parse(Buffer.concat(chunks).toString('utf-8') || '{}')
-
-          if (!Array.isArray(parts) || parts.length === 0) {
-            res.statusCode = 400
-            res.end(JSON.stringify({ error: 'Payload inválido' }))
-            return
+          try {
+            const chunks: Buffer[] = []
+            let size = 0
+            for await (const chunk of req) {
+              size += (chunk as Buffer).length
+              if (size > MAX_BODY_BYTES) {
+                res.statusCode = 413
+                res.end(JSON.stringify({ error: 'El pedido es demasiado grande.' }))
+                return
+              }
+              chunks.push(chunk as Buffer)
+            }
+            const raw = Buffer.concat(chunks).toString('utf-8')
+            let body: unknown
+            try {
+              body = raw ? JSON.parse(raw) : undefined
+            } catch {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: 'Payload inválido' }))
+              return
+            }
+            const { runEndpoint } = await server.ssrLoadModule('/server/endpoints.ts')
+            const result = await runEndpoint(endpoint, Object.assign(req, { body }), geminiApiKey)
+            for (const [k, v] of Object.entries(result.headers ?? {})) res.setHeader(k, v as string)
+            res.statusCode = result.status
+            res.end(JSON.stringify(result.body))
+          } catch {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Algo falló de nuestro lado. Intentá de nuevo.' }))
           }
-
-          const { GoogleGenerativeAI } = await import('@google/generative-ai')
-          const genAI = new GoogleGenerativeAI(geminiApiKey)
-          const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-          const result = await model.generateContent(parts)
-          const text = result.response.text().trim()
-
-          res.setHeader('Content-Type', 'application/json')
-          res.end(JSON.stringify({ text }))
-        } catch (e) {
-          res.statusCode = 502
-          res.end(JSON.stringify({ error: e instanceof Error ? e.message : 'Error al consultar la IA' }))
-        }
-      })
+        })
+      }
     },
   }
 }
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  if (env.GEMINI_MODEL) process.env.GEMINI_MODEL = env.GEMINI_MODEL
+  if (env.ALLOWED_ORIGINS) process.env.ALLOWED_ORIGINS = env.ALLOWED_ORIGINS
+  if (env.ACCESS_CODES && !process.env.ACCESS_CODES) process.env.ACCESS_CODES = env.ACCESS_CODES
   return {
-    plugins: [react(), tailwindcss(), devAnalyzeApi(env.GEMINI_API_KEY)],
+    plugins: [react(), tailwindcss(), devApi(env.GEMINI_API_KEY)],
   }
 })

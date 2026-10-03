@@ -12,6 +12,8 @@ vi.mock('@google/generative-ai', () => ({
 
 import { runEndpoint } from '../server/endpoints'
 import { resetRateLimits } from '../server/guard'
+import { askCounts } from '../server/coach'
+import { buildTurnSystemPrompt } from '../server/prompts'
 
 const KEY = 'test-key'
 let ipCounter = 0
@@ -148,6 +150,248 @@ describe('/api/coach', () => {
   it('lectura de perfil exige texto suficiente', async () => {
     const r = await runEndpoint('coach', makeReq({ mode: 'perfil', puesto: 'PM', perfilTexto: 'corto' }), KEY)
     expect(r.status).toBe(400)
+  })
+})
+
+describe('mapa de cierre de etapa', () => {
+  const history = [
+    { role: 'user', text: '(apertura)' },
+    { role: 'model', text: '¿Qué te trae?' },
+    { role: 'user', text: 'Quiero pasar a producto, pero no sé si estoy lista. Hace 4 años soy analista.' },
+  ]
+  const ready = (extra: Record<string, unknown>) =>
+    gemini.generateContent.mockResolvedValue(
+      modelReply({ mensaje: 'Cerramos', objetivosCubiertos: ['goal', 'reality', 'options', 'will'], listoParaAvanzar: true, ...extra }),
+    )
+  const run = async () => {
+    const r = await runEndpoint('coach', makeReq(turnBody({ history })), KEY)
+    return (r.body as { data: { sintesisEtapa: string; sintesisItems: { id: string; texto: string; cita: string }[]; preguntaPuente: string } }).data
+  }
+
+  it('conserva las citas textuales y descarta las que la persona no dijo (guardrail §5)', async () => {
+    ready({
+      sintesisItems: [
+        { id: 'goal', texto: 'Querés pasar a producto.', cita: 'no sé si estoy lista' },
+        { id: 'reality', texto: 'Sos analista hace 4 años.', cita: 'me siento un fracaso total' }, // inventada
+      ],
+    })
+    const d = await run()
+    expect(d.sintesisItems.find((i) => i.id === 'goal')?.cita).toBe('no sé si estoy lista')
+    expect(d.sintesisItems.find((i) => i.id === 'reality')?.cita).toBe('') // se descarta la cita, se conserva el texto
+    expect(d.sintesisItems.find((i) => i.id === 'reality')?.texto).toBe('Sos analista hace 4 años.')
+  })
+
+  it('ignora la puntuación al comparar citas', async () => {
+    ready({ sintesisItems: [{ id: 'goal', texto: 'x', cita: '“Quiero pasar a producto”' }] })
+    expect((await run()).sintesisItems[0].cita).toContain('Quiero pasar a producto')
+  })
+
+  it('descarta ids que no son de la etapa, duplicados y textos vacíos, y ordena según la etapa', async () => {
+    ready({
+      sintesisItems: [
+        { id: 'will', texto: 'Tercero', cita: '' },
+        { id: 'inventado', texto: 'No va', cita: '' },
+        { id: 'goal', texto: 'Primero', cita: '' },
+        { id: 'goal', texto: 'Duplicado', cita: '' },
+        { id: 'options', texto: '   ', cita: '' },
+      ],
+    })
+    const d = await run()
+    expect(d.sintesisItems.map((i) => i.id)).toEqual(['goal', 'will'])
+    expect(d.sintesisItems[0].texto).toBe('Primero')
+  })
+
+  it('compone el resumen desde el mapa si el modelo lo omitió, y limita los largos', async () => {
+    ready({ sintesisItems: [{ id: 'goal', texto: 'A'.repeat(900), cita: '' }], preguntaPuente: 'B'.repeat(900) })
+    const d = await run()
+    expect(d.sintesisEtapa.length).toBe(400)
+    expect(d.preguntaPuente.length).toBe(300)
+  })
+
+  it('si el modelo cierra la etapa con el mensaje vacío, usa un cierre cálido (no "¿Me contás más?")', async () => {
+    ready({ mensaje: '', sintesisItems: [{ id: 'goal', texto: 'x', cita: '' }] })
+    const r = await runEndpoint('coach', makeReq(turnBody({ history })), KEY)
+    const msg = (r.body as { data: { mensaje: string } }).data.mensaje
+    expect(msg).toMatch(/mapa/)
+    expect(msg).not.toMatch(/contás un poco más/)
+  })
+
+  it('si la etapa no está completa, no devuelve mapa ni pregunta aunque el modelo los mande', async () => {
+    gemini.generateContent.mockResolvedValue(
+      modelReply({ mensaje: 'Seguimos', objetivosCubiertos: ['goal'], listoParaAvanzar: true, sintesisItems: [{ id: 'goal', texto: 'x', cita: '' }], preguntaPuente: '¿?' }),
+    )
+    const d = await run()
+    expect(d.sintesisItems).toEqual([])
+    expect(d.preguntaPuente).toBe('')
+    expect(d.sintesisEtapa).toBe('')
+  })
+})
+
+describe('una etapa cerrada no se reabre sola', () => {
+  const all4 = ['goal', 'reality', 'options', 'will']
+  const asked = (extra: Record<string, unknown> = {}) =>
+    gemini.generateContent.mockResolvedValue(
+      modelReply({ mensaje: '¿Qué parte de tu recorrido querés mirar más?', objetivosCubiertos: all4, listoParaAvanzar: false, ...extra }),
+    )
+
+  it('si ya estaba cerrada y el modelo responde con otra pregunta, sigue cerrada', async () => {
+    asked()
+    const r = await runEndpoint('coach', makeReq(turnBody({ cubiertos: all4, etapaCerrada: true })), KEY)
+    expect((r.body as { data: { listoParaAvanzar: boolean } }).data.listoParaAvanzar).toBe(true)
+  })
+
+  it('sin cierre previo, el modelo que pregunta no cierra (el criterio sigue siendo el de siempre)', async () => {
+    asked()
+    const r = await runEndpoint('coach', makeReq(turnBody({ cubiertos: all4, etapaCerrada: false })), KEY)
+    expect((r.body as { data: { listoParaAvanzar: boolean } }).data.listoParaAvanzar).toBe(false)
+  })
+
+  it('no fuerza el cierre si faltan temas, aunque el cliente diga que estaba cerrada', async () => {
+    asked({ objetivosCubiertos: ['goal'] })
+    const r = await runEndpoint('coach', makeReq(turnBody({ cubiertos: ['goal'], etapaCerrada: true })), KEY)
+    expect((r.body as { data: { listoParaAvanzar: boolean } }).data.listoParaAvanzar).toBe(false)
+  })
+
+  it('rechaza un etapaCerrada que no sea booleano', async () => {
+    expect((await runEndpoint('coach', makeReq(turnBody({ etapaCerrada: 'si' })), KEY)).status).toBe(400)
+  })
+
+  it('le indica al modelo que no abra temas nuevos cuando la etapa está cerrada', () => {
+    const ctx = { stage: 'diagnostico', path: 'quiebre', sintesisPrevias: {} } as const
+    expect(buildTurnSystemPrompt({ ...ctx, etapaCerrada: true })).toMatch(/La etapa ya está cerrada[\s\S]*NO abras temas nuevos/)
+    expect(buildTurnSystemPrompt({ ...ctx, etapaCerrada: false })).not.toMatch(/La etapa ya está cerrada/)
+  })
+})
+
+describe('cuando la persona esquiva un tema', () => {
+  const coachTurn = (foco: string) => ({ role: 'model' as const, text: JSON.stringify({ mensaje: 'x', temaEnFoco: foco }) })
+  const user = (text: string) => ({ role: 'user' as const, text })
+
+  it('cuenta cuántas veces se preguntó por cada tema que sigue pendiente', () => {
+    const history = [user('hola'), coachTurn('goal'), user('a'), coachTurn('options'), user('no sé'), coachTurn('options'), user('...'), coachTurn('will')]
+    // goal ya está cubierto: no cuenta. options se preguntó 2 veces y sigue pendiente. will, 1.
+    expect(askCounts(history, 'diagnostico', ['goal'])).toEqual({ options: 2, will: 1 })
+  })
+
+  it('ignora turnos sin JSON (sesiones viejas) y temas de otra etapa', () => {
+    const history = [user('hola'), { role: 'model' as const, text: 'texto suelto' }, coachTurn('horizonte')]
+    expect(askCounts(history, 'diagnostico', [])).toEqual({})
+  })
+
+  it('le dice al modelo qué temas están cubiertos, cuáles faltan y cuántas veces ya preguntó', () => {
+    const prompt = buildTurnSystemPrompt({ stage: 'diagnostico', path: 'quiebre', sintesisPrevias: {}, cubiertos: ['goal'], intentos: { options: 2 } })
+    expect(prompt).toMatch(/"goal" \[cubierto\]/)
+    expect(prompt).toMatch(/"options" \[PENDIENTE — ya preguntaste por este tema 2 veces/)
+    expect(prompt).toMatch(/"will" \[pendiente — todavía no preguntaste/)
+    expect(prompt).toMatch(/Cuando la persona esquiva un tema/)
+    expect(prompt).toMatch(/no ofrezcas esa elección más de dos veces seguidas/i)
+  })
+
+  const focusOf = async (raw: Record<string, unknown>, cubiertos: string[] = []) => {
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'x', objetivosCubiertos: cubiertos, listoParaAvanzar: false, ...raw }))
+    const r = await runEndpoint('coach', makeReq(turnBody({ cubiertos })), KEY)
+    return (r.body as { data: { temaEnFoco: string } }).data.temaEnFoco
+  }
+
+  it('devuelve el tema en foco solo si es de la etapa y sigue pendiente', async () => {
+    expect(await focusOf({ temaEnFoco: 'options' }, ['goal'])).toBe('options')
+    expect(await focusOf({ temaEnFoco: 'inventado' })).toBe('')
+    expect(await focusOf({ temaEnFoco: 'horizonte' })).toBe('') // es de otra etapa
+    expect(await focusOf({ temaEnFoco: 'goal', objetivosCubiertos: ['goal'] }, ['goal'])).toBe('') // ya cubierto
+    expect(await focusOf({})).toBe('')
+  })
+})
+
+describe('dejar un tema para más adelante', () => {
+  const coachAsked = (foco: string) => ({ role: 'model', text: JSON.stringify({ mensaje: 'x', temaEnFoco: foco }) })
+  // La persona ya contó su objetivo, su situación y su compromiso; sobre los caminos preguntaron y no contestó.
+  const talked = [
+    { role: 'user', text: 'Quiero pasar a producto. Hace 4 años soy analista. Voy a dedicarle dos horas por semana.' },
+    coachAsked('options'),
+    { role: 'user', text: 'Prefiero no hablar de eso ahora.' },
+  ]
+  const three = ['goal', 'reality', 'will']
+  const reply = (extra: Record<string, unknown>) =>
+    gemini.generateContent.mockResolvedValue(
+      modelReply({ mensaje: 'Está perfecto, lo dejamos.', objetivosCubiertos: three, listoParaAvanzar: true, ...extra }),
+    )
+  type Data = { listoParaAvanzar: boolean; temasOmitidos: string[]; sintesisEtapa: string; sintesisItems: { id: string; omitido?: boolean; texto: string }[] }
+  const run = async (overrides: Record<string, unknown> = {}) => {
+    const r = await runEndpoint('coach', makeReq(turnBody({ history: talked, cubiertos: three, ...overrides })), KEY)
+    return (r.body as { data: Data }).data
+  }
+  const items = [
+    { id: 'goal', texto: 'Querés pasar a producto.', cita: '' },
+    { id: 'reality', texto: 'Sos analista hace 4 años.', cita: '' },
+    { id: 'will', texto: 'Dos horas por semana.', cita: '' },
+  ]
+
+  it('si la persona eligió dejarlo, la etapa cierra y el tema queda como "para más adelante" (no como cubierto)', async () => {
+    reply({ temasOmitidos: ['options'], sintesisItems: items })
+    const d = await run()
+    expect(d.listoParaAvanzar).toBe(true)
+    expect(d.temasOmitidos).toEqual(['options'])
+    const dejado = d.sintesisItems.find((i) => i.id === 'options')
+    expect(dejado?.omitido).toBe(true)
+    expect(dejado?.texto).toMatch(/más adelante/)
+    expect(d.sintesisEtapa).toMatch(/Dejó para más adelante: tus caminos/)
+  })
+
+  it('no lo acepta si nunca se le preguntó por ese tema (la persona no tuvo la oportunidad de contestar)', async () => {
+    reply({ temasOmitidos: ['options'], sintesisItems: items })
+    const d = await run({ history: [{ role: 'user', text: 'Quiero pasar a producto.' }] })
+    expect(d.temasOmitidos).toEqual([])
+    expect(d.listoParaAvanzar).toBe(false)
+  })
+
+  it('no deja omitir lo imprescindible, aunque el modelo lo intente', async () => {
+    reply({ objetivosCubiertos: ['reality', 'options', 'will'], temasOmitidos: ['goal'], sintesisItems: items })
+    const r = await runEndpoint('coach', makeReq(turnBody({ history: [{ role: 'user', text: 'x' }, coachAsked('goal'), { role: 'user', text: 'no sé' }], cubiertos: ['reality', 'options', 'will'] })), KEY)
+    const d = (r.body as { data: Data }).data
+    expect(d.temasOmitidos).toEqual([])
+    expect(d.listoParaAvanzar).toBe(false) // sin objetivo no hay etapa cerrada
+  })
+
+  it('respeta el tope de un tema por etapa', async () => {
+    reply({ objetivosCubiertos: ['goal', 'reality'], temasOmitidos: ['options', 'will'], sintesisItems: items })
+    const history = [{ role: 'user', text: 'x' }, coachAsked('options'), { role: 'user', text: 'no' }, coachAsked('will'), { role: 'user', text: 'tampoco' }]
+    const d = await run({ history, cubiertos: ['goal', 'reality'] })
+    expect(d.temasOmitidos).toEqual(['options']) // el primero; el segundo no entra
+    expect(d.listoParaAvanzar).toBe(false) // "will" sigue pendiente
+  })
+
+  it('un tema omitido antes sigue contando en los turnos siguientes', async () => {
+    reply({ sintesisItems: items })
+    const d = await run({ omitidos: ['options'] })
+    expect(d.temasOmitidos).toEqual(['options'])
+    expect(d.listoParaAvanzar).toBe(true)
+  })
+
+  it('si después la persona sí lo cuenta, deja de figurar como omitido', async () => {
+    reply({ objetivosCubiertos: [...three, 'options'], sintesisItems: [...items, { id: 'options', texto: 'Ve tres caminos.', cita: '' }] })
+    const d = await run({ omitidos: ['options'], cubiertos: three })
+    expect(d.temasOmitidos).toEqual([])
+    expect(d.sintesisItems.find((i) => i.id === 'options')?.omitido).toBeUndefined()
+  })
+
+  it('en un turno de seguimiento sin mapa nuevo no se manda un mapa con solo los temas dejados', async () => {
+    reply({ mensaje: 'De nada.', sintesisItems: [] })
+    const d = await run({ omitidos: ['options'], etapaCerrada: true })
+    expect(d.listoParaAvanzar).toBe(true)
+    expect(d.sintesisItems).toEqual([]) // el cliente conserva el mapa anterior
+  })
+
+  it('valida el payload', async () => {
+    expect((await runEndpoint('coach', makeReq(turnBody({ omitidos: 'options' })), KEY)).status).toBe(400)
+    expect((await runEndpoint('coach', makeReq(turnBody({ omitidos: [1, 2] })), KEY)).status).toBe(400)
+  })
+
+  it('le dice al modelo qué temas se pueden dejar, cuáles no, y cuál ya está omitido', () => {
+    const prompt = buildTurnSystemPrompt({ stage: 'diagnostico', path: 'quiebre', sintesisPrevias: {}, cubiertos: ['goal'], omitidos: ['options'], intentos: {} })
+    expect(prompt).toMatch(/"goal" \[cubierto\] \(NO se puede dejar/)
+    expect(prompt).toMatch(/"options" \[OMITIDO — la persona eligió dejarlo para más adelante\] \(se puede dejar/)
+    expect(prompt).toMatch(/"reality" \[pendiente[^\]]*\] \(NO se puede dejar/)
+    expect(prompt).toMatch(/como máximo 1 por etapa/)
   })
 })
 

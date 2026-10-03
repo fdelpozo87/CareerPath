@@ -9,7 +9,7 @@ import type { DocTipo, ProfileDoc } from '../../lib/coach/types'
 export function LinkedInHowTo({ compact = false }: { compact?: boolean }) {
   return (
     <details className={compact ? 'text-[11px] text-text-muted' : 'text-xs text-text-muted'}>
-      <summary className="cursor-pointer font-semibold text-primary-ink underline-offset-2 hover:underline">
+      <summary className="cursor-pointer font-semibold text-primary underline-offset-2 hover:underline">
         ¿Cómo bajo mi perfil de LinkedIn en PDF?
       </summary>
       <ol className="mt-2 list-decimal space-y-1 pl-4 leading-relaxed">
@@ -26,14 +26,16 @@ export function LinkedInHowTo({ compact = false }: { compact?: boolean }) {
   )
 }
 
-const SLOT_COPY: Record<DocTipo, { title: string; hint: string; placeholder: string }> = {
+const SLOT_COPY: Record<DocTipo, { title: string; desc: string; hint: string; placeholder: string }> = {
   cv: {
     title: 'Tu CV',
+    desc: 'El que mandás cuando te postulás.',
     hint: 'PDF, máximo 3 MB',
     placeholder: 'Pegá el texto de tu CV tal como está hoy.',
   },
   linkedin: {
     title: 'Tu perfil de LinkedIn',
+    desc: 'Se baja en PDF desde tu perfil (te explico cómo, abajo).',
     hint: 'El PDF que exporta LinkedIn, máximo 3 MB',
     placeholder: 'Pegá tu titular, el “Acerca de” y tu experiencia tal como están hoy en LinkedIn.',
   },
@@ -53,9 +55,10 @@ export function DocSlot({ tipo, draft, onChange }: { tipo: DocTipo; draft: DocDr
   return (
     <div className="rounded-xl border border-border-color p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-foreground">
-          {copy.title} <span className="font-normal text-text-muted">(opcional)</span>
-        </p>
+        <div>
+          <p className="text-sm font-semibold text-foreground">{copy.title}</p>
+          <p className="text-xs text-text-muted">{copy.desc}</p>
+        </div>
         <div className="flex gap-1 text-xs" role="group" aria-label={`Cómo cargar ${copy.title.toLowerCase()}`}>
           {(['pdf', 'texto'] as const).map((m) => (
             <button
@@ -63,7 +66,7 @@ export function DocSlot({ tipo, draft, onChange }: { tipo: DocTipo; draft: DocDr
               type="button"
               aria-pressed={draft.mode === m}
               onClick={() => onChange({ ...draft, mode: m })}
-              className={`rounded-full border px-2.5 py-1 transition ${draft.mode === m ? 'border-primary bg-orange-50 font-semibold text-primary-ink' : 'border-border-color text-text-muted hover:bg-gray-50'}`}
+              className={`rounded-full border px-2.5 py-1 transition ${draft.mode === m ? 'border-primary bg-secondary font-semibold text-primary' : 'border-border-color text-text-muted hover:bg-secondary'}`}
             >
               {m === 'pdf' ? 'PDF' : 'Pegar texto'}
             </button>
@@ -89,10 +92,10 @@ export function DocSlot({ tipo, draft, onChange }: { tipo: DocTipo; draft: DocDr
                 : `${copy.title}: elegir un archivo PDF`
             }
             className="block w-full cursor-pointer rounded-lg border-2 border-dashed p-5 text-center transition"
-            style={{ borderColor: draft.file ? '#047857' : '#e5e7eb', background: draft.file ? '#f0fdf4' : 'white' }}
+            style={{ borderColor: draft.file ? 'var(--color-primary)' : 'var(--color-border-color)', background: draft.file ? 'var(--color-primary-soft)' : 'var(--color-card)' }}
           >
             {draft.file ? (
-              <span className="block text-sm font-semibold text-green-800">✓ {draft.file.name}</span>
+              <span className="block text-sm font-semibold text-primary">✓ {draft.file.name}</span>
             ) : (
               <>
                 <span className="block text-sm text-foreground">Arrastrá el PDF o hacé click</span>
@@ -126,7 +129,7 @@ export function DocSlot({ tipo, draft, onChange }: { tipo: DocTipo; draft: DocDr
       )}
 
       {error && (
-        <p role="alert" className="mt-2 text-xs text-red-700">
+        <p role="alert" className="mt-2 text-xs text-danger">
           {error}
         </p>
       )}
@@ -155,7 +158,10 @@ export function DocsPanel({
   const faltan = (['cv', 'linkedin'] as const).filter((t) => !docs.some((d) => d.tipo === t))
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
+      <p className="text-sm leading-relaxed text-foreground">
+        Si querés, compartí tu CV o tu LinkedIn: me ayuda a conocer tu historia y a hacerte mejores preguntas.
+      </p>
       {docs.map((d) => (
         <p key={d.tipo} className="text-xs text-text-muted">
           ✓ {DOC_LABEL[d.tipo]}: {d.nombre}
@@ -174,7 +180,7 @@ export function DocsPanel({
                     setPending(t)
                     inputRef.current?.click()
                   }}
-                  className="text-xs font-semibold text-primary-ink underline underline-offset-2"
+                  className="text-xs font-semibold text-primary underline underline-offset-2"
                 >
                   Sumar {t === 'cv' ? 'mi CV' : 'mi LinkedIn'}
                 </button>
@@ -199,12 +205,12 @@ export function DocsPanel({
         )
       )}
       {error && (
-        <p role="alert" className="text-xs text-red-700">
+        <p role="alert" className="text-xs text-danger">
           {error}
         </p>
       )}
       <p className="pt-1 text-[11px] leading-snug text-text-muted">
-        Opcional y solo como contexto: puedo preguntarte sobre lo que dice, pero no lo voy a corregir ni reescribir.
+        Es opcional y solo lo uso como contexto: puedo preguntarte por lo que dice, pero no lo corrijo ni lo reescribo.
       </p>
     </div>
   )

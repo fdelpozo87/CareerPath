@@ -1,12 +1,12 @@
+import Logo from './Logo'
+
 export default function Footer() {
   return (
     <footer className="border-t border-border-color py-10 md:py-14">
       <div className="section-container">
         <div className="mb-10 grid gap-8 text-sm md:grid-cols-3">
           <div>
-            <div className="mb-3 text-base font-semibold tracking-tight text-foreground">
-              Career<span className="text-primary-ink">Path</span>
-            </div>
+            <Logo className="mb-3" />
             <p className="text-text-muted">Tu próximo paso de carrera, pensado con vos.</p>
           </div>
           <div>

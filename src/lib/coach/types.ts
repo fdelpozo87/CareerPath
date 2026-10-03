@@ -1,13 +1,25 @@
-import type { Path, Stage } from '../../../shared/stages'
+import type { Path, Stage, SynthesisItem } from '../../../shared/stages'
 
-export type { Path, Stage }
+export type { Path, Stage, SynthesisItem }
 
 export interface TurnResult {
   mensaje: string
+  /** Tema (id) sobre el que gira la pregunta de este turno; "" si ninguno. */
+  temaEnFoco: string
+  /** Temas (ids) que la persona eligió dejar para más adelante. No son temas cubiertos. */
+  temasOmitidos: string[]
   objetivosCubiertos: string[]
   listoParaAvanzar: boolean
   derivacion: boolean
   sintesisEtapa: string
+  sintesisItems: SynthesisItem[]
+  preguntaPuente: string
+}
+
+/** El mapa con el que cierra una etapa (lo que la persona dijo, ordenado). */
+export interface StageMap {
+  items: SynthesisItem[]
+  pregunta: string
 }
 
 export interface UiMessage {
@@ -20,6 +32,8 @@ export interface UiMessage {
   hidden?: boolean
   stage: Stage
   derivacion?: boolean
+  /** Este mensaje del coach cerró la etapa: el mapa se muestra justo después. */
+  cierraEtapa?: boolean
 }
 
 export type DocTipo = 'cv' | 'linkedin'
@@ -76,7 +90,13 @@ export interface Session {
   messages: UiMessage[]
   cubiertos: Record<Stage, string[]>
   sintesis: Partial<Record<Stage, string>>
-  /** La etapa actual cumplió la regla de avance y espera que la persona continúe. */
+  /** Tema de la etapa sobre el que está preguntando el coach ahora (para resaltarlo en el encabezado). */
+  foco?: string
+  /** Temas que la persona eligió dejar para más adelante, por etapa. */
+  omitidos?: Partial<Record<Stage, string[]>>
+  /** El mapa de cierre de cada etapa, para mostrarlo en pantalla. */
+  mapas?: Partial<Record<Stage, StageMap>>
+  /** La etapa actual está cerrada y espera que la persona avance. Una vez cerrada, no se reabre sola. */
   stageReady: boolean
   /** CV y/o LinkedIn: como mucho uno de cada tipo. */
   documentos: ProfileDoc[]

@@ -4,6 +4,7 @@ import { extractPdfText, requestReport, requestTurn } from '../../lib/coach/api'
 import { saveSession } from '../../lib/coach/session'
 import type { DocTipo, Session, Stage, TurnResult, UiMessage } from '../../lib/coach/types'
 import { trackEvent, type FunnelEvent } from '../../lib/tracking'
+import Logo from '../Logo'
 import { ChatView } from './ChatView'
 import { ProfileStep } from './ProfileStep'
 import { ReportView } from './ReportView'
@@ -38,19 +39,30 @@ function withOpening(s: Session): Session {
 
 function applyTurn(prev: Session, stage: Stage, turn: TurnResult): Session {
   if (prev.stage !== stage) return prev
+  // ¿Este turno trae un mapa nuevo (o actualizado)? Solo entonces el mapa se ubica después de este mensaje.
+  const entregaMapa = turn.listoParaAvanzar && (turn.sintesisItems.length > 0 || turn.sintesisEtapa.length > 0)
   const msg: UiMessage = {
     role: 'model',
     text: turn.mensaje,
     raw: JSON.stringify(turn),
     stage,
     derivacion: turn.derivacion || undefined,
+    cierraEtapa: entregaMapa || undefined,
   }
   return {
     ...prev,
     messages: [...prev.messages, msg],
     cubiertos: { ...prev.cubiertos, [stage]: turn.objetivosCubiertos },
-    stageReady: turn.listoParaAvanzar,
-    sintesis: turn.listoParaAvanzar ? { ...prev.sintesis, [stage]: turn.sintesisEtapa } : prev.sintesis,
+    // Una etapa cerrada no se reabre: lo que la persona escriba después (un "gracias", un ajuste)
+    // no hace desaparecer el mapa ni el botón para seguir. Solo avanzar de etapa lo reinicia.
+    stageReady: prev.stageReady || turn.listoParaAvanzar,
+    foco: turn.temaEnFoco || undefined,
+    omitidos: { ...prev.omitidos, [stage]: turn.temasOmitidos },
+    sintesis: entregaMapa && turn.sintesisEtapa ? { ...prev.sintesis, [stage]: turn.sintesisEtapa } : prev.sintesis,
+    mapas:
+      turn.listoParaAvanzar && turn.sintesisItems.length > 0
+        ? { ...prev.mapas, [stage]: { items: turn.sintesisItems, pregunta: turn.preguntaPuente } }
+        : prev.mapas,
     updatedAt: new Date().toISOString(),
   }
 }
@@ -88,7 +100,7 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
       setDemo(isDemo)
       setSession((prev) => applyTurn(prev, snapshot.stage, data))
       if (data.derivacion) trackEvent('derivation_shown', { stage: snapshot.stage })
-      if (data.listoParaAvanzar) {
+      if (data.listoParaAvanzar && !snapshot.stageReady) {
         trackEvent('stage_completed', { stage: snapshot.stage, path: snapshot.path })
         trackEvent(STAGE_COMPLETED_EVENT[snapshot.stage], { path: snapshot.path })
       }
@@ -131,7 +143,6 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
   const handleSend = (text: string) => {
     const next: Session = {
       ...session,
-      stageReady: false,
       messages: [...session.messages, { role: 'user', text, stage: session.stage }],
     }
     setSession(next)
@@ -151,7 +162,19 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
       void generateReport(next)
       return
     }
-    startStage({ ...session, stage: STAGE_ORDER[idx + 1], stageReady: false })
+    startStage({ ...session, stage: STAGE_ORDER[idx + 1], stageReady: false, foco: undefined })
+  }
+
+  // La persona quiere volver a un tema que había dejado para más adelante: pasa a estar pendiente de
+  // nuevo y la etapa se reabre (hasta que lo cuente o lo vuelva a dejar).
+  const handleResumeTopic = (id: string) => {
+    setSession((prev) => ({
+      ...prev,
+      omitidos: { ...prev.omitidos, [prev.stage]: (prev.omitidos?.[prev.stage] ?? []).filter((x) => x !== id) },
+      stageReady: false,
+      foco: id,
+      updatedAt: new Date().toISOString(),
+    }))
   }
 
   const handleAttachDoc = async (tipo: DocTipo, file: File) => {
@@ -184,15 +207,15 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
   const stageIdx = STAGE_ORDER.indexOf(session.stage)
 
   return (
-    <div className="flex min-h-screen flex-col bg-background font-sans">
+    // En el chat la página ocupa exactamente la pantalla y no scrollea: lo único que se desplaza es la
+    // conversación. Así, al llegar al final, el scroll no "se escapa" y se lleva la tarjeta del chat.
+    <div className={`flex flex-col bg-background font-sans ${session.phase === 'chat' ? 'h-dvh overflow-hidden' : 'min-h-screen'}`}>
       <header className="sticky top-0 z-50 border-b border-border-color bg-background/90 backdrop-blur-sm print:hidden">
         <div className="section-container flex items-center gap-4 py-4">
           <button onClick={onExit} className="text-sm text-text-muted transition-colors hover:text-foreground">
             ← Inicio
           </button>
-          <span className="text-base font-semibold tracking-tight text-foreground">
-            Career<span className="text-primary-ink">Path</span>
-          </span>
+          <Logo />
           <ol role="list" aria-label="Etapas del proceso" className="ml-auto hidden items-center gap-4 text-xs sm:flex">
             {session.path === 'perfil' && (
               <li className={session.phase === 'perfil' ? 'font-semibold text-foreground' : 'text-text-muted'}>Tu perfil</li>
@@ -205,7 +228,7 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
                   key={s}
                   aria-current={active ? 'step' : undefined}
                   className="flex items-center gap-1.5"
-                  style={{ color: active ? STAGE_COLOR[s] : done ? '#111' : '#636a76' }}
+                  style={{ color: active ? STAGE_COLOR[s] : done ? 'var(--color-foreground)' : 'var(--color-text-muted)' }}
                 >
                   <span aria-hidden="true">{done ? '✓' : `${i + 1}.`}</span>{' '}
                   <span className={active ? 'font-semibold' : ''}>{STAGE_LABEL[s]}</span>
@@ -217,7 +240,7 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-8">
+      <main className={`flex-1 px-3 sm:px-4 ${session.phase === 'chat' ? 'min-h-0 py-3 sm:py-6' : 'py-8'}`}>
         {/* Encabezado para lectores de pantalla: cada fase se ubica por su h1. */}
         <h1 ref={headingRef} tabIndex={-1} className="sr-only">
           {session.phase === 'perfil'
@@ -249,6 +272,7 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
             onSend={handleSend}
             onRetry={handleRetry}
             onAdvance={handleAdvance}
+            onResumeTopic={handleResumeTopic}
             onAttachDoc={handleAttachDoc}
             docStatus={docStatus}
           />
@@ -267,7 +291,7 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
               onRestart={onRestart}
             />
           ) : error ? (
-            <div className="mx-auto max-w-md rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+            <div className="mx-auto max-w-md rounded-xl border border-danger/20 bg-danger-soft p-4 text-sm text-danger">
               {error}{' '}
               <button onClick={handleRetry} className="font-semibold underline underline-offset-2">
                 Reintentar

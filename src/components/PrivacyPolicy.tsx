@@ -1,3 +1,5 @@
+import Logo from './Logo'
+
 // Política de privacidad y términos de uso.
 // BORRADOR: redactado a partir de lo que la app hace hoy con los datos. Antes
 // de publicarlo debe revisarlo un/a abogado/a (Ley 25.326 de Protección de
@@ -14,9 +16,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
           <button onClick={onBack} className="text-sm text-text-muted transition-colors hover:text-foreground">
             ← Volver
           </button>
-          <span className="text-base font-semibold tracking-tight text-foreground">
-            Career<span className="text-primary-ink">Path</span>
-          </span>
+          <Logo />
         </div>
       </header>
 

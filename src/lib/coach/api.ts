@@ -55,6 +55,8 @@ export function requestTurn(session: Session) {
     mode: 'turno',
     stage: session.stage,
     cubiertos: session.cubiertos[session.stage],
+    etapaCerrada: session.stageReady,
+    omitidos: session.omitidos?.[session.stage] ?? [],
     ...sharedContext(session),
   })
 }

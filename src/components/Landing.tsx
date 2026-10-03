@@ -1,21 +1,44 @@
+import type { ReactNode } from 'react'
 import type { Path, Session } from '../lib/coach/types'
 import { STAGE_LABEL } from '../../shared/stages'
 
 // Pantalla de inicio — Variante 1 del mockup de Lovable ("Dos caminos lado a
 // lado"). Los dos caminos del guardrail (§1 y §4) quedan visibles de entrada.
 
-const PATHS: { id: Path; tag: string; icon: string; title: string; body: string }[] = [
+const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const
+
+function RouteIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" {...stroke}>
+      <path d="M17 2l4 4-4 4" />
+      <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+      <path d="M7 22l-4-4 4-4" />
+      <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+    </svg>
+  )
+}
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" {...stroke}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  )
+}
+
+const PATHS: { id: Path; tag: string; icon: ReactNode; title: string; body: string }[] = [
   {
     id: 'quiebre',
     tag: 'Camino A',
-    icon: '≋',
+    icon: <RouteIcon />,
     title: 'Me siento estancado/a y no sé qué hacer con eso',
     body: 'Llevás un tiempo con la misma duda: ¿me quedo, intento crecer acá o toca cambiar de rumbo? Podemos ponerle palabras y orden de prioridad a esa pregunta.',
   },
   {
     id: 'perfil',
     tag: 'Camino B',
-    icon: '⌕',
+    icon: <SearchIcon />,
     title: 'Quiero explorar el mercado, empezando por mi perfil',
     body: 'Te interesan nuevas oportunidades, pero antes de salir a buscar querés saber qué comunica tu perfil hoy para los puestos que te atraen.',
   },
@@ -32,7 +55,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
     <section id="profesional" className="py-16 md:py-24">
       <div className="section-container">
         {saved && (
-          <div className="mx-auto mb-12 flex max-w-4xl flex-col gap-3 rounded-2xl border border-primary/20 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mx-auto mb-12 flex max-w-4xl flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-foreground">Tenés un proceso en curso</p>
               <p className="text-sm text-text-muted">
@@ -50,7 +73,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
         )}
 
         <div className="mx-auto mb-12 max-w-3xl text-center">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary-ink">Tu coach de carrera con IA</p>
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">Tu coach de carrera con IA</p>
           <h1 className="mb-5 leading-tight">Antes de empezar: ¿dónde estás parada o parado hoy?</h1>
           <p className="mx-auto max-w-xl text-lg leading-relaxed text-text-muted">
             Elegí el punto de partida que más se parezca a tu situación. No es un test y no queda nada definido hoy: lo
@@ -62,10 +85,10 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
           {PATHS.map((p, i) => (
             <div key={p.id} className="card flex flex-col p-7">
               <div className="mb-6 flex items-center justify-between">
-                <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-ink">
+                <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
                   {p.tag}
                 </span>
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 text-lg text-primary-ink" aria-hidden>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-lg text-primary" aria-hidden>
                   {p.icon}
                 </span>
               </div>
@@ -88,7 +111,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
           <ol className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
             {(['diagnostico', 'discovery', 'plan'] as const).map((s, i) => (
               <li key={s} className="flex items-center gap-2.5 text-sm text-foreground">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border-color bg-white text-xs font-semibold text-primary-ink">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border-color bg-card text-xs font-semibold text-primary">
                   {i + 1}
                 </span>
                 {s === 'discovery' ? 'Exploración de opciones' : STAGE_LABEL[s]}

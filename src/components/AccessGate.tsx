@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { checkAccess, saveAccessCode } from '../lib/access'
+import Logo from './Logo'
 
 // Pantalla de acceso de prueba: mientras CareerPath se prueba fuera de local,
 // solo entra quien tiene un código de invitación. El código lo valida el
@@ -40,8 +41,8 @@ export default function AccessGate({ initialError, onGranted }: AccessGateProps)
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans">
       <header className="border-b border-border-color">
-        <div className="section-container py-4 text-xl font-semibold tracking-tight text-foreground">
-          Career<span className="text-primary-ink">Path</span>
+        <div className="section-container py-4">
+          <Logo />
         </div>
       </header>
 
@@ -71,7 +72,7 @@ export default function AccessGate({ initialError, onGranted }: AccessGateProps)
               aria-describedby={error ? 'codigo-error' : undefined}
               className="w-full rounded-xl border border-border-color p-3 font-mono text-sm tracking-wider outline-none focus:border-primary"
             />
-            <div id="codigo-error" role="alert" className="min-h-6 pt-2 text-sm text-red-700">
+            <div id="codigo-error" role="alert" className="min-h-6 pt-2 text-sm text-danger">
               {error}
             </div>
             <button type="submit" disabled={!code.trim() || busy} className="btn-primary mt-2 w-full py-3 disabled:cursor-not-allowed disabled:opacity-40">

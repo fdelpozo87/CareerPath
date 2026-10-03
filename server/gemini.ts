@@ -3,6 +3,38 @@ import { logEvent, upstreamStatus } from './guard.js'
 // Anti-error para las llamadas a Gemini: reintenta una vez ante fallas
 // transitorias (sobrecarga, timeout, JSON cortado) antes de rendirse.
 
+/** Lo mínimo que usamos de la respuesta del SDK (evita depender de sus tipos internos). */
+interface GeminiResponse {
+  text: () => string
+  candidates?: { finishReason?: string }[]
+  promptFeedback?: { blockReason?: string }
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number }
+}
+
+// Devuelve el texto de la respuesta. Si no trae ningún JSON, deja en el log POR QUÉ
+// (motivo de corte, bloqueo, tokens): sin esto un "la IA no devolvió nada" no se puede
+// diagnosticar. Solo metadatos: nunca el contenido de la conversación.
+export function responseText(response: GeminiResponse, where: string): string {
+  let text = ''
+  try {
+    text = response.text()
+  } catch {
+    // Respuesta bloqueada: el SDK lanza al pedir el texto. Se registra abajo.
+  }
+  if (!text.includes('{')) {
+    logEvent('warn', 'gemini_sin_json', {
+      where,
+      finishReason: response.candidates?.[0]?.finishReason ?? 'desconocido',
+      blockReason: response.promptFeedback?.blockReason ?? 'ninguno',
+      chars: text.length,
+      promptTokens: response.usageMetadata?.promptTokenCount ?? -1,
+      outputTokens: response.usageMetadata?.candidatesTokenCount ?? -1,
+      thoughtTokens: response.usageMetadata?.thoughtsTokenCount ?? -1,
+    })
+  }
+  return text
+}
+
 const TRANSIENT = new Set([429, 500, 502, 503, 504])
 
 export function parseJson<T>(text: string): T {

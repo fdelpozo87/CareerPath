@@ -39,7 +39,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
 
       <div className="flex flex-col gap-4">
         <div className="card">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary-ink">Objetivo de la sesión</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Objetivo de la sesión</p>
           <p className="text-sm leading-relaxed text-foreground">{report.objetivoSesion}</p>
         </div>
 
@@ -71,19 +71,19 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
               if (!editing && !selected.includes(i)) return null
               return (
                 <li key={i}>
-                  <label className={`flex gap-3 rounded-xl border border-border-color p-4 ${editing ? 'cursor-pointer hover:bg-gray-50' : ''}`}>
+                  <label className={`flex gap-3 rounded-xl border border-border-color p-4 ${editing ? 'cursor-pointer hover:bg-secondary' : ''}`}>
                     {editing && (
                       <input type="checkbox" checked={selected.includes(i)} onChange={() => toggle(i)} className="mt-1 accent-orange-500 print:hidden" />
                     )}
                     <div className="flex-1">
                       <p className="text-sm font-medium leading-relaxed text-foreground">{a.texto}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
-                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-text-muted">{BLOQUE_LABEL[a.bloque] ?? a.bloque}</span>
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-text-muted">{BLOQUE_LABEL[a.bloque] ?? a.bloque}</span>
                         {TIPO_LABEL[a.tipo] && (
-                          <span className="rounded-full bg-orange-50 px-2 py-0.5 font-semibold text-primary-ink">{TIPO_LABEL[a.tipo]}</span>
+                          <span className="rounded-full bg-secondary px-2 py-0.5 font-semibold text-primary">{TIPO_LABEL[a.tipo]}</span>
                         )}
                         {a.cuatroC?.filter(Boolean).map((c) => (
-                          <span key={c} className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-700">
+                          <span key={c} className="rounded-full bg-secondary px-2 py-0.5 text-primary">
                             + {c}
                           </span>
                         ))}
@@ -96,7 +96,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
             })}
           </ul>
           {editing && !hasPedido && (
-            <p className="mt-3 text-xs text-amber-700">
+            <p className="mt-3 text-xs text-accent-ink">
               Ninguna acción quedó como un pedido concreto a alguien. Si querés, volvé a pensarlo: ¿a quién le podrías pedir algo esta semana?
             </p>
           )}
@@ -109,8 +109,8 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
         </div>
 
         {report.preguntaAbierta && (
-          <div className="ai-tint rounded-2xl p-6" style={{ borderLeft: '3px solid #f97316' }}>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary-ink">Para llevarte</p>
+          <div className="ai-tint rounded-2xl p-6" style={{ borderLeft: '3px solid var(--color-accent)' }}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Para llevarte</p>
             <p className="italic leading-relaxed text-foreground">{report.preguntaAbierta}</p>
           </div>
         )}
@@ -138,7 +138,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
             </button>
           </>
         )}
-        <button onClick={onRestart} className="rounded-xl border border-border-color px-5 py-3.5 text-sm text-text-muted transition hover:bg-white">
+        <button onClick={onRestart} className="rounded-xl border border-border-color px-5 py-3.5 text-sm text-text-muted transition hover:bg-card">
           Empezar de nuevo
         </button>
       </div>

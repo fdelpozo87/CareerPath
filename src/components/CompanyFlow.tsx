@@ -232,12 +232,12 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
     <div className="mx-auto max-w-lg py-12">
       <div className="mb-8 text-center">
         <div
-          className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm"
+          className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-card shadow-sm"
           style={{ border: '1px solid #e5e7eb' }}
         >
           <span className="text-2xl">◈</span>
         </div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary-ink">Para Líderes y RRHH</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Para Líderes y RRHH</p>
         <h2 className="mb-3">Preparar conversación de desarrollo</h2>
         <p className="leading-relaxed text-text-muted">
           Describís la situación de un colaborador y la IA te genera un{' '}
@@ -257,7 +257,7 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
             'Próximos pasos concretos para vos como líder',
           ].map((item) => (
             <li key={item} className="flex items-start gap-2.5 text-sm text-text-muted">
-              <span className="mt-0.5 font-bold text-primary-ink">→</span>
+              <span className="mt-0.5 font-bold text-primary">→</span>
               {item}
             </li>
           ))}
@@ -343,7 +343,7 @@ function ContextForm({
             <select
               value={seniority}
               onChange={(e) => setSeniority(e.target.value)}
-              className="w-full rounded-xl border border-border-color bg-white p-3 text-sm outline-none transition-colors focus:border-primary"
+              className="w-full rounded-xl border border-border-color bg-card p-3 text-sm outline-none transition-colors focus:border-primary"
             >
               <option value="">Seleccioná</option>
               <option>Junior (0-2 años)</option>
@@ -360,7 +360,7 @@ function ContextForm({
             <select
               value={tiempo}
               onChange={(e) => setTiempo(e.target.value)}
-              className="w-full rounded-xl border border-border-color bg-white p-3 text-sm outline-none transition-colors focus:border-primary"
+              className="w-full rounded-xl border border-border-color bg-card p-3 text-sm outline-none transition-colors focus:border-primary"
             >
               <option value="">Seleccioná</option>
               <option>Menos de 6 meses</option>
@@ -405,7 +405,7 @@ function ContextForm({
       <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="rounded-xl border border-border-color px-5 py-3 text-sm text-text-muted transition hover:bg-white"
+          className="rounded-xl border border-border-color px-5 py-3 text-sm text-text-muted transition hover:bg-card"
         >
           ← Atrás
         </button>
@@ -487,7 +487,7 @@ function QuestionsScreen({
       <div className="flex gap-3">
         <button
           onClick={idx === 0 ? onBack : () => setIdx((i) => i - 1)}
-          className="rounded-xl border border-border-color px-5 py-3 text-sm text-text-muted transition hover:bg-white"
+          className="rounded-xl border border-border-color px-5 py-3 text-sm text-text-muted transition hover:bg-card"
         >
           ← Atrás
         </button>
@@ -533,7 +533,7 @@ function DocUploadScreen({
     <div className="mx-auto max-w-lg">
       <div className="mb-8 text-center">
         <div
-          className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm"
+          className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-card shadow-sm"
           style={{ border: '1px solid #e5e7eb' }}
         >
           <span className="text-2xl">⬆</span>
@@ -562,8 +562,8 @@ function DocUploadScreen({
       >
         {file ? (
           <>
-            <span className="mb-2 block text-3xl text-green-700" aria-hidden="true">✓</span>
-            <span className="block font-semibold text-green-800">{file.name}</span>
+            <span className="mb-2 block text-3xl text-primary" aria-hidden="true">✓</span>
+            <span className="block font-semibold text-primary">{file.name}</span>
             <span className="mt-1 block text-xs text-text-muted">{(file.size / 1024).toFixed(0)} KB · Click para cambiar</span>
           </>
         ) : (
@@ -587,7 +587,7 @@ function DocUploadScreen({
       <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="rounded-xl border border-border-color px-5 py-3 text-sm text-text-muted transition hover:bg-white"
+          className="rounded-xl border border-border-color px-5 py-3 text-sm text-text-muted transition hover:bg-card"
         >
           ← Atrás
         </button>
@@ -724,7 +724,7 @@ function ResultScreen({
 
         {/* Mensaje para el líder — AI tint, prominente */}
         <div className="ai-tint rounded-2xl p-6" style={{ borderLeft: '3px solid #f97316' }}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary-ink">Para vos como líder</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Para vos como líder</p>
           <p className="italic leading-relaxed text-foreground">"{result.mensajeParaElLider}"</p>
         </div>
 
@@ -758,7 +758,7 @@ function ResultScreen({
             <ul className="space-y-2">
               {result.fortalezasDelColaborador.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm text-text-muted">
-                  <span className="mt-0.5 font-bold text-primary-ink">·</span>
+                  <span className="mt-0.5 font-bold text-primary">·</span>
                   {f}
                 </li>
               ))}
@@ -769,7 +769,7 @@ function ResultScreen({
             <ol className="space-y-3">
               {result.hipotesisPrincipales.map((h, i) => (
                 <li key={i} className="flex gap-2.5">
-                  <span className="mt-0.5 shrink-0 text-sm font-semibold text-primary-ink">{i + 1}.</span>
+                  <span className="mt-0.5 shrink-0 text-sm font-semibold text-primary">{i + 1}.</span>
                   <p className="text-sm leading-relaxed text-text-muted">{h}</p>
                 </li>
               ))}
@@ -783,9 +783,9 @@ function ResultScreen({
             Guía de Conversación 1:1
           </p>
           <div className="space-y-4">
-            <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-amber-700">Apertura</p>
-              <p className="text-sm leading-relaxed text-amber-900">{result.guiaDeConversacion.apertura}</p>
+            <div className="rounded-xl border border-amber-100 bg-accent-soft p-4">
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-accent-ink">Apertura</p>
+              <p className="text-sm leading-relaxed text-accent-ink">{result.guiaDeConversacion.apertura}</p>
             </div>
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">Preguntas Clave</p>
@@ -793,16 +793,16 @@ function ResultScreen({
                 {result.guiaDeConversacion.preguntasClave.map((p, i) => (
                   <li
                     key={i}
-                    className="flex gap-3 rounded-xl border border-border-color bg-white p-3.5"
+                    className="flex gap-3 rounded-xl border border-border-color bg-card p-3.5"
                   >
-                    <span className="shrink-0 text-sm font-bold text-primary-ink">{i + 1}</span>
+                    <span className="shrink-0 text-sm font-bold text-primary">{i + 1}</span>
                     <p className="text-sm leading-relaxed text-foreground">{p}</p>
                   </li>
                 ))}
               </ol>
             </div>
-            <div className="rounded-xl border border-green-100 bg-green-50 p-4">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-green-700">Cierre</p>
+            <div className="rounded-xl border border-primary/20 bg-primary-soft p-4">
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-primary">Cierre</p>
               <p className="text-sm leading-relaxed text-green-900">{result.guiaDeConversacion.cierre}</p>
             </div>
           </div>
@@ -815,7 +815,7 @@ function ResultScreen({
           </p>
           <div className="space-y-3">
             {/* 70% */}
-            <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
+            <div className="rounded-xl border border-orange-100 bg-secondary p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-orange-700">
                 70% — En el trabajo
               </p>
@@ -829,8 +829,8 @@ function ResultScreen({
               </ul>
             </div>
             {/* 20% */}
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-indigo-700">
+            <div className="rounded-xl border border-indigo-100 bg-secondary p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
                 20% — De otros
               </p>
               <ul className="space-y-2">
@@ -860,7 +860,7 @@ function ResultScreen({
         </div>
 
         {/* Próximos pasos */}
-        <div className="rounded-2xl border border-border-color bg-white p-5"
+        <div className="rounded-2xl border border-border-color bg-card p-5"
           style={{ boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)' }}>
           <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-text-muted">
             Próximos Pasos — Para vos como líder
@@ -885,7 +885,7 @@ function ResultScreen({
       <div className="mt-8 flex flex-wrap gap-3">
         <button
           onClick={() => window.print()}
-          className="rounded-xl border border-border-color px-6 py-4 text-sm text-text-muted transition hover:bg-white"
+          className="rounded-xl border border-border-color px-6 py-4 text-sm text-text-muted transition hover:bg-card"
         >
           Imprimir / Guardar PDF
         </button>
@@ -954,9 +954,9 @@ export function CompanyFlow({ onBack }: { onBack: () => void }) {
             ← Inicio
           </button>
           <span className="text-base font-semibold tracking-tight text-foreground">
-            Career<span className="text-primary-ink">Path</span>
+            Career<span className="text-primary">Path</span>
           </span>
-          <span className="ml-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary-ink">
+          <span className="ml-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
             Empresas
           </span>
           {stepLabels[step] && (
@@ -969,7 +969,7 @@ export function CompanyFlow({ onBack }: { onBack: () => void }) {
 
       <main className="flex-1 px-4 py-10">
         {error && (
-          <div className="mx-auto mb-6 max-w-2xl rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mx-auto mb-6 max-w-2xl rounded-xl border border-danger/20 bg-danger-soft p-4 text-sm text-danger">
             ⚠ {error}
           </div>
         )}

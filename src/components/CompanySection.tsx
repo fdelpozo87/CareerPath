@@ -36,7 +36,7 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
 
         {/* Header */}
         <div className="mb-14 text-center">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary-ink">Para Empresas</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">Para Empresas</p>
           <h2 className="mb-4">
             Escalá el desarrollo de tu equipo<br className="hidden md:block" /> sin escalar la estructura.
           </h2>
@@ -71,7 +71,7 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
           <ul className="space-y-3">
             {outputs.map((item) => (
               <li key={item} className="flex items-start gap-2.5 text-sm text-foreground">
-                <span className="mt-0.5 font-bold text-primary-ink">→</span>
+                <span className="mt-0.5 font-bold text-primary">→</span>
                 {item}
               </li>
             ))}
@@ -105,11 +105,11 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
 
         {/* CTA block */}
         <div
-          className="rounded-2xl border border-border-color bg-white p-8 md:p-12"
+          className="rounded-2xl border border-border-color bg-card p-8 md:p-12"
           style={{ boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)' }}
         >
           <div className="mx-auto max-w-xl text-center">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary-ink">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
               Fase 1 · Sin integración requerida
             </p>
             <h3 className="mb-3">Probalo ahora con un caso real</h3>

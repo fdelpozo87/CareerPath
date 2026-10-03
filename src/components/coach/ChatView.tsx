@@ -77,8 +77,8 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <section aria-label="Conversación con tu coach" className="card flex h-[calc(100dvh-7.5rem)] min-h-[30rem] flex-col overflow-hidden p-0 sm:h-[calc(100dvh-8.5rem)]">
+    <div className="mx-auto h-full w-full max-w-3xl">
+      <section aria-label="Conversación con tu coach" className="card relative flex h-full min-h-0 flex-col overflow-hidden p-0">
         <CardHeader session={session} docStatus={docStatus} onAttachDoc={onAttachDoc} />
 
         {/* Región con scroll propio: enfocable con teclado (tabIndex) para poder leer el historial. */}
@@ -88,7 +88,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
           aria-live="polite"
           aria-label="Conversación"
           tabIndex={0}
-          className="flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6"
+          className="relative flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6"
         >
           {demo && (
             <div className="rounded-xl border border-accent/30 bg-accent-soft px-4 py-2.5 text-xs text-accent-ink">
@@ -156,7 +156,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
           </div>
         )}
 
-        <footer className="border-t border-border-color bg-card p-3 sm:p-4">
+        <footer className="border-t border-border-color bg-card p-3 sm:p-4 [@media(max-height:560px)]:p-2">
           <div className="flex items-end gap-2 rounded-2xl border border-border-color bg-background p-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
             <textarea
               ref={inputRef}
@@ -178,7 +178,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
               Enviar
             </button>
           </div>
-          <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] text-text-muted">
+          <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] text-text-muted [@media(max-height:560px)]:hidden">
             <span>{touch ? 'Tocá Enviar cuando termines' : 'Enter para enviar · Shift+Enter para un salto de línea'}</span>
             <span className="inline-flex items-center gap-1">
               <LockIcon /> Lo que escribís queda en tu navegador
@@ -208,7 +208,7 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
         <CoachAvatar />
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-lg leading-tight text-foreground">Tu coach de carrera</p>
-          <p className="truncate text-xs text-text-muted">Te escucho, sin apuro.</p>
+          <p className="truncate text-xs text-text-muted [@media(max-height:560px)]:hidden">Te escucho, sin apuro.</p>
         </div>
         <button
           type="button"
@@ -247,9 +247,10 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
             </span>
           ))}
         </div>
-        <p className="mt-1.5 hidden text-xs text-text-muted sm:block">Ahora: {intro.queHacemos}</p>
+        <p className="mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden">Ahora: {intro.queHacemos}</p>
 
-        <ul role="list" aria-label="Temas de esta etapa" className="mt-1.5 flex flex-wrap gap-1.5">
+        {/* Con poca altura (teclado abierto, celular horizontal) se deja más lugar a la conversación. */}
+        <ul role="list" aria-label="Temas de esta etapa" className="mt-1.5 flex flex-wrap gap-1.5 [@media(max-height:560px)]:hidden">
           {objetivos.map((o) => {
             const done = cubiertos.includes(o.id)
             const dejado = !done && omitidos.includes(o.id)

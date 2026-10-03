@@ -207,7 +207,9 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
   const stageIdx = STAGE_ORDER.indexOf(session.stage)
 
   return (
-    <div className="flex min-h-screen flex-col bg-background font-sans">
+    // En el chat la página ocupa exactamente la pantalla y no scrollea: lo único que se desplaza es la
+    // conversación. Así, al llegar al final, el scroll no "se escapa" y se lleva la tarjeta del chat.
+    <div className={`flex flex-col bg-background font-sans ${session.phase === 'chat' ? 'h-dvh overflow-hidden' : 'min-h-screen'}`}>
       <header className="sticky top-0 z-50 border-b border-border-color bg-background/90 backdrop-blur-sm print:hidden">
         <div className="section-container flex items-center gap-4 py-4">
           <button onClick={onExit} className="text-sm text-text-muted transition-colors hover:text-foreground">
@@ -238,7 +240,7 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
         </div>
       </header>
 
-      <main className={`flex-1 px-3 sm:px-4 ${session.phase === 'chat' ? 'py-3 sm:py-6' : 'py-8'}`}>
+      <main className={`flex-1 px-3 sm:px-4 ${session.phase === 'chat' ? 'min-h-0 py-3 sm:py-6' : 'py-8'}`}>
         {/* Encabezado para lectores de pantalla: cada fase se ubica por su h1. */}
         <h1 ref={headingRef} tabIndex={-1} className="sr-only">
           {session.phase === 'perfil'

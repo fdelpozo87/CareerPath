@@ -1,21 +1,30 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="scaffolded-by" content="https://github.com/schultek/jaspr">
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- interactive-widget=resizes-content: en Chrome del celular, el teclado achica la página (y el chat) en lugar de taparla. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+    <meta name="description" content="CareerPath - Tu próximo paso de carrera, pensado con vos. Coach de carrera IA disponible para profesionales y empresas." />
+    <meta name="theme-color" content="#005c41" />
 
-        <title>web_jaspr</title>
+    <!-- Fraunces (títulos) + Hanken Grotesk (texto): la tipografía del diseño del equipo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-        <!-- Loads the generated CSS file. -->
-        <!-- This contains all @css declarations from your components. -->
-        <link rel="stylesheet" href="main.css">
+    <title>CareerPath - Tu próximo paso de carrera</title>
 
-        <!-- Loads and runs the compiled 'main.client.dart' file. -->
-        <!-- Can be changed to any other '.client.dart' file inside /lib. -->
-        <script defer src="main.client.dart.js"></script>
-    </head>
-    <body>
-        <!-- Your app component will be inserted here. -->
-    </body>
+    <!-- Estilos de Tailwind (se generan con scripts/build-jaspr-css.mjs) -->
+    <link rel="stylesheet" href="app.css">
+
+    <!-- Métricas anónimas de Vercel (sin cookies). Cola de eventos hasta que cargue el script. -->
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+
+    <script defer src="main.client.dart.js"></script>
+  </head>
+  <body></body>
 </html>

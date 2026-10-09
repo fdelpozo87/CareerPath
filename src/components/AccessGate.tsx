@@ -9,7 +9,7 @@ import Logo from './Logo'
 interface AccessGateProps {
   /** Mensaje inicial, por ejemplo cuando el servidor no tiene el acceso configurado. */
   initialError?: string
-  onGranted: () => void
+  onGranted: (label?: string) => void
 }
 
 export default function AccessGate({ initialError, onGranted }: AccessGateProps) {
@@ -26,8 +26,8 @@ export default function AccessGate({ initialError, onGranted }: AccessGateProps)
     try {
       const status = await checkAccess(value)
       if (status.ok) {
-        saveAccessCode(value)
-        onGranted()
+        saveAccessCode(value, status.label)
+        onGranted(status.label)
         return
       }
       setError(status.error ?? 'Ese código no es válido.')

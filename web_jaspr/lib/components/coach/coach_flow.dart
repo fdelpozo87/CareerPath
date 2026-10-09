@@ -10,6 +10,7 @@ import '../../services/http.dart' show ApiException;
 import '../../services/session_store.dart';
 import '../../services/tracking.dart';
 import '../../ui.dart';
+import '../account_menu.dart';
 import '../logo.dart';
 import 'chat_view.dart';
 import 'profile_step.dart';
@@ -80,10 +81,11 @@ Map<String, dynamic> _turnToJson(TurnResult t) => {
 };
 
 class CoachFlow extends StatefulComponent {
-  const CoachFlow({required this.initialSession, required this.onExit, required this.onRestart, super.key});
+  const CoachFlow({required this.initialSession, required this.onExit, required this.onRestart, required this.account, super.key});
   final Session initialSession;
   final void Function() onExit;
   final void Function() onRestart;
+  final AccountInfo account;
 
   @override
   State<CoachFlow> createState() => _CoachFlowState();
@@ -232,7 +234,7 @@ class _CoachFlowState extends State<CoachFlow> {
 
   Component _stagesNav() {
     final stageIdx = session.stage.index;
-    return el('ol', 'ml-auto hidden items-center gap-4 text-xs sm:flex', [
+    return el('ol', 'hidden items-center gap-4 text-xs sm:flex', [
       if (session.path == CoachPath.perfil)
         el('li', session.phase == Phase.perfil ? 'font-semibold text-foreground' : 'text-text-muted', [t('Tu perfil')]),
       for (final (i, s) in Stage.values.indexed)
@@ -302,7 +304,7 @@ class _CoachFlowState extends State<CoachFlow> {
         el('div', 'section-container flex items-center gap-4 py-4', [
           btn('text-sm text-text-muted transition-colors hover:text-foreground', [t('← Inicio')], onClick: component.onExit),
           logo(),
-          _stagesNav(),
+          el('div', 'ml-auto flex items-center gap-4', [_stagesNav(), AccountMenu(account: component.account)]),
         ]),
       ]),
       el('main', 'flex-1 px-3 sm:px-4 ${chat ? 'min-h-0 py-3 sm:py-6' : 'py-8'}', [

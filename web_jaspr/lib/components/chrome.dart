@@ -1,17 +1,21 @@
 import 'package:jaspr/jaspr.dart';
 
 import '../ui.dart';
+import 'account_menu.dart';
 import 'logo.dart';
 
 const _navLink = 'text-sm text-text-muted transition-colors hover:text-foreground';
 const _footLink = 'transition-colors hover:text-foreground';
 
-Component siteHeader() => el('header', 'sticky top-0 z-50 border-b border-border-color bg-background/90 backdrop-blur-sm', [
+Component siteHeader(AccountInfo account) => el('header', 'sticky top-0 z-50 border-b border-border-color bg-background/90 backdrop-blur-sm', [
   el('div', 'section-container flex items-center justify-between py-4', [
     logo(),
-    el('nav', 'hidden gap-8 md:flex', [
-      anchor(_navLink, '#profesional', [t('Para Profesionales')]),
-      anchor(_navLink, '#empresa', [t('Para Empresas')]),
+    el('div', 'flex items-center gap-8', [
+      el('nav', 'hidden gap-8 md:flex', [
+        anchor(_navLink, '#profesional', [t('Para Profesionales')]),
+        anchor(_navLink, '#empresa', [t('Para Empresas')]),
+      ]),
+      AccountMenu(account: account),
     ]),
   ]),
 ]);

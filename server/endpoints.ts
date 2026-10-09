@@ -90,7 +90,8 @@ export async function runEndpoint(endpoint: EndpointName, req: Req, apiKey: stri
       rateLimit(`acceso:${ip}`, RATE_RULES.intentosFallidos) // suma el fallo
       return finish({ status: 401, body: { error: 'Ese código no es válido. Revisalo e intentá de nuevo.' } })
     }
-    return finish({ status: 200, body: { required: true, ok: true } }, { who: label })
+    // La etiqueta es el apodo de quien presentó el código (no datos personales): sirve para saludarle.
+    return finish({ status: 200, body: { required: true, ok: true, label } }, { who: label })
   }
 
   // /api/coach y /api/analyze: el código viaja en un header en cada pedido.

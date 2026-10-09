@@ -9,7 +9,8 @@ import PrivacyPolicy from './components/PrivacyPolicy'
 import { CoachFlow } from './components/coach/CoachFlow'
 import { clearSession, hasProgress, loadSession, newSession } from './lib/coach/session'
 import type { Path, Session } from './lib/coach/types'
-import { ACCESS_LOST_EVENT, checkAccess, getAccessCode } from './lib/access'
+import { ACCESS_LOST_EVENT, checkAccess, clearAccessCode, getAccessCode, getAccessLabel, saveAccessCode } from './lib/access'
+import type { AccountInfo } from './components/AccountMenu'
 import { trackEvent } from './lib/tracking'
 
 type View = 'landing' | 'coach' | 'company' | 'privacidad'
@@ -22,6 +23,7 @@ function App() {
   const [view, setView] = useState<View>(() => (isPrivacyHash() ? 'privacidad' : 'landing'))
   const [session, setSession] = useState<Session | null>(null)
   const [access, setAccess] = useState<Access>({ state: 'checking' })
+  const [label, setLabel] = useState<string | null>(getAccessLabel)
   // Se relee al volver a la landing para reflejar el progreso guardado.
   const saved = view === 'landing' ? loadSession() : null
 
@@ -30,7 +32,16 @@ function App() {
   useEffect(() => {
     let alive = true
     checkAccess(getAccessCode() ?? undefined)
-      .then((s) => alive && setAccess(!s.required || s.ok ? { state: 'open' } : { state: 'locked', error: s.error }))
+      .then((s) => {
+        if (!alive) return
+        setAccess(!s.required || s.ok ? { state: 'open' } : { state: 'locked', error: s.error })
+        // Refresca el apodo del código guardado (por ejemplo, si cambió en el servidor).
+        const code = getAccessCode()
+        if (s.ok && s.label && code) {
+          saveAccessCode(code, s.label)
+          setLabel(s.label)
+        }
+      })
       // Sin conexión no se puede decidir; si el servidor exige código, cada pedido a la API lo valida igual.
       .catch(() => alive && setAccess({ state: 'open' }))
     // Al perder el acceso se sale del chat: la sesión ya está guardada en el navegador y
@@ -70,6 +81,30 @@ function App() {
     window.scrollTo(0, 0)
   }
 
+  // Cerrar sesión: se olvida el código en este navegador y se vuelve a la puerta de acceso. La
+  // conversación queda guardada (se retoma al volver a entrar); para borrarla hay otra opción.
+  const account: AccountInfo = {
+    label,
+    canLogout: getAccessCode() !== null,
+    onLogout: () => {
+      trackEvent('logged_out')
+      clearAccessCode()
+      setLabel(null)
+      setSession(null)
+      setView('landing')
+      setAccess({ state: 'locked' })
+      window.scrollTo(0, 0)
+    },
+    onDeleteData: () => {
+      if (!window.confirm('¿Borrar tu conversación de este navegador? No se puede deshacer.')) return
+      trackEvent('data_deleted')
+      clearSession()
+      setSession(null)
+      setView('landing')
+      window.scrollTo(0, 0)
+    },
+  }
+
   if (view === 'privacidad') {
     return (
       <PrivacyPolicy
@@ -92,7 +127,15 @@ function App() {
   }
 
   if (access.state === 'locked') {
-    return <AccessGate initialError={access.error} onGranted={() => setAccess({ state: 'open' })} />
+    return (
+      <AccessGate
+        initialError={access.error}
+        onGranted={(l) => {
+          setLabel(l ?? null)
+          setAccess({ state: 'open' })
+        }}
+      />
+    )
   }
 
   if (view === 'coach' && session) {
@@ -105,6 +148,7 @@ function App() {
           setSession(null)
           setView('landing')
         }}
+        account={account}
       />
     )
   }
@@ -115,7 +159,7 @@ function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans">
-      <Header />
+      <Header account={account} />
       <main className="flex-1">
         <Landing
           onChoosePath={startPath}

@@ -14,7 +14,7 @@ class AccessGate extends StatefulComponent {
 
   /// Mensaje inicial, por ejemplo cuando el servidor no tiene el acceso configurado.
   final String? initialError;
-  final void Function() onGranted;
+  final void Function(String? label) onGranted;
 
   @override
   State<AccessGate> createState() => _AccessGateState();
@@ -41,8 +41,8 @@ class _AccessGateState extends State<AccessGate> {
     try {
       final status = await checkAccess(value);
       if (status.ok) {
-        saveAccessCode(value);
-        component.onGranted();
+        saveAccessCode(value, status.label);
+        component.onGranted(status.label);
         return;
       }
       setState(() => error = status.error ?? 'Ese código no es válido.');

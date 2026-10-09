@@ -4,6 +4,7 @@ import 'package:jaspr/jaspr.dart';
 import 'package:universal_web/web.dart' as web;
 
 import 'components/access_gate.dart';
+import 'components/account_menu.dart';
 import 'components/chrome.dart';
 import 'components/coach/coach_flow.dart';
 import 'components/landing.dart';
@@ -49,6 +50,7 @@ class _AppState extends State<App> {
   _View view = _isPrivacyHash() ? _View.privacidad : _View.landing;
   Session? session;
   _Access access = const _Checking();
+  String? label = getAccessLabel();
   late final JSFunction _onLost = ((web.Event _) {
     // Al perder el acceso se sale del chat: la sesión ya está guardada en el navegador y se retoma
     // desde "Retomar" al volver a entrar (evita remontar con una copia vieja).
@@ -73,6 +75,12 @@ class _AppState extends State<App> {
     checkAccess(getAccessCode()).then((s) {
       if (!mounted) return;
       setState(() => access = !s.required || s.ok ? const _Open() : _Locked(s.error));
+      // Refresca el apodo del código guardado (por ejemplo, si cambió en el servidor).
+      final code = getAccessCode();
+      if (s.ok && s.label != null && code != null) {
+        saveAccessCode(code, s.label);
+        setState(() => label = s.label);
+      }
     }).catchError((_) {
       // Sin conexión no se puede decidir; si el servidor exige código, cada pedido a la API lo valida igual.
       if (mounted) setState(() => access = const _Open());
@@ -99,8 +107,37 @@ class _AppState extends State<App> {
     _scrollTop();
   }
 
+  // Cerrar sesión: se olvida el código en este navegador y se vuelve a la puerta de acceso. La
+  // conversación queda guardada (se retoma al volver a entrar); para borrarla hay otra opción.
+  AccountInfo _account() => AccountInfo(
+    label: label,
+    canLogout: getAccessCode() != null,
+    onLogout: () {
+      trackEvent('logged_out');
+      clearAccessCode();
+      setState(() {
+        label = null;
+        session = null;
+        view = _View.landing;
+        access = const _Locked();
+      });
+      _scrollTop();
+    },
+    onDeleteData: () {
+      if (!web.window.confirm('¿Borrar tu conversación de este navegador? No se puede deshacer.')) return;
+      trackEvent('data_deleted');
+      clearSession();
+      setState(() {
+        session = null;
+        view = _View.landing;
+      });
+      _scrollTop();
+    },
+  );
+
   @override
   Component build(BuildContext context) {
+    final account = _account();
     if (view == _View.privacidad) {
       return privacyPolicy(onBack: () {
         web.window.history.replaceState(null, '', web.window.location.pathname);
@@ -115,7 +152,13 @@ class _AppState extends State<App> {
       ]);
     }
     if (a is _Locked) {
-      return AccessGate(initialError: a.error, onGranted: () => setState(() => access = const _Open()));
+      return AccessGate(
+        initialError: a.error,
+        onGranted: (l) => setState(() {
+          label = l;
+          access = const _Open();
+        }),
+      );
     }
 
     if (view == _View.coach && session != null) {
@@ -129,6 +172,7 @@ class _AppState extends State<App> {
             view = _View.landing;
           });
         },
+        account: account,
       );
     }
 
@@ -137,7 +181,7 @@ class _AppState extends State<App> {
     final saved = stored != null && stored.hasProgress ? stored : null;
 
     return el('div', 'flex min-h-screen flex-col bg-background font-sans', [
-      siteHeader(),
+      siteHeader(account),
       el('main', 'flex-1', [
         landing(
           onChoosePath: (p) => _startPath(p, saved),

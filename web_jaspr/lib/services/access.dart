@@ -10,20 +10,33 @@ import 'storage.dart';
 // cada visita y se manda como header en cada pedido a /api.
 
 const _key = 'cp_access';
+const _labelKey = 'cp_access_label';
 
 /// Se dispara cuando el servidor rechaza el código guardado (revocado o inválido).
 const accessLostEvent = 'cp:access-lost';
 
 String? getAccessCode() => readLocal(_key);
-void saveAccessCode(String code) => writeLocal(_key, code);
-void clearAccessCode() => removeLocal(_key);
+String? getAccessLabel() => readLocal(_labelKey);
+
+void saveAccessCode(String code, [String? label]) {
+  writeLocal(_key, code);
+  if (label != null && label.isNotEmpty) writeLocal(_labelKey, label);
+}
+
+void clearAccessCode() {
+  removeLocal(_key);
+  removeLocal(_labelKey);
+}
 
 class AccessStatus {
-  const AccessStatus({required this.required, required this.ok, this.error});
+  const AccessStatus({required this.required, required this.ok, this.label, this.error});
 
   /// El servidor exige código (en local, sin ACCESS_CODES, no).
   final bool required;
   final bool ok;
+
+  /// Apodo de quien presentó un código válido (para saludarle en el menú).
+  final String? label;
   final String? error;
 }
 
@@ -40,7 +53,7 @@ Future<AccessStatus> checkAccess([String? code]) async {
     final d = jsonDecode((await res.text().toDart).toDart);
     if (d is Map<String, dynamic>) json = d;
   } catch (_) {}
-  if (res.ok) return AccessStatus(required: json['required'] == true, ok: json['ok'] == true);
+  if (res.ok) return AccessStatus(required: json['required'] == true, ok: json['ok'] == true, label: json['label'] as String?);
   // 401 (código inválido), 429 (demasiados intentos) o 503 (sin configurar).
   return AccessStatus(required: true, ok: false, error: (json['error'] as String?) ?? 'No pudimos verificar el código. Intentá de nuevo.');
 }

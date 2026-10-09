@@ -6,7 +6,7 @@ import Logo from './Logo'
 // Datos Personales de Argentina y normativa de cada país donde se ofrezca).
 // Los campos entre [corchetes] los completa el equipo.
 
-const UPDATED = '30 de septiembre de 2026'
+const UPDATED = '9 de octubre de 2026'
 
 export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
   return (
@@ -34,14 +34,14 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
               <li>Lo que escribís y los documentos que subís se procesan para darte el servicio y no los guardamos en nuestros servidores.</li>
               <li>Tu progreso queda guardado solo en tu navegador, y podés borrarlo cuando quieras.</li>
               <li>Para generar las respuestas usamos un proveedor de inteligencia artificial (Google), que recibe el contenido de la conversación.</li>
-              <li>CareerPath es una herramienta de reflexión: no reemplaza asesoramiento psicológico, médico ni legal.</li>
+              <li>Bivio es una herramienta de reflexión: no reemplaza asesoramiento psicológico, médico ni legal.</li>
             </ul>
           </section>
 
           <section>
             <h2>Quién es responsable</h2>
             <p>
-              El servicio lo presta [razón social], CUIT [número], con domicilio en [domicilio] (“Rubika Networking”, “nosotros”).
+              El servicio lo presta Rubika Tech SRL, CUIT [número], con domicilio en [domicilio] (“Rubika Tech”, “nosotros”).
               Para cualquier consulta sobre tus datos escribinos a [email de contacto de privacidad].
             </p>
           </section>
@@ -116,7 +116,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
             <h2>Uso del servicio</h2>
             <ul className="space-y-1">
               <li>
-                CareerPath acompaña un proceso de reflexión sobre tu carrera. Las conclusiones y decisiones son tuyas: la herramienta
+                Bivio acompaña un proceso de reflexión sobre tu carrera. Las conclusiones y decisiones son tuyas: la herramienta
                 no decide por vos ni evalúa tu valor como profesional.
               </li>
               <li>

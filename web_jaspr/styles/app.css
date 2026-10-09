@@ -1,0 +1,4 @@
+/* Entrada de Tailwind para la versión Jaspr: reutiliza el sistema visual de src/index.css y
+   escanea las clases usadas en el código Dart. Se compila con scripts/build-jaspr-css.mjs. */
+@import "../../src/index.css";
+@source "../lib";

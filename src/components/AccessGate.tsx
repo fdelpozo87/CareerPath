@@ -2,14 +2,14 @@ import { useState, type FormEvent } from 'react'
 import { checkAccess, saveAccessCode } from '../lib/access'
 import Logo from './Logo'
 
-// Pantalla de acceso de prueba: mientras CareerPath se prueba fuera de local,
+// Pantalla de acceso de prueba: mientras Bivio se prueba fuera de local,
 // solo entra quien tiene un código de invitación. El código lo valida el
 // servidor en cada pedido a la API; esta pantalla es solo la puerta visible.
 
 interface AccessGateProps {
   /** Mensaje inicial, por ejemplo cuando el servidor no tiene el acceso configurado. */
   initialError?: string
-  onGranted: () => void
+  onGranted: (label?: string) => void
 }
 
 export default function AccessGate({ initialError, onGranted }: AccessGateProps) {
@@ -26,8 +26,8 @@ export default function AccessGate({ initialError, onGranted }: AccessGateProps)
     try {
       const status = await checkAccess(value)
       if (status.ok) {
-        saveAccessCode(value)
-        onGranted()
+        saveAccessCode(value, status.label)
+        onGranted(status.label)
         return
       }
       setError(status.error ?? 'Ese código no es válido.')
@@ -48,7 +48,7 @@ export default function AccessGate({ initialError, onGranted }: AccessGateProps)
 
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="card w-full max-w-md">
-          <h1 className="mb-3 text-2xl md:text-3xl">CareerPath está en pruebas privadas</h1>
+          <h1 className="mb-3 text-2xl md:text-3xl">Bivio está en pruebas privadas</h1>
           <p className="mb-6 text-sm leading-relaxed text-text-muted">
             Ingresá el código de acceso que te enviamos. Lo usamos para cuidar el costo del servicio mientras lo probamos con un grupo
             reducido de personas.

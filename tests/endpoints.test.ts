@@ -470,7 +470,7 @@ describe('acceso de prueba (código de invitación)', () => {
   it('/api/access distingue "falta código", "código válido" e "inválido"', async () => {
     vi.stubEnv('ACCESS_CODES', CODES)
     expect((await runEndpoint('access', makeReq({}), KEY)).body).toEqual({ required: true, ok: false })
-    expect((await runEndpoint('access', makeReq({ code: 'K7QM-X2PD-9RTA' }), KEY)).body).toEqual({ required: true, ok: true })
+    expect((await runEndpoint('access', makeReq({ code: 'K7QM-X2PD-9RTA' }), KEY)).body).toEqual({ required: true, ok: true, label: 'ana' })
     const bad = await runEndpoint('access', makeReq({ code: 'ZZZZ-ZZZZ-ZZZZ' }), KEY)
     expect(bad.status).toBe(401)
     expect(JSON.stringify(bad.body)).not.toMatch(/ana|luis|K7QM/) // no filtra quién existe

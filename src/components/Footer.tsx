@@ -35,7 +35,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="border-t border-border-color pt-5 text-center text-xs text-text-muted">
-          © 2026 CareerPath by Rubika Networking. Todos los derechos reservados.
+          © 2026 Bivio by Rubika Tech. Todos los derechos reservados.
         </div>
       </div>
     </footer>

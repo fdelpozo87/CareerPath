@@ -1,4 +1,4 @@
-# Seguridad, calidad y operación — CareerPath
+# Seguridad, calidad y operación — Bivio
 
 Auditoría del 30/09/2026 sobre la rama `feat/agente-conversacional`. Cada punto indica el estado **hoy** y, para lo que todavía no existe (base de datos, login, pagos), el diseño con el que hay que construirlo.
 

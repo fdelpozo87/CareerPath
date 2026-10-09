@@ -4,6 +4,7 @@ import { extractPdfText, requestReport, requestTurn } from '../../lib/coach/api'
 import { saveSession } from '../../lib/coach/session'
 import type { DocTipo, Session, Stage, TurnResult, UiMessage } from '../../lib/coach/types'
 import { trackEvent, type FunnelEvent } from '../../lib/tracking'
+import AccountMenu, { type AccountInfo } from '../AccountMenu'
 import Logo from '../Logo'
 import { ChatView } from './ChatView'
 import { ProfileStep } from './ProfileStep'
@@ -71,9 +72,10 @@ interface CoachFlowProps {
   initialSession: Session
   onExit: () => void
   onRestart: () => void
+  account: AccountInfo
 }
 
-export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps) {
+export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachFlowProps) {
   const [session, setSession] = useState<Session>(() => withOpening(initialSession))
   // true cuando el montaje agregó la apertura de etapa y hay que pedir el primer turno.
   const openingPending = useRef(session !== initialSession)
@@ -216,7 +218,8 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
             ← Inicio
           </button>
           <Logo />
-          <ol role="list" aria-label="Etapas del proceso" className="ml-auto hidden items-center gap-4 text-xs sm:flex">
+          <div className="ml-auto flex items-center gap-4">
+          <ol role="list" aria-label="Etapas del proceso" className="hidden items-center gap-4 text-xs sm:flex">
             {session.path === 'perfil' && (
               <li className={session.phase === 'perfil' ? 'font-semibold text-foreground' : 'text-text-muted'}>Tu perfil</li>
             )}
@@ -237,6 +240,8 @@ export function CoachFlow({ initialSession, onExit, onRestart }: CoachFlowProps)
               )
             })}
           </ol>
+          <AccountMenu account={account} />
+          </div>
         </div>
       </header>
 

@@ -45,7 +45,7 @@ Component siteFooter() => el('footer', 'border-t border-border-color py-10 md:py
       ]),
     ]),
     el('div', 'border-t border-border-color pt-5 text-center text-xs text-text-muted', [
-      t('© 2026 Bivio by Rubika Networking. Todos los derechos reservados.'),
+      t('© 2026 Bivio by Rubika Tech. Todos los derechos reservados.'),
     ]),
   ]),
 ]);

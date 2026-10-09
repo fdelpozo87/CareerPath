@@ -73,7 +73,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
         )}
 
         <div className="mx-auto mb-12 max-w-3xl text-center">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">Tu coach de carrera con IA</p>
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">Un momento para decidir</p>
           <h1 className="mb-5 leading-tight">Antes de empezar: ¿dónde estás parada o parado hoy?</h1>
           <p className="mx-auto max-w-xl text-lg leading-relaxed text-text-muted">
             Elegí el punto de partida que más se parezca a tu situación. No es un test y no queda nada definido hoy: lo
@@ -82,7 +82,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
         </div>
 
         <div className="mx-auto grid max-w-4xl gap-5 md:grid-cols-2">
-          {PATHS.map((p, i) => (
+          {PATHS.map((p) => (
             <div key={p.id} className="card flex flex-col p-7">
               <div className="mb-6 flex items-center justify-between">
                 <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
@@ -94,10 +94,8 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
               </div>
               <h2 className="mb-3 text-xl leading-snug">{p.title}</h2>
               <p className="mb-8 flex-1 text-sm leading-relaxed text-text-muted">{p.body}</p>
-              <button
-                onClick={() => onChoosePath(p.id)}
-                className={i === 0 ? 'btn-primary w-full py-3' : 'btn-secondary w-full py-3'}
-              >
+              {/* Mismo estilo en los dos: ningún camino se presenta como el recomendado. */}
+              <button onClick={() => onChoosePath(p.id)} className="btn-primary w-full py-3">
                 Empezar por acá
               </button>
             </div>

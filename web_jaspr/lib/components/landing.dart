@@ -72,14 +72,14 @@ Component landing({required void Function(CoachPath) onChoosePath, required Sess
         btn('btn-primary shrink-0 px-5 py-2.5 text-sm', [t('Retomar →')], onClick: onResume),
       ])),
       el('div', 'mx-auto mb-12 max-w-3xl text-center', [
-        el('p', 'mb-4 text-xs font-semibold uppercase tracking-widest text-primary', [t('Tu coach de carrera con IA')]),
+        el('p', 'mb-4 text-xs font-semibold uppercase tracking-widest text-primary', [t('Un momento para decidir')]),
         el('h1', 'mb-5 leading-tight', [t('Antes de empezar: ¿dónde estás parada o parado hoy?')]),
         el('p', 'mx-auto max-w-xl text-lg leading-relaxed text-text-muted', [
           t('Elegí el punto de partida que más se parezca a tu situación. No es un test y no queda nada definido hoy: lo afinamos conversando.'),
         ]),
       ]),
       el('div', 'mx-auto grid max-w-4xl gap-5 md:grid-cols-2', [
-        for (final (i, p) in _paths.indexed)
+        for (final p in _paths)
           el('div', 'card flex flex-col p-7', [
             el('div', 'mb-6 flex items-center justify-between', [
               el('span', 'rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary', [t(p.tag)]),
@@ -87,7 +87,8 @@ Component landing({required void Function(CoachPath) onChoosePath, required Sess
             ]),
             el('h2', 'mb-3 text-xl leading-snug', [t(p.title)]),
             el('p', 'mb-8 flex-1 text-sm leading-relaxed text-text-muted', [t(p.body)]),
-            btn(i == 0 ? 'btn-primary w-full py-3' : 'btn-secondary w-full py-3', [t('Empezar por acá')], onClick: () => onChoosePath(p.path)),
+            // Mismo estilo en los dos: ningún camino se presenta como el recomendado.
+            btn('btn-primary w-full py-3', [t('Empezar por acá')], onClick: () => onChoosePath(p.path)),
           ]),
       ]),
       el('div', 'mx-auto mt-14 max-w-3xl text-center', [

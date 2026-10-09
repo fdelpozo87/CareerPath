@@ -6,7 +6,7 @@
  * Los valores son esos mismos (OKLCH) convertidos a hex y verificados contra
  * WCAG AA. Importante para texto:
  *   - `accent` (terracota) da 3,5:1: solo para decoración. Para texto, `accent-ink`.
- *   - `text-muted` sobre fondo, tarjetas y chips: ≥ 6:1.
+ *   - `text-muted` sobre fondo, tarjetas y chips: ≥ 6,8:1 (≈ 8:1 sobre fondo y tarjetas).
  */
 @theme {
   --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
@@ -17,7 +17,7 @@
   --color-card: #fffefc;
   --color-secondary: #f4ecdd;
   --color-border-color: #e6dfd1;
-  --color-text-muted: #4a5d52;
+  --color-text-muted: #3f5247;
 
   --color-primary: #005c41;
   --color-primary-dark: #004730;

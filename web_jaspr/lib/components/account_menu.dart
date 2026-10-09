@@ -99,7 +99,7 @@ class _AccountMenuState extends State<AccountMenu> {
       when(open, () => el('div', 'card absolute right-0 top-full z-50 mt-2 w-64 p-2', [
         el('div', 'border-b border-border-color px-3 pb-3 pt-2', [
           el('p', 'text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Sesión de prueba')]),
-          el('p', 'mt-1 truncate text-sm font-medium text-foreground', [t(account.label ?? 'Sin identificar')]),
+          el('p', 'mt-1 truncate text-sm font-medium text-foreground', [t(account.label ?? (account.canLogout ? 'Sesión iniciada' : 'Acceso abierto, sin código'))]),
         ]),
         el('ul', 'mt-2 space-y-0.5', [
           el('li', null, [

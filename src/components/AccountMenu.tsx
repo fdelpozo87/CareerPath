@@ -69,7 +69,7 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
         <div id={panelId} className="card absolute right-0 top-full z-50 mt-2 w-64 p-2">
           <div className="border-b border-border-color px-3 pb-3 pt-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-text-muted">Sesión de prueba</p>
-            <p className="mt-1 truncate text-sm font-medium text-foreground">{account.label ?? 'Sin identificar'}</p>
+            <p className="mt-1 truncate text-sm font-medium text-foreground">{account.label ?? (account.canLogout ? 'Sesión iniciada' : 'Acceso abierto, sin código')}</p>
           </div>
           <ul className="mt-2 space-y-0.5">
             <li>

@@ -8,7 +8,7 @@ import 'logo.dart';
 // revisarlo un/a abogado/a (Ley 25.326 de Protección de Datos Personales de Argentina y normativa
 // de cada país donde se ofrezca). Los campos entre [corchetes] los completa el equipo.
 
-const _updated = '30 de septiembre de 2026';
+const _updated = '9 de octubre de 2026';
 
 Component _strong(String text) => el('strong', 'text-foreground', [t(text)]);
 Component _li(List<Component> children) => el('li', null, children);
@@ -39,7 +39,7 @@ Component privacyPolicy({required void Function() onBack}) {
         ]),
         _section('Quién es responsable', [
           el('p', null, [
-            t('El servicio lo presta [razón social], CUIT [número], con domicilio en [domicilio] (“Rubika Networking”, “nosotros”). Para cualquier consulta sobre tus datos escribinos a [email de contacto de privacidad].'),
+            t('El servicio lo presta Rubika Tech SRL, CUIT [número], con domicilio en [domicilio] (“Rubika Tech”, “nosotros”). Para cualquier consulta sobre tus datos escribinos a [email de contacto de privacidad].'),
           ]),
         ]),
         _section('Qué datos se tratan y para qué', [

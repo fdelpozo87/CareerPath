@@ -6,7 +6,7 @@ import Logo from './Logo'
 // Datos Personales de Argentina y normativa de cada país donde se ofrezca).
 // Los campos entre [corchetes] los completa el equipo.
 
-const UPDATED = '30 de septiembre de 2026'
+const UPDATED = '9 de octubre de 2026'
 
 export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
   return (
@@ -41,7 +41,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
           <section>
             <h2>Quién es responsable</h2>
             <p>
-              El servicio lo presta [razón social], CUIT [número], con domicilio en [domicilio] (“Rubika Networking”, “nosotros”).
+              El servicio lo presta Rubika Tech SRL, CUIT [número], con domicilio en [domicilio] (“Rubika Tech”, “nosotros”).
               Para cualquier consulta sobre tus datos escribinos a [email de contacto de privacidad].
             </p>
           </section>

@@ -34,7 +34,7 @@ Component privacyPolicy({required void Function() onBack}) {
             _li([t('Lo que escribís y los documentos que subís se procesan para darte el servicio y no los guardamos en nuestros servidores.')]),
             _li([t('Tu progreso queda guardado solo en tu navegador, y podés borrarlo cuando quieras.')]),
             _li([t('Para generar las respuestas usamos un proveedor de inteligencia artificial (Google), que recibe el contenido de la conversación.')]),
-            _li([t('CareerPath es una herramienta de reflexión: no reemplaza asesoramiento psicológico, médico ni legal.')]),
+            _li([t('Bivio es una herramienta de reflexión: no reemplaza asesoramiento psicológico, médico ni legal.')]),
           ]),
         ]),
         _section('Quién es responsable', [
@@ -86,7 +86,7 @@ Component privacyPolicy({required void Function() onBack}) {
         ]),
         _section('Uso del servicio', [
           el('ul', 'space-y-1', [
-            _li([t('CareerPath acompaña un proceso de reflexión sobre tu carrera. Las conclusiones y decisiones son tuyas: la herramienta no decide por vos ni evalúa tu valor como profesional.')]),
+            _li([t('Bivio acompaña un proceso de reflexión sobre tu carrera. Las conclusiones y decisiones son tuyas: la herramienta no decide por vos ni evalúa tu valor como profesional.')]),
             _li([t('No es un servicio de salud mental, médico ni legal. Si atravesás una situación de maltrato, acoso o riesgo, buscá ayuda profesional; ante una emergencia, llamá al 911.')]),
             _li([t('Las respuestas las genera una inteligencia artificial y pueden contener errores.')]),
             _li([t('El servicio está dirigido a personas mayores de 18 años.')]),

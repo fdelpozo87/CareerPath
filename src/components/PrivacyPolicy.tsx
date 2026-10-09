@@ -34,7 +34,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
               <li>Lo que escribís y los documentos que subís se procesan para darte el servicio y no los guardamos en nuestros servidores.</li>
               <li>Tu progreso queda guardado solo en tu navegador, y podés borrarlo cuando quieras.</li>
               <li>Para generar las respuestas usamos un proveedor de inteligencia artificial (Google), que recibe el contenido de la conversación.</li>
-              <li>CareerPath es una herramienta de reflexión: no reemplaza asesoramiento psicológico, médico ni legal.</li>
+              <li>Bivio es una herramienta de reflexión: no reemplaza asesoramiento psicológico, médico ni legal.</li>
             </ul>
           </section>
 
@@ -116,7 +116,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
             <h2>Uso del servicio</h2>
             <ul className="space-y-1">
               <li>
-                CareerPath acompaña un proceso de reflexión sobre tu carrera. Las conclusiones y decisiones son tuyas: la herramienta
+                Bivio acompaña un proceso de reflexión sobre tu carrera. Las conclusiones y decisiones son tuyas: la herramienta
                 no decide por vos ni evalúa tu valor como profesional.
               </li>
               <li>

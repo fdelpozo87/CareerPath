@@ -27,7 +27,7 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
   const comparisons = [
     { aspecto: 'Coach externo', valor: '$100–300/sesión por colaborador', icon: '✕' },
     { aspecto: 'Herramientas genéricas', valor: 'Sin contexto real del colaborador', icon: '✕' },
-    { aspecto: 'CareerPath B2B', valor: 'Proceso equivalente, escalable, sin costo marginal', icon: '✓' },
+    { aspecto: 'Bivio B2B', valor: 'Proceso equivalente, escalable, sin costo marginal', icon: '✓' },
   ]
 
   return (

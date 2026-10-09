@@ -5,7 +5,7 @@ import '../services/access.dart';
 import '../ui.dart';
 import 'logo.dart';
 
-// Pantalla de acceso de prueba: mientras CareerPath se prueba fuera de local, solo entra quien
+// Pantalla de acceso de prueba: mientras Bivio se prueba fuera de local, solo entra quien
 // tiene un código de invitación. El código lo valida el servidor en cada pedido a la API; esta
 // pantalla es solo la puerta visible.
 
@@ -61,7 +61,7 @@ class _AccessGateState extends State<AccessGate> {
       ]),
       el('main', 'flex flex-1 items-center justify-center px-4 py-12', [
         el('div', 'card w-full max-w-md', [
-          el('h1', 'mb-3 text-2xl md:text-3xl', [t('CareerPath está en pruebas privadas')]),
+          el('h1', 'mb-3 text-2xl md:text-3xl', [t('Bivio está en pruebas privadas')]),
           el('p', 'mb-6 text-sm leading-relaxed text-text-muted', [
             t('Ingresá el código de acceso que te enviamos. Lo usamos para cuidar el costo del servicio mientras lo probamos con un grupo reducido de personas.'),
           ]),

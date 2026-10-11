@@ -39,6 +39,26 @@ class _ReportViewState extends State<ReportView> {
     el('p', 'text-sm leading-relaxed text-foreground', [t(body)]),
   ]);
 
+  Component _comparison(Comparison c) => el('div', 'card', [
+    el('p', 'mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Tus criterios y tus opciones')]),
+    el('p', 'mb-4 text-sm text-text-muted', [t('Es lo que dijiste vos, ordenado. No es un ranking: la decisión es tuya.')]),
+    when(c.criterios.isNotEmpty, () => el('ol', 'mb-4 list-decimal space-y-1 pl-5 text-sm text-foreground', [
+      for (final k in c.criterios) el('li', null, [t(k)]),
+    ])),
+    el('ul', 'space-y-3', [
+      for (final o in c.opciones)
+        el('li', 'rounded-xl border border-border-color p-4 text-sm leading-relaxed', [
+          el('p', 'font-semibold text-foreground', [t(o.nombre)]),
+          when(o.aFavor.isNotEmpty, () => el('p', 'mt-1 text-foreground', [el('span', 'font-semibold text-primary', [t('A favor:')]), t(' ${o.aFavor}')])),
+          when(o.enContra.isNotEmpty, () => el('p', 'mt-1 text-foreground', [el('span', 'font-semibold text-accent-ink', [t('En contra:')]), t(' ${o.enContra}')])),
+          when(o.falta.isNotEmpty, () => el('p', 'mt-1 text-text-muted', [el('span', 'font-semibold', [t('Falta verificar:')]), t(' ${o.falta}')])),
+        ]),
+    ]),
+    el('p', 'mt-3 text-xs text-text-muted', [
+      t('Bivio no tiene datos de la oferta educativa: costos, requisitos y fechas conviene confirmarlos en la página oficial de cada institución.'),
+    ]),
+  ]);
+
   Component _action(int i, ReportAction a) => el('li', null, [
     el('label', 'flex gap-3 rounded-xl border border-border-color p-4 ${editing ? 'cursor-pointer hover:bg-secondary' : ''}', [
       when(editing, () => input<bool>(type: InputType.checkbox, checked: selected.contains(i), classes: 'mt-1 accent-primary print:hidden', onChange: (_) => _toggle(i))),
@@ -103,6 +123,11 @@ class _ReportViewState extends State<ReportView> {
           _infoCard('Cómo vas a saber que avanzás', report.metrica),
           _infoCard('Check-in', report.checkIn),
         ]),
+        when(report.presupuesto.isNotEmpty || report.respaldo.isNotEmpty, () => el('div', 'grid gap-4 md:grid-cols-2', [
+          when(report.presupuesto.isNotEmpty, () => _infoCard('Tu presupuesto', report.presupuesto)),
+          when(report.respaldo.isNotEmpty, () => _infoCard('Tu plan B', report.respaldo)),
+        ])),
+        when(report.comparativa != null && (report.comparativa!.criterios.isNotEmpty || report.comparativa!.opciones.isNotEmpty), () => _comparison(report.comparativa!)),
         when(report.preguntaAbierta.isNotEmpty, () => el('div', 'ai-tint rounded-2xl p-6', [
           el('p', 'mb-2 text-xs font-semibold uppercase tracking-widest text-primary', [t('Para llevarte')]),
           el('p', 'italic leading-relaxed text-foreground', [t(report.preguntaAbierta)]),

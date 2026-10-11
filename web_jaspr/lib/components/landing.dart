@@ -19,6 +19,11 @@ Component _icon(List<Component> shapes) => el('svg', 'h-5 w-5', shapes, attrs: {
 
 Component _p(String d) => el('path', null, [], attrs: {'d': d});
 
+Component _capIcon() => _icon([
+  _p('M22 9 12 4 2 9l10 5 10-5Z'),
+  _p('M6 11.5V16c0 1.2 2.7 3 6 3s6-1.8 6-3v-4.5'),
+]);
+
 Component _routeIcon() => _icon([_p('M17 2l4 4-4 4'), _p('M3 11v-1a4 4 0 0 1 4-4h14'), _p('M7 22l-4-4 4-4'), _p('M21 13v1a4 4 0 0 1-4 4H3')]);
 
 Component _searchIcon() => _icon([
@@ -27,12 +32,13 @@ Component _searchIcon() => _icon([
 ]);
 
 class _PathCard {
-  const _PathCard(this.path, this.tag, this.icon, this.title, this.body);
+  const _PathCard(this.path, this.tag, this.icon, this.title, this.body, [this.note]);
   final CoachPath path;
   final String tag;
   final Component Function() icon;
   final String title;
   final String body;
+  final String? note;
 }
 
 final _paths = [
@@ -50,6 +56,14 @@ final _paths = [
     'Quiero explorar el mercado, empezando por mi perfil',
     'Te interesan nuevas oportunidades, pero antes de salir a buscar querés saber qué comunica tu perfil hoy para los puestos que te atraen.',
   ),
+  _PathCard(
+    CoachPath.formacion,
+    'Camino C',
+    _capIcon,
+    'Quiero decidir qué estudiar o en qué formarme',
+    'Un curso, una tecnicatura, una carrera, un posgrado o un cambio de rumbo. Ordenamos qué querés, qué podés y con qué criterios comparar tus opciones.',
+    'Para mayores de 18 años.',
+  ),
 ];
 
 String _resumeText(Session s) {
@@ -64,7 +78,7 @@ String _resumeText(Session s) {
 Component landing({required void Function(CoachPath) onChoosePath, required Session? saved, required void Function() onResume}) {
   return el('section', 'py-16 md:py-24', [
     el('div', 'section-container', [
-      when(saved != null, () => el('div', 'mx-auto mb-12 flex max-w-4xl flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between', [
+      when(saved != null, () => el('div', 'mx-auto mb-12 flex max-w-6xl flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between', [
         el('div', null, [
           el('p', 'text-sm font-semibold text-foreground', [t('Tenés un proceso en curso')]),
           el('p', 'text-sm text-text-muted', [t(_resumeText(saved!))]),
@@ -78,7 +92,7 @@ Component landing({required void Function(CoachPath) onChoosePath, required Sess
           t('Elegí el punto de partida que más se parezca a tu situación. No es un test y no queda nada definido hoy: lo afinamos conversando.'),
         ]),
       ]),
-      el('div', 'mx-auto grid max-w-4xl gap-5 md:grid-cols-2', [
+      el('div', 'mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3', [
         for (final p in _paths)
           el('div', 'card flex flex-col p-7', [
             el('div', 'mb-6 flex items-center justify-between', [
@@ -86,13 +100,14 @@ Component landing({required void Function(CoachPath) onChoosePath, required Sess
               el('span', 'flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-lg text-primary', [p.icon()], attrs: {'aria-hidden': 'true'}),
             ]),
             el('h2', 'mb-3 text-xl leading-snug', [t(p.title)]),
-            el('p', 'mb-8 flex-1 text-sm leading-relaxed text-text-muted', [t(p.body)]),
+            el('p', '${p.note != null ? 'mb-3' : 'mb-8'} flex-1 text-sm leading-relaxed text-text-muted', [t(p.body)]),
+            when(p.note != null, () => el('p', 'mb-5 text-xs font-semibold text-text-muted', [t(p.note!)])),
             // Mismo estilo en los dos: ningún camino se presenta como el recomendado.
             btn('btn-primary w-full py-3', [t('Empezar por acá')], onClick: () => onChoosePath(p.path)),
           ]),
       ]),
       el('div', 'mx-auto mt-14 max-w-3xl text-center', [
-        el('p', 'mb-5 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Los dos caminos llevan al mismo proceso acompañado')]),
+        el('p', 'mb-5 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Los tres caminos llevan al mismo proceso acompañado')]),
         el('ol', 'flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6', [
           for (final (i, s) in Stage.values.indexed)
             el('li', 'flex items-center gap-2.5 text-sm text-foreground', [

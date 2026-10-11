@@ -261,6 +261,33 @@ class Finding {
   Map<String, dynamic> toJson() => {'texto': texto, 'citaPersona': citaPersona};
 }
 
+/// Camino C: una opción de formación que la persona nombró, con lo que ella dijo y lo que falta verificar.
+class ComparedOption {
+  const ComparedOption({required this.nombre, required this.aFavor, required this.enContra, required this.falta});
+  final String nombre;
+  final String aFavor;
+  final String enContra;
+  final String falta;
+
+  factory ComparedOption.fromJson(Map<String, dynamic> j) =>
+      ComparedOption(nombre: _str(j['nombre']), aFavor: _str(j['aFavor']), enContra: _str(j['enContra']), falta: _str(j['falta']));
+
+  Map<String, dynamic> toJson() => {'nombre': nombre, 'aFavor': aFavor, 'enContra': enContra, 'falta': falta};
+}
+
+class Comparison {
+  const Comparison({required this.criterios, required this.opciones});
+  final List<String> criterios;
+  final List<ComparedOption> opciones;
+
+  factory Comparison.fromJson(Map<String, dynamic> j) => Comparison(
+    criterios: _strings(j['criterios']),
+    opciones: [for (final o in (j['opciones'] as List? ?? const [])) ComparedOption.fromJson(o as Map<String, dynamic>)],
+  );
+
+  Map<String, dynamic> toJson() => {'criterios': criterios, 'opciones': [for (final o in opciones) o.toJson()]};
+}
+
 class Report {
   const Report({
     required this.objetivoSesion,
@@ -270,6 +297,9 @@ class Report {
     required this.checkIn,
     required this.horizonte,
     required this.preguntaAbierta,
+    this.presupuesto = '',
+    this.respaldo = '',
+    this.comparativa,
   });
   final String objetivoSesion;
   final List<Finding> hallazgos;
@@ -279,6 +309,11 @@ class Report {
   final String horizonte;
   final String preguntaAbierta;
 
+  /// Solo en el Camino C.
+  final String presupuesto;
+  final String respaldo;
+  final Comparison? comparativa;
+
   factory Report.fromJson(Map<String, dynamic> j) => Report(
     objetivoSesion: _str(j['objetivoSesion']),
     hallazgos: [for (final h in (j['hallazgos'] as List? ?? const [])) Finding.fromJson(h as Map<String, dynamic>)],
@@ -287,6 +322,9 @@ class Report {
     checkIn: _str(j['checkIn']),
     horizonte: _str(j['horizonte']),
     preguntaAbierta: _str(j['preguntaAbierta']),
+    presupuesto: _str(j['presupuesto']),
+    respaldo: _str(j['respaldo']),
+    comparativa: j['comparativa'] is Map<String, dynamic> ? Comparison.fromJson(j['comparativa'] as Map<String, dynamic>) : null,
   );
 
   Map<String, dynamic> toJson() => {
@@ -297,6 +335,9 @@ class Report {
     'checkIn': checkIn,
     'horizonte': horizonte,
     'preguntaAbierta': preguntaAbierta,
+    if (presupuesto.isNotEmpty) 'presupuesto': presupuesto,
+    if (respaldo.isNotEmpty) 'respaldo': respaldo,
+    if (comparativa != null) 'comparativa': comparativa!.toJson(),
   };
 }
 

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, type Content } from '@google/generative-ai'
 import {
-  STAGE_OBJECTIVES,
+  objectivesFor,
   EXTRACT_PROMPT,
   buildProfilePrompt,
   buildReportPrompt,
@@ -66,7 +66,7 @@ type CoachRequest =
 export type CoachResponse = { status: number; body: unknown }
 
 const STAGES: Stage[] = ['diagnostico', 'discovery', 'plan']
-const PATHS: Path[] = ['quiebre', 'perfil']
+const PATHS: Path[] = ['quiebre', 'perfil', 'formacion']
 const MAX_HISTORY = 120
 const MAX_MESSAGE = 6_000
 const MAX_CONTEXT = 30_000 // CV + LinkedIn
@@ -147,8 +147,8 @@ function toContents(history: ChatMessage[]): Content[] {
  * turnos del coach (cada uno declara su "temaEnFoco") y se le devuelve al modelo: así puede notar
  * que la persona esquiva un tema y decidir cómo retomarlo, en lugar de abandonarlo o repetirse.
  */
-export function askCounts(history: ChatMessage[], stage: Stage, cubiertos: string[], omitidos: string[] = []): Record<string, number> {
-  const pending = STAGE_OBJECTIVES[stage].map((o) => o.id).filter((id) => !cubiertos.includes(id) && !omitidos.includes(id))
+export function askCounts(history: ChatMessage[], stage: Stage, cubiertos: string[], omitidos: string[] = [], path: Path = 'quiebre'): Record<string, number> {
+  const pending = objectivesFor(stage, path).map((o) => o.id).filter((id) => !cubiertos.includes(id) && !omitidos.includes(id))
   const counts: Record<string, number> = {}
   for (const m of history) {
     if (m.role !== 'model') continue
@@ -174,9 +174,9 @@ function fold(text: string): string {
 // El "mapa" de cierre. Las citas tienen que ser TEXTUALES de lo que la persona
 // escribió (guardrail §5: anclar todo en lo que dijo): si el modelo inventa una
 // frase, se descarta la cita y se conserva el resto.
-function cleanItems(raw: unknown, stage: Stage, userText: string): SynthesisItem[] {
+function cleanItems(raw: unknown, stage: Stage, userText: string, path: Path): SynthesisItem[] {
   if (!Array.isArray(raw)) return []
-  const order = STAGE_OBJECTIVES[stage].map((o) => o.id)
+  const order = objectivesFor(stage, path).map((o) => o.id)
   const seen = new Set<string>()
   const items: SynthesisItem[] = []
   for (const it of raw) {
@@ -205,8 +205,9 @@ function normalizeTurn(
   history: ChatMessage[],
   etapaCerrada = false,
   prevOmitidos: string[] = [],
+  path: Path = 'quiebre',
 ): TurnResult {
-  const objetivos = STAGE_OBJECTIVES[stage]
+  const objetivos = objectivesFor(stage, path)
   const valid = objetivos.map((o) => o.id)
   const omitibles = new Set(objetivos.filter((o) => o.omitible).map((o) => o.id))
   const cubiertos = Array.from(
@@ -216,7 +217,7 @@ function normalizeTurn(
   // Temas que la persona eligió dejar para más adelante. El servidor no se fía del modelo:
   // solo vale si el tema se puede dejar, la persona ya tuvo la oportunidad de contestarlo (se
   // preguntó al menos una vez), no se pasa del tope por etapa, y no cuenta como cubierto.
-  const asked = askCounts(history, stage, cubiertos, prevOmitidos)
+  const asked = askCounts(history, stage, cubiertos, prevOmitidos, path)
   const nuevos = (Array.isArray(raw.temasOmitidos) ? raw.temasOmitidos : []).filter(
     (id): id is string => typeof id === 'string' && omitibles.has(id) && !prevOmitidos.includes(id) && (asked[id] ?? 0) >= 1,
   )
@@ -231,7 +232,7 @@ function normalizeTurn(
   const listo = completos && (Boolean(raw.listoParaAvanzar) || etapaCerrada)
 
   const userText = fold(history.filter((m) => m.role === 'user' && !m.text.startsWith('(')).map((m) => m.text).join(' \n '))
-  const modelItems = listo ? cleanItems(raw.sintesisItems, stage, userText).filter((i) => !omitidos.includes(i.id)) : []
+  const modelItems = listo ? cleanItems(raw.sintesisItems, stage, userText, path).filter((i) => !omitidos.includes(i.id)) : []
   // Los temas omitidos aparecen en el mapa como lo que son: "para más adelante". Solo si el turno
   // trae un mapa nuevo: si no, el cliente conserva el anterior.
   const dejados: SynthesisItem[] =
@@ -283,13 +284,13 @@ async function runWithGemini(apiKey: string, req: CoachRequest): Promise<unknown
     case 'turno': {
       const model = genAI.getGenerativeModel({
         model: modelName,
-        systemInstruction: buildTurnSystemPrompt({ ...req, intentos: askCounts(req.history, req.stage, req.cubiertos, req.omitidos) }),
+        systemInstruction: buildTurnSystemPrompt({ ...req, intentos: askCounts(req.history, req.stage, req.cubiertos, req.omitidos, req.path) }),
         generationConfig,
       }, requestOptions)
       const raw = await generateJson<Partial<TurnResult>>(async () =>
         responseText((await model.generateContent({ contents: toContents(req.history) })).response, 'turno'),
       )
-      return normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos)
+      return normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path)
     }
     case 'informe': {
       const model = genAI.getGenerativeModel({
@@ -350,8 +351,29 @@ const DEMO_QUESTIONS: Record<Stage, string[]> = {
   ],
 }
 
+const DEMO_QUESTIONS_C: Record<Stage, string[]> = {
+  diagnostico: [
+    '— MODO DEMO — Contame con tus palabras: ¿qué te gustaría lograr con una formación?',
+    '¿Cómo es tu situación hoy: trabajás, estudiaste antes, qué tiempo tenés?',
+    '¿Qué opciones de formación ya estás mirando, si es que hay alguna?',
+    '¿Cuánto tiempo por semana y cuánto dinero, aproximado, podrías dedicarle?',
+  ],
+  discovery: [
+    '— MODO DEMO — ¿Qué temas o actividades te dan energía? Contame un ejemplo concreto.',
+    '¿Qué se te da bien, o qué aprendiste con facilidad?',
+    'Si tuvieras que comparar opciones, ¿qué 3 criterios usarías, de más a menos importante?',
+  ],
+  plan: [
+    '— MODO DEMO — De todo lo que viste, ¿qué opción elegís explorar primero?',
+    '¿En qué plazo querés decidir o empezar?',
+    '¿Cuánto tiempo y dinero le vas a asignar?',
+    '¿Cuál sería tu primer paso concreto, con quién o dónde y para cuándo?',
+    'Si esa opción no funciona, ¿cuál sería tu plan B?',
+  ],
+}
+
 function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
-  const ids = STAGE_OBJECTIVES[req.stage].map((o) => o.id)
+  const ids = objectivesFor(req.stage, req.path).map((o) => o.id)
   const lastModel = [...req.history].reverse().find((m) => m.role === 'model')?.text ?? ''
   const askedSummary = lastModel.includes('¿Te representa este resumen?')
   const userTurnsInStage = req.history.at(-1)?.role === 'user' && !req.history.at(-1)?.text.startsWith('(') ? 1 : 0
@@ -389,7 +411,7 @@ function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
     }
   }
   return {
-    mensaje: DEMO_QUESTIONS[req.stage][cubiertos.length],
+    mensaje: (req.path === 'formacion' ? DEMO_QUESTIONS_C : DEMO_QUESTIONS)[req.stage][cubiertos.length],
     temaEnFoco: ids[cubiertos.length] ?? '',
     temasOmitidos: [],
     objetivosCubiertos: cubiertos,

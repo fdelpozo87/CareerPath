@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { STAGE_INTRO, STAGE_LABEL, STAGE_OBJECTIVES, STAGE_ORDER } from '../../../shared/stages'
+import { STAGE_LABEL, STAGE_ORDER, introFor, objectivesFor } from '../../../shared/stages'
 import { DOC_LABEL } from '../../lib/coach/docs'
 import type { DocTipo, Path, Session, Stage } from '../../lib/coach/types'
 import { CoachAvatar } from '../Logo'
@@ -16,6 +16,7 @@ const NEXT_LABEL: Record<Stage, string> = {
 const STARTERS: Record<Path, string[]> = {
   quiebre: ['Siento que estoy estancado/a', 'No sé si quedarme o cambiar de trabajo', 'Quiero crecer pero no sé por dónde empezar'],
   perfil: ['Algo de lo que dice mi perfil me sorprendió', 'Quiero saber qué cambiar primero', 'No me siento reflejado/a en mi perfil'],
+  formacion: ['No sé qué estudiar', 'Estoy entre dos opciones y no puedo decidir', 'Quiero cambiar de rumbo y formarme para eso'],
 }
 
 interface ChatViewProps {
@@ -116,6 +117,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
                 {i === mapIndex && (
                   <StageMap
                     stage={session.stage}
+                    path={session.path}
                     map={session.mapas?.[session.stage]}
                     fallbackText={session.sintesis[session.stage]}
                     nextLabel={NEXT_LABEL[session.stage]}
@@ -123,7 +125,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
                     onAdjust={() => inputRef.current?.focus()}
                     onResume={(id) => {
                       onResumeTopic(id)
-                      const label = STAGE_OBJECTIVES[session.stage].find((o) => o.id === id)?.label ?? ''
+                      const label = objectivesFor(session.stage, session.path).find((o) => o.id === id)?.label ?? ''
                       setDraft(`Quiero retomar lo de "${label}".`)
                       inputRef.current?.focus()
                     }}
@@ -195,11 +197,11 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
 function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'session' | 'docStatus' | 'onAttachDoc'>) {
   const [docsOpen, setDocsOpen] = useState(false)
   const idx = STAGE_ORDER.indexOf(session.stage)
-  const objetivos = STAGE_OBJECTIVES[session.stage]
+  const objetivos = objectivesFor(session.stage, session.path)
   const cubiertos = session.cubiertos[session.stage]
   const omitidos = session.omitidos?.[session.stage] ?? []
   const fraction = objetivos.length ? cubiertos.length / objetivos.length : 0
-  const intro = STAGE_INTRO[session.stage]
+  const intro = introFor(session.stage, session.path)
   const docsLabel = session.documentos.length > 0 ? `Tu perfil: ${session.documentos.map((d) => DOC_LABEL[d.tipo]).join(' + ')}` : 'Sumar mi CV o LinkedIn'
 
   return (

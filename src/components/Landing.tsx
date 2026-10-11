@@ -27,7 +27,16 @@ function SearchIcon() {
   )
 }
 
-const PATHS: { id: Path; tag: string; icon: ReactNode; title: string; body: string }[] = [
+function CapIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" {...stroke}>
+      <path d="M22 9 12 4 2 9l10 5 10-5Z" />
+      <path d="M6 11.5V16c0 1.2 2.7 3 6 3s6-1.8 6-3v-4.5" />
+    </svg>
+  )
+}
+
+const PATHS: { id: Path; tag: string; icon: ReactNode; title: string; body: string; note?: string }[] = [
   {
     id: 'quiebre',
     tag: 'Camino A',
@@ -42,6 +51,14 @@ const PATHS: { id: Path; tag: string; icon: ReactNode; title: string; body: stri
     title: 'Quiero explorar el mercado, empezando por mi perfil',
     body: 'Te interesan nuevas oportunidades, pero antes de salir a buscar querés saber qué comunica tu perfil hoy para los puestos que te atraen.',
   },
+  {
+    id: 'formacion',
+    tag: 'Camino C',
+    icon: <CapIcon />,
+    title: 'Quiero decidir qué estudiar o en qué formarme',
+    body: 'Un curso, una tecnicatura, una carrera, un posgrado o un cambio de rumbo. Ordenamos qué querés, qué podés y con qué criterios comparar tus opciones.',
+    note: 'Para mayores de 18 años.',
+  },
 ]
 
 interface LandingProps {
@@ -55,7 +72,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
     <section id="profesional" className="py-16 md:py-24">
       <div className="section-container">
         {saved && (
-          <div className="mx-auto mb-12 flex max-w-4xl flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mx-auto mb-12 flex max-w-6xl flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-foreground">Tenés un proceso en curso</p>
               <p className="text-sm text-text-muted">
@@ -81,7 +98,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-4xl gap-5 md:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3">
           {PATHS.map((p) => (
             <div key={p.id} className="card flex flex-col p-7">
               <div className="mb-6 flex items-center justify-between">
@@ -93,7 +110,8 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
                 </span>
               </div>
               <h2 className="mb-3 text-xl leading-snug">{p.title}</h2>
-              <p className="mb-8 flex-1 text-sm leading-relaxed text-text-muted">{p.body}</p>
+              <p className={`${p.note ? 'mb-3' : 'mb-8'} flex-1 text-sm leading-relaxed text-text-muted`}>{p.body}</p>
+              {p.note && <p className="mb-5 text-xs font-semibold text-text-muted">{p.note}</p>}
               {/* Mismo estilo en los dos: ningún camino se presenta como el recomendado. */}
               <button onClick={() => onChoosePath(p.id)} className="btn-primary w-full py-3">
                 Empezar por acá
@@ -104,7 +122,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
 
         <div className="mx-auto mt-14 max-w-3xl text-center">
           <p className="mb-5 text-xs font-semibold uppercase tracking-widest text-text-muted">
-            Los dos caminos llevan al mismo proceso acompañado
+            Los tres caminos llevan al mismo proceso acompañado
           </p>
           <ol className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
             {(['diagnostico', 'discovery', 'plan'] as const).map((s, i) => (

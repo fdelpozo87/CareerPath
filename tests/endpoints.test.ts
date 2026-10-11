@@ -13,7 +13,7 @@ vi.mock('@google/generative-ai', () => ({
 import { runEndpoint } from '../server/endpoints'
 import { resetRateLimits } from '../server/guard'
 import { askCounts } from '../server/coach'
-import { buildTurnSystemPrompt } from '../server/prompts'
+import { buildReportPrompt, buildTurnSystemPrompt } from '../server/prompts'
 
 const KEY = 'test-key'
 let ipCounter = 0
@@ -392,6 +392,67 @@ describe('dejar un tema para más adelante', () => {
     expect(prompt).toMatch(/"options" \[OMITIDO — la persona eligió dejarlo para más adelante\] \(se puede dejar/)
     expect(prompt).toMatch(/"reality" \[pendiente[^\]]*\] \(NO se puede dejar/)
     expect(prompt).toMatch(/como máximo 1 por etapa/)
+  })
+})
+
+describe('Camino C: decidir en qué formarse', () => {
+  const history = [
+    { role: 'user', text: '(apertura)' },
+    { role: 'model', text: '¿Qué querés lograr?' },
+    { role: 'user', text: 'Quiero estudiar diseño UX, trabajo de día y tengo dos noches por semana libres.' },
+  ]
+  const ask = (overrides: Record<string, unknown> = {}) => runEndpoint('coach', makeReq(turnBody({ path: 'formacion', history, ...overrides })), KEY)
+  type Data = { objetivosCubiertos: string[]; listoParaAvanzar: boolean; sintesisItems: { id: string }[] }
+
+  it('acepta el camino y usa los temas de formación, no los de los otros caminos', async () => {
+    gemini.generateContent.mockResolvedValue(
+      modelReply({ mensaje: '¿Qué opciones mirás?', objetivosCubiertos: ['proposito', 'situacion', 'goal'], listoParaAvanzar: false }),
+    )
+    const r = await ask()
+    expect(r.status).toBe(200)
+    // "goal" es de los caminos A y B: no cuenta en el C.
+    expect((r.body as { data: Data }).data.objetivosCubiertos).toEqual(['proposito', 'situacion'])
+  })
+
+  it('el prompt del Camino C declara que es para mayores de 18 y que no se conoce la oferta educativa', async () => {
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'Hola', objetivosCubiertos: [] }))
+    await ask()
+    // El system prompt va en la configuración del modelo: se prueba directo sobre el constructor.
+    const prompt = buildTurnSystemPrompt({ stage: 'diagnostico', path: 'formacion', sintesisPrevias: {} })
+    expect(prompt).toContain('mayores de 18')
+    expect(prompt).toContain('No conocés la oferta educativa real')
+    expect(prompt).toContain('"proposito"')
+    expect(prompt).not.toContain('"goal"')
+  })
+
+  it('cierra la etapa solo con todos sus temas cubiertos y arma el mapa con ids del camino', async () => {
+    gemini.generateContent.mockResolvedValue(
+      modelReply({
+        mensaje: 'Cerramos',
+        objetivosCubiertos: ['proposito', 'situacion', 'alternativas', 'compromiso'],
+        listoParaAvanzar: true,
+        sintesisItems: [
+          { id: 'proposito', texto: 'Querés estudiar diseño UX.', cita: 'Quiero estudiar diseño UX' },
+          { id: 'goal', texto: 'No es de este camino', cita: '' },
+        ],
+      }),
+    )
+    const d = ((await ask()).body as { data: Data }).data
+    expect(d.listoParaAvanzar).toBe(true)
+    expect(d.sintesisItems.map((i) => i.id)).toEqual(['proposito'])
+  })
+
+  it('los temas de las otras rutas siguen siendo válidos en los caminos A y B', async () => {
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'x', objetivosCubiertos: ['goal', 'proposito'] }))
+    const r = await runEndpoint('coach', makeReq(turnBody({ history })), KEY)
+    expect((r.body as { data: Data }).data.objetivosCubiertos).toEqual(['goal'])
+  })
+
+  it('el informe del Camino C pide presupuesto, plan B y comparativa solo con lo que la persona dijo', () => {
+    const prompt = buildReportPrompt({ path: 'formacion', sintesisPrevias: {} })
+    expect(prompt).toContain('"comparativa"')
+    expect(prompt).toContain('sin inventar datos de instituciones')
+    expect(buildReportPrompt({ path: 'quiebre', sintesisPrevias: {} })).not.toContain('"comparativa"')
   })
 })
 

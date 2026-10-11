@@ -1,5 +1,5 @@
-import { STAGE_INTRO, STAGE_OBJECTIVES } from '../../../shared/stages'
-import type { Stage, StageMap as StageMapData } from '../../lib/coach/types'
+import { introFor, objectivesFor } from '../../../shared/stages'
+import type { Path, Stage, StageMap as StageMapData } from '../../lib/coach/types'
 
 // Cierre de cada etapa: el "mapa" de lo que la persona fue diciendo, con sus
 // propias frases. Reemplaza al párrafo único de antes: se ve de un vistazo qué
@@ -7,6 +7,7 @@ import type { Stage, StageMap as StageMapData } from '../../lib/coach/types'
 
 interface StageMapProps {
   stage: Stage
+  path: Path
   map?: StageMapData
   /** Resumen en prosa, para sesiones guardadas antes de que existiera el mapa. */
   fallbackText?: string
@@ -17,15 +18,15 @@ interface StageMapProps {
   onResume: (id: string) => void
 }
 
-export function StageMap({ stage, map, fallbackText, nextLabel, onAdvance, onAdjust, onResume }: StageMapProps) {
-  const labelOf = (id: string) => STAGE_OBJECTIVES[stage].find((o) => o.id === id)?.label ?? id
+export function StageMap({ stage, path, map, fallbackText, nextLabel, onAdvance, onAdjust, onResume }: StageMapProps) {
+  const labelOf = (id: string) => objectivesFor(stage, path).find((o) => o.id === id)?.label ?? id
   const titleId = `mapa-${stage}`
 
   return (
     <section id="stage-map" aria-labelledby={titleId} className="ai-result rounded-3xl border border-primary/20 bg-primary-soft/40 p-5 sm:p-6">
       <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary">Lo que fuimos armando</p>
       <h2 id={titleId} className="mb-1 text-2xl">
-        {STAGE_INTRO[stage].titulo}
+        {introFor(stage, path).titulo}
       </h2>
       <p className="mb-5 text-sm leading-relaxed text-text-muted">
         Esto es lo que dijiste, ordenado. Si algo no te representa, escribilo abajo y lo ajustamos antes de seguir.

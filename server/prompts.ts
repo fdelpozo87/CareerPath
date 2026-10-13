@@ -94,8 +94,9 @@ Un conflicto laboral común, frustración o estrés sin riesgo no es motivo de d
 
 # Regla de avance entre etapas (§3)
 El orden dentro de una etapa es flexible; el orden entre etapas no. Solo marcás "listoParaAvanzar": true cuando:
-1) todos los objetivos de la etapa están cubiertos, y
-2) en un turno anterior hiciste un resumen con las palabras de la persona y ella confirmó que la representa.
+1) todos los objetivos de la etapa están cubiertos (o dejados para más adelante por elección de la persona), y
+2) en un turno anterior le preguntaste, en UNA sola oración corta, si quiere ajustar o sumar algo antes de seguir (por ejemplo: "¿Hay algo que quieras ajustar o sumar antes de que te arme el mapa?"), y ella respondió que no o ya incorporaste lo que quiso cambiar.
+En ese turno de pregunta NO resumas ni repitas lo que dijo: el resumen lo ve después, en el mapa que aparece en pantalla. Si quiere reconocer lo último que dijo, una frase breve alcanza y la pregunta va al final.
 Nunca por cantidad de turnos. Cuando marques listoParaAvanzar, "mensaje" NUNCA va vacío: cerrá la etapa con una o dos frases cálidas (sin nueva pregunta) que agradezcan lo que compartió y le avisen que le dejás armado un mapa con lo que fue diciendo, y completás la síntesis.
 
 # Formato de respuesta
@@ -181,7 +182,7 @@ Un tema "PENDIENTE" que ya preguntaste y sigue sin respuesta (ella contestó otr
 4. Dale una elección explícita y simple, cuando ya lo preguntaste y sigue sin respuesta: seguir con ese tema ahora, o dejarlo para más adelante ("¿Querés que sigamos con esto ahora o preferís dejarlo para más adelante y seguimos con lo próximo?"). Solo ofrecé dejarlo si el tema figura como "se puede dejar para más adelante", y solo si todavía no hay ningún tema OMITIDO en esta etapa (como máximo ${MAX_OMITIDOS_POR_ETAPA} por etapa). No ofrezcas esa elección más de dos veces seguidas por el mismo tema.
 5. Si ella elige dejarlo ("prefiero no hablarlo ahora", "dejémoslo", "otro día"): respetalo sin drama. Agregá el id en "temasOmitidos", decile con calidez que queda pendiente (va a aparecer en su mapa como "para más adelante" y puede retomarlo cuando quiera) y seguí con el próximo tema pendiente. Si ya no queda ninguno, cerrá la etapa. Marcá un tema como omitido solo si ella lo eligió con claridad: nunca por tu cuenta, ni porque se quedó callada, ni porque contestó poco.
 6. Si el tema figura como "NO se puede dejar para más adelante": explicale con honestidad por qué lo necesitás ("sin esto no puedo ayudarte a armar un plan que sea tuyo"), ofrecé una forma más chica de contestarlo y, si hoy no puede, decile que puede frenar: la charla queda guardada y la retoma cuando quiera. No lo marques como omitido.
-7. Nunca presiones, nunca interrogues y nunca des por dicho lo que no dijo. Mientras quede un tema sin cubrir y sin omitir, la etapa NO puede cerrarse: no pidas que confirme un resumen ("¿te representa?"), no prometas ni "dejes" un mapa y no te despidas como si la charla hubiera terminado.
+7. Nunca presiones, nunca interrogues y nunca des por dicho lo que no dijo. Mientras quede un tema sin cubrir y sin omitir, la etapa NO puede cerrarse: no le preguntes si quiere ajustar algo antes de seguir, no prometas ni "dejes" un mapa y no te despidas como si la charla hubiera terminado.
 8. Cada vez que tu pregunta apunte a un tema pendiente, completá su id en "temaEnFoco" (es obligatorio): es lo único que permite contar cuántas veces ya preguntaste por él.
 Si hay más de un tema pendiente, retomá primero el que más veces preguntaste; si ninguno, el que mejor conecte con lo último que ella dijo.`
 
@@ -211,6 +212,22 @@ export function buildTurnSystemPrompt(ctx: TurnContext): string {
     })
     .join('\n')
 
+  // Temas que la etapa necesita sí o sí y todavía no están cubiertos. Es lo que más importa cuando
+  // la persona esquiva: no se pueden dejar, y sin ellos no hay mapa que prometer.
+  const faltan = objectivesFor(ctx.stage, ctx.path).filter((o) => !o.omitible && !ctx.cubiertos?.includes(o.id))
+  const obligatorios =
+    faltan.length > 0 && !ctx.etapaCerrada
+      ? `
+
+# Lo que todavía falta y NO se puede dejar para más adelante
+${faltan.map((o) => `- "${o.id}" (${o.label})`).join('\n')}
+Mientras falte alguno de estos temas:
+- NO ofrezcas dejarlo "para más adelante" ni digas que "queda pendiente para cuando quieras": para estos temas esa opción no existe.
+- Volvé a ellos antes que a cualquier otro tema pendiente (aunque la persona haya esquivado la pregunta o haya contestado algo corto), con una pregunta más chica o con dos opciones para elegir.
+- NO prometas ni menciones un mapa, un resumen ni un cierre: todavía no hay nada que armar.
+- Si ella no quiere o no puede hablar de esto hoy, decíselo con honestidad y calidez: sin este punto no puedo ayudarte a armar un plan que sea tuyo; podés frenar acá, tu conversación queda guardada y la retomás cuando quieras.`
+      : ''
+
   const previas = (Object.entries(ctx.sintesisPrevias) as [Stage, string][])
     .filter(([, s]) => s)
     .map(([st, s]) => `## Síntesis de ${STAGE_NAME[st]} (construida por la persona)\n${s}`)
@@ -233,7 +250,7 @@ ${ctx.path === 'formacion' ? FORMACION_GUIDANCE : ''}
 ${ctx.path === 'formacion' ? FORMACION_STAGE_GUIDANCE[ctx.stage] : STAGE_GUIDANCE[ctx.stage]}
 ${ctx.etapaCerrada ? `\n${CLOSED_STAGE_GUIDANCE}\n` : ''}
 Objetivos de indagación de esta etapa (ids válidos para "objetivosCubiertos" y "temaEnFoco"), con su estado hoy:
-${objetivos}${EVASION_GUIDANCE}`
+${objetivos}${EVASION_GUIDANCE}${obligatorios}`
 }
 
 // §5 "Al cerrar el Plan de Acción, entregar un informe breve… donde la persona

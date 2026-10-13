@@ -162,6 +162,42 @@ export function askCounts(history: ChatMessage[], stage: Stage, cubiertos: strin
   return counts
 }
 
+// La pregunta de cierre de cada etapa: corta y sin resumen (el resumen es el mapa de pantalla).
+const ADJUST_QUESTION = '¿Hay algo que quieras ajustar o sumar antes de que te arme el mapa?'
+const ASKS_TO_ADJUST = /ajust|sumar|agreg|modific|cambiar algo/i
+
+/** ¿El último turno del coach ya tenía todos los temas cubiertos u omitidos? (o sea, ya hizo la pregunta de cierre) */
+function previousTurnWasComplete(history: ChatMessage[], valid: string[]): boolean {
+  const last = [...history].reverse().find((m) => m.role === 'model')
+  if (!last) return false
+  try {
+    const t = JSON.parse(last.text) as { objetivosCubiertos?: unknown; temasOmitidos?: unknown }
+    const done = new Set<string>([
+      ...(Array.isArray(t.objetivosCubiertos) ? t.objetivosCubiertos : []),
+      ...(Array.isArray(t.temasOmitidos) ? t.temasOmitidos : []),
+    ].filter((x): x is string => typeof x === 'string'))
+    return valid.every((id) => done.has(id))
+  } catch {
+    return false // turno sin JSON (sesión vieja): se trata como que todavía no preguntó
+  }
+}
+
+const MAP_WORD = /\bmapa\b/i
+
+/**
+ * Mientras falte un tema obligatorio la etapa no puede cerrar: no hay mapa que prometer. Si el
+ * modelo igual lo promete ("te dejo armado tu mapa"), se saca esa frase para que la persona no
+ * espere algo que no va a aparecer; si no queda nada, se dice la verdad con calidez.
+ */
+function withoutMapPromise(mensaje: string, pendingLabel: string): string {
+  const sentences = mensaje.split(/(?<=[.!?…])\s+/)
+  const kept = sentences.filter((sentence) => !MAP_WORD.test(sentence))
+  if (kept.length === sentences.length) return mensaje
+  const rest = kept.join(' ').trim()
+  if (rest.length >= 20) return rest
+  return `Para armarte el mapa me falta que me cuentes sobre "${pendingLabel}". Si hoy no tenés ganas, podemos frenar acá: tu conversación queda guardada y la retomás cuando quieras.`
+}
+
 const MAX_ITEM_TEXT = 400
 const MAX_QUOTE = 200
 const MAX_BRIDGE = 300
@@ -229,7 +265,11 @@ function normalizeTurn(
   const completos = valid.every((id) => cubiertos.includes(id) || omitidos.includes(id))
   // Una etapa cerrada sigue cerrada: lo que la persona escriba después (un "gracias", un ajuste)
   // no puede reabrirla aunque el modelo conteste con una pregunta.
-  const listo = completos && (Boolean(raw.listoParaAvanzar) || etapaCerrada)
+  // El cierre es en dos pasos: primero la pregunta corta de ajuste (con todos los temas ya cubiertos)
+  // y recién después, con la respuesta de la persona, el mapa. El modelo a veces lo junta en un solo
+  // turno y deja el mapa vacío: el servidor no lo permite.
+  const preguntaDeCierrePendiente = completos && !etapaCerrada && !previousTurnWasComplete(history, valid)
+  const listo = completos && (Boolean(raw.listoParaAvanzar) || etapaCerrada) && !preguntaDeCierrePendiente
 
   const userText = fold(history.filter((m) => m.role === 'user' && !m.text.startsWith('(')).map((m) => m.text).join(' \n '))
   const modelItems = listo ? cleanItems(raw.sintesisItems, stage, userText, path).filter((i) => !omitidos.includes(i.id)) : []
@@ -256,15 +296,34 @@ function normalizeTurn(
       ? raw.temaEnFoco
       : ''
 
+  let mensaje =
+    typeof raw.mensaje === 'string' && raw.mensaje.trim()
+      ? raw.mensaje.trim()
+      : listo
+        ? 'Gracias por contármelo con tanta claridad. Armé un mapa con lo que fuimos hablando: fijate si te representa.'
+        : '¿Me contás un poco más?'
+  if (preguntaDeCierrePendiente && !(ASKS_TO_ADJUST.test(mensaje) && mensaje.includes('?'))) {
+    // Se conserva lo que haya dicho para reconocer a la persona, sin sus preguntas ni resúmenes, y se pregunta.
+    const ack = mensaje
+      .split(/(?<=[.!?…])\s+/)
+      .filter((sentence) => !sentence.trim().endsWith('?') && !MAP_WORD.test(sentence))
+      .slice(0, 1)
+      .join(' ')
+      .trim()
+    mensaje = `${ack ? `${ack} ` : ''}${ADJUST_QUESTION}`
+  }
+  if (!completos) {
+    // Mientras falte un tema no hay mapa que prometer. Se nombra primero el tema por el que más veces se preguntó.
+    const pendientes = valid.filter((id) => !cubiertos.includes(id) && !omitidos.includes(id))
+    const masPreguntado = [...pendientes].sort((x, y) => (asked[y] ?? 0) - (asked[x] ?? 0))[0]
+    const label = objetivos.find((o) => o.id === masPreguntado)?.label ?? 'lo que falta'
+    mensaje = withoutMapPromise(mensaje, label)
+  }
+
   return {
     temaEnFoco: foco,
     temasOmitidos: omitidos,
-    mensaje:
-      typeof raw.mensaje === 'string' && raw.mensaje.trim()
-        ? raw.mensaje.trim()
-        : listo
-          ? 'Gracias por contármelo con tanta claridad. Armé un mapa con lo que fuimos hablando: fijate si te representa.'
-          : '¿Me contás un poco más?',
+    mensaje,
     objetivosCubiertos: cubiertos,
     listoParaAvanzar: listo,
     derivacion: Boolean(raw.derivacion),
@@ -375,7 +434,7 @@ const DEMO_QUESTIONS_C: Record<Stage, string[]> = {
 function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
   const ids = objectivesFor(req.stage, req.path).map((o) => o.id)
   const lastModel = [...req.history].reverse().find((m) => m.role === 'model')?.text ?? ''
-  const askedSummary = lastModel.includes('¿Te representa este resumen?')
+  const askedSummary = lastModel.includes('antes de que te arme el mapa')
   const userTurnsInStage = req.history.at(-1)?.role === 'user' && !req.history.at(-1)?.text.startsWith('(') ? 1 : 0
   const cubiertos = [...req.cubiertos]
   if (userTurnsInStage && cubiertos.length < ids.length) cubiertos.push(ids[cubiertos.length])
@@ -399,7 +458,7 @@ function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
   }
   if (cubiertos.length === ids.length) {
     return {
-      mensaje: '— MODO DEMO — Resumo lo que dijiste hasta acá con tus palabras… ¿Te representa este resumen?',
+      mensaje: '— MODO DEMO — ¿Hay algo que quieras ajustar o sumar antes de que te arme el mapa?',
       temaEnFoco: '',
       temasOmitidos: [],
       objetivosCubiertos: cubiertos,

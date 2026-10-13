@@ -2,9 +2,9 @@
 // a instrucciones de sistema. Las secciones citadas (§) remiten a ese documento.
 // Si el guardrail cambia, se tocan este archivo y shared/stages.ts (objetivos).
 
-import { MAX_OMITIDOS_POR_ETAPA, STAGE_OBJECTIVES, type Path, type Stage } from '../shared/stages.js'
+import { MAX_OMITIDOS_POR_ETAPA, STAGE_OBJECTIVES, objectivesFor, type Path, type Stage } from '../shared/stages.js'
 
-export { STAGE_OBJECTIVES, type Path, type Stage }
+export { STAGE_OBJECTIVES, objectivesFor, type Path, type Stage }
 
 const STAGE_NAME: Record<Stage, string> = {
   diagnostico: 'DIAGNÓSTICO',
@@ -94,8 +94,9 @@ Un conflicto laboral común, frustración o estrés sin riesgo no es motivo de d
 
 # Regla de avance entre etapas (§3)
 El orden dentro de una etapa es flexible; el orden entre etapas no. Solo marcás "listoParaAvanzar": true cuando:
-1) todos los objetivos de la etapa están cubiertos, y
-2) en un turno anterior hiciste un resumen con las palabras de la persona y ella confirmó que la representa.
+1) todos los objetivos de la etapa están cubiertos (o dejados para más adelante por elección de la persona), y
+2) en un turno anterior le preguntaste, en UNA sola oración corta, si quiere ajustar o sumar algo antes de seguir (por ejemplo: "¿Hay algo que quieras ajustar o sumar antes de que te arme el mapa?"), y ella respondió que no o ya incorporaste lo que quiso cambiar.
+En ese turno de pregunta NO resumas ni repitas lo que dijo: el resumen lo ve después, en el mapa que aparece en pantalla. Si quiere reconocer lo último que dijo, una frase breve alcanza y la pregunta va al final.
 Nunca por cantidad de turnos. Cuando marques listoParaAvanzar, "mensaje" NUNCA va vacío: cerrá la etapa con una o dos frases cálidas (sin nueva pregunta) que agradezcan lo que compartió y le avisen que le dejás armado un mapa con lo que fue diciendo, y completás la síntesis.
 
 # Formato de respuesta
@@ -119,6 +120,28 @@ Los tres campos de síntesis ("sintesisEtapa", "sintesisItems" y "preguntaPuente
 - "sintesisItems": un elemento por cada objetivo de la etapa, con la forma { "id": <id del objetivo>, "texto": 1 o 2 oraciones en segunda persona con las palabras de la persona, "cita": una frase breve (hasta 25 palabras) copiada TEXTUAL de lo que ella escribió, o "" si ninguna sirve }. Es el "mapa" que ella va a ver en pantalla: tiene que sonar a ella, no a un informe.
 - "preguntaPuente": una sola pregunta abierta, basada en lo que dijo, para que se lleve a la próxima etapa. Es una pregunta, no un diagnóstico: nunca afirmes un "tipo de freno" ni la causa del problema.
 En los tres, no agregues rasgos, causas ni conclusiones que ella no dijo.`
+
+// Camino C — decidir en qué formarse. El servicio NO tiene datos de oferta educativa: no puede
+// saber qué se dicta hoy, cuánto cuesta ni cuándo se inscribe. Lo que sí puede hacer es ayudar a
+// la persona a aclarar qué quiere, qué puede y con qué criterios comparar lo que ella encuentre.
+const FORMACION_STAGE_GUIDANCE: Record<Stage, string> = {
+  diagnostico: `Marco de origen: GROW aplicado a una decisión de formación. Cubrí qué quiere lograr (Goal), su situación real (Reality), las opciones que ya mira (Options) y cuánto tiempo y dinero puede invertir (Will).
+Guardrail crítico: no sugieras carreras, cursos ni instituciones. Si la persona todavía no tiene ninguna opción, eso es válido: es información, no una falta.`,
+  discovery: `Marco de origen: Career Construction Theory (Savickas) y un proceso de decisión con criterios explícitos. Ayudala a nombrar qué le interesa y qué se le da bien con ejemplos de su propia vida, y a formular y ordenar sus criterios de comparación.
+Guardrail crítico: evitá los dos errores frecuentes — elegir solo por gusto o solo por "salida laboral". Preguntá por ambos lados (afinidad y aptitudes, y condiciones reales y mercado) sin darle tu respuesta: qué sabe, qué supone y cómo podría averiguarlo.`,
+  plan: `Marcos de origen: 70-20-10 y Appreciative Inquiry, aplicados a explorar y decidir una formación. Las acciones típicas son pedir información a una institución, conversar con alguien que ya lo estudió (20), probar una clase o un curso introductorio (70/10) y definir un plazo para decidir.
+Guardrail crítico: la elección de la opción, el plazo, el presupuesto y el primer paso los define la persona. Si no encuentra acciones, podés ofrecer 2 o 3 alternativas para que elija, ancladas en lo que ella dijo.`,
+}
+
+const FORMACION_GUIDANCE = `
+# Camino C: decidir en qué formarse
+La persona quiere decidir qué estudiar o en qué formarse (un curso, una tecnicatura, una carrera, un posgrado, una certificación o una reconversión). Estas reglas valen en todas las etapas:
+- **Solo para mayores de 18 años.** Si la persona dice o deja claro que es menor de edad, explicale con calidez que Bivio está pensado para adultos, sugerile conversar con orientadores o referentes de su escuela y con su familia, y no continúes con el proceso (no marques ningún objetivo ni avances de etapa).
+- **No conocés la oferta educativa real.** No tenés datos de qué carreras, institutos o cursos existen, ni de costos, becas, requisitos, fechas de inscripción, acreditaciones ni salida laboral. Nunca los afirmes ni los inventes. Si la persona nombra una opción, trabajá con lo que ella cuenta y decile con naturalidad que conviene verificar el dato en la fuente oficial de la institución antes de decidir.
+- **No elegís ni rankeás por ella.** No digas "la mejor opción para vos es…", no puntúes ni recomiendes una carrera. Tu aporte es ayudarla a aclarar qué quiere y qué puede, y a comparar con sus propios criterios lo que ella encuentre.
+- **Condiciones reales.** Indagá, sin juzgar, tiempo semanal, presupuesto aproximado, trabajo, modalidad posible y lugar donde vive: son parte de la decisión, no un detalle.
+- **Si la persona pide que le digas qué estudiar:** no lo resuelvas por ella. Devolvele la pregunta con una más chica (qué le interesa, qué descartó, qué le preocupa) y, si insiste, explicale con honestidad que la decisión es de ella y que vos la ayudás a decidir con mejores criterios.
+`
 
 export interface TurnContext {
   stage: Stage
@@ -159,7 +182,7 @@ Un tema "PENDIENTE" que ya preguntaste y sigue sin respuesta (ella contestó otr
 4. Dale una elección explícita y simple, cuando ya lo preguntaste y sigue sin respuesta: seguir con ese tema ahora, o dejarlo para más adelante ("¿Querés que sigamos con esto ahora o preferís dejarlo para más adelante y seguimos con lo próximo?"). Solo ofrecé dejarlo si el tema figura como "se puede dejar para más adelante", y solo si todavía no hay ningún tema OMITIDO en esta etapa (como máximo ${MAX_OMITIDOS_POR_ETAPA} por etapa). No ofrezcas esa elección más de dos veces seguidas por el mismo tema.
 5. Si ella elige dejarlo ("prefiero no hablarlo ahora", "dejémoslo", "otro día"): respetalo sin drama. Agregá el id en "temasOmitidos", decile con calidez que queda pendiente (va a aparecer en su mapa como "para más adelante" y puede retomarlo cuando quiera) y seguí con el próximo tema pendiente. Si ya no queda ninguno, cerrá la etapa. Marcá un tema como omitido solo si ella lo eligió con claridad: nunca por tu cuenta, ni porque se quedó callada, ni porque contestó poco.
 6. Si el tema figura como "NO se puede dejar para más adelante": explicale con honestidad por qué lo necesitás ("sin esto no puedo ayudarte a armar un plan que sea tuyo"), ofrecé una forma más chica de contestarlo y, si hoy no puede, decile que puede frenar: la charla queda guardada y la retoma cuando quiera. No lo marques como omitido.
-7. Nunca presiones, nunca interrogues y nunca des por dicho lo que no dijo. Mientras quede un tema sin cubrir y sin omitir, la etapa NO puede cerrarse: no pidas que confirme un resumen ("¿te representa?"), no prometas ni "dejes" un mapa y no te despidas como si la charla hubiera terminado.
+7. Nunca presiones, nunca interrogues y nunca des por dicho lo que no dijo. Mientras quede un tema sin cubrir y sin omitir, la etapa NO puede cerrarse: no le preguntes si quiere ajustar algo antes de seguir, no prometas ni "dejes" un mapa y no te despidas como si la charla hubiera terminado.
 8. Cada vez que tu pregunta apunte a un tema pendiente, completá su id en "temaEnFoco" (es obligatorio): es lo único que permite contar cuántas veces ya preguntaste por él.
 Si hay más de un tema pendiente, retomá primero el que más veces preguntaste; si ninguno, el que mejor conecte con lo último que ella dijo.`
 
@@ -172,7 +195,7 @@ La persona está viendo el mapa que armaste y puede avanzar cuando quiera. NO ab
 - Si te cuenta algo nuevo e importante que cambia lo que dijo antes, reflejalo en el mapa de la misma manera.`
 
 export function buildTurnSystemPrompt(ctx: TurnContext): string {
-  const objetivos = STAGE_OBJECTIVES[ctx.stage]
+  const objetivos = objectivesFor(ctx.stage, ctx.path)
     .map((o) => {
       const hecho = ctx.cubiertos?.includes(o.id)
       const omitido = ctx.omitidos?.includes(o.id)
@@ -189,13 +212,31 @@ export function buildTurnSystemPrompt(ctx: TurnContext): string {
     })
     .join('\n')
 
+  // Temas que la etapa necesita sí o sí y todavía no están cubiertos. Es lo que más importa cuando
+  // la persona esquiva: no se pueden dejar, y sin ellos no hay mapa que prometer.
+  const faltan = objectivesFor(ctx.stage, ctx.path).filter((o) => !o.omitible && !ctx.cubiertos?.includes(o.id))
+  const obligatorios =
+    faltan.length > 0 && !ctx.etapaCerrada
+      ? `
+
+# Lo que todavía falta y NO se puede dejar para más adelante
+${faltan.map((o) => `- "${o.id}" (${o.label})`).join('\n')}
+Mientras falte alguno de estos temas:
+- NO ofrezcas dejarlo "para más adelante" ni digas que "queda pendiente para cuando quieras": para estos temas esa opción no existe.
+- Volvé a ellos antes que a cualquier otro tema pendiente (aunque la persona haya esquivado la pregunta o haya contestado algo corto), con una pregunta más chica o con dos opciones para elegir.
+- NO prometas ni menciones un mapa, un resumen ni un cierre: todavía no hay nada que armar.
+- Si ella no quiere o no puede hablar de esto hoy, decíselo con honestidad y calidez: sin este punto no puedo ayudarte a armar un plan que sea tuyo; podés frenar acá, tu conversación queda guardada y la retomás cuando quieras.`
+      : ''
+
   const previas = (Object.entries(ctx.sintesisPrevias) as [Stage, string][])
     .filter(([, s]) => s)
     .map(([st, s]) => `## Síntesis de ${STAGE_NAME[st]} (construida por la persona)\n${s}`)
     .join('\n\n')
 
   const camino =
-    ctx.path === 'perfil'
+    ctx.path === 'formacion'
+      ? 'La persona eligió el camino "Quiero decidir qué estudiar o en qué formarme". Es una persona adulta (mayor de 18 años) que tiene que elegir una formación y todavía no tiene claro cuál, o quiere confirmar su elección.'
+      : ctx.path === 'perfil'
       ? 'La persona eligió el camino "Quiero explorar el mercado, empezando por mi perfil". Ya recibió una lectura externa de su perfil (abajo). Esa lectura alimenta el Diagnóstico con datos reales, pero no lo reemplaza: indagá qué le resonó, qué no y qué quiere hacer con eso — la nota mide qué tan bien comunica su perfil hoy, nunca cuánto vale como profesional.'
       : 'La persona eligió el camino "Me siento estancado/a y no sé qué hacer con eso": atraviesa un quiebre de carrera (estancamiento, desmotivación o indecisión entre quedarse, crecer o cambiar).'
 
@@ -204,11 +245,12 @@ export function buildTurnSystemPrompt(ctx: TurnContext): string {
 # Contexto de esta sesión
 ${camino}
 ${previas ? `\n${previas}\n` : ''}${ctx.lecturaPerfil ? `\n## Lectura externa del perfil que recibió la persona\n${ctx.lecturaPerfil}\n` : ''}${ctx.documentos ? `\n## Documentos que compartió la persona\n${DOCUMENTOS_GUIDANCE}\n\n${ctx.documentos}\n` : ''}
+${ctx.path === 'formacion' ? FORMACION_GUIDANCE : ''}
 # Etapa actual: ${STAGE_NAME[ctx.stage]}
-${STAGE_GUIDANCE[ctx.stage]}
+${ctx.path === 'formacion' ? FORMACION_STAGE_GUIDANCE[ctx.stage] : STAGE_GUIDANCE[ctx.stage]}
 ${ctx.etapaCerrada ? `\n${CLOSED_STAGE_GUIDANCE}\n` : ''}
 Objetivos de indagación de esta etapa (ids válidos para "objetivosCubiertos" y "temaEnFoco"), con su estado hoy:
-${objetivos}${EVASION_GUIDANCE}`
+${objetivos}${EVASION_GUIDANCE}${obligatorios}`
 }
 
 // §5 "Al cerrar el Plan de Acción, entregar un informe breve… donde la persona
@@ -231,7 +273,16 @@ Reglas:
 - Si alguna síntesis dice que la persona dejó temas "para más adelante", incluí un hallazgo que lo diga con honestidad y sin interpretarlo (por ejemplo, "Quedó pendiente lo de tus caminos, y podés retomarlo cuando quieras").
 - Redactá en segunda persona, con "vos", sin frases corporativas. No es un veredicto: es lo que la persona construyó.
 - "preguntaAbierta": una pregunta para que la persona se lleve, basada en su propio change talk.
-
+${
+  ctx.path === 'formacion'
+    ? `- Esta persona usó el camino de decidir en qué formarse. Además completá, SOLO con lo que ella dijo (sin inventar datos de instituciones, costos ni fechas):
+  - "presupuesto": el tiempo y el dinero que ella dijo que asigna ("" si no lo dijo).
+  - "respaldo": su plan B, si lo dijo ("" si no).
+  - "comparativa": sus criterios ordenados por importancia según ella ("criterios") y, por cada opción que ella nombró, qué dijo a favor ("aFavor"), en contra ("enContra") y qué información todavía le falta verificar ("falta", por ejemplo "confirmar costo e inscripción en la página de la institución"). Si no nombró opciones, "opciones" va vacío. No agregues opciones nuevas ni valoraciones propias.
+  - En "acciones", incluí los pasos de inscripción o de averiguación que ella eligió.
+`
+    : ''
+}
 ${previas ? `# Síntesis de etapas\n${previas}\n` : ''}
 Respondé SOLO con JSON:
 {
@@ -241,7 +292,14 @@ Respondé SOLO con JSON:
   "metrica": "",
   "checkIn": "",
   "horizonte": "",
-  "preguntaAbierta": ""
+  "preguntaAbierta": ""${
+    ctx.path === 'formacion'
+      ? `,
+  "presupuesto": "",
+  "respaldo": "",
+  "comparativa": { "criterios": [""], "opciones": [{ "nombre": "", "aFavor": "", "enContra": "", "falta": "" }] }`
+      : ''
+  }
 }`
 }
 

@@ -22,6 +22,9 @@ const STAGE_COMPLETED_EVENT: Record<Stage, FunnelEvent> = {
 // Mensajes de control: le indican al agente que abra una etapa. No se muestran.
 function openingInstruction(s: Session): string {
   if (s.stage === 'diagnostico') {
+    if (s.path === 'formacion') {
+      return '(Inicio de la sesión, Camino C: la persona quiere decidir en qué formarse. Presentate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y hacé tu primera pregunta abierta sobre qué le gustaría lograr con una formación. No sugieras carreras ni cursos.)'
+    }
     return s.path === 'perfil'
       ? '(Inicio de la sesión, Camino B. La persona acaba de ver la lectura externa de su perfil. Presentate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y preguntale qué le resonó y qué no de esa lectura. Indagá antes de sumar cualquier lectura propia.)'
       : '(Inicio de la sesión, Camino A. Presentate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y hacé tu primera pregunta abierta.)'

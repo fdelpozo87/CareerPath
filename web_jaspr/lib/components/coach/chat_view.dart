@@ -21,6 +21,7 @@ const _nextLabel = {
 const _starters = {
   CoachPath.quiebre: ['Siento que estoy estancado/a', 'No sé si quedarme o cambiar de trabajo', 'Quiero crecer pero no sé por dónde empezar'],
   CoachPath.perfil: ['Algo de lo que dice mi perfil me sorprendió', 'Quiero saber qué cambiar primero', 'No me siento reflejado/a en mi perfil'],
+  CoachPath.formacion: ['No sé qué estudiar', 'Estoy entre dos opciones y no puedo decidir', 'Quiero cambiar de rumbo y formarme para eso'],
 };
 
 const _inputId = 'chat-input';
@@ -142,6 +143,7 @@ class _ChatViewState extends State<ChatView> {
               when(m.derivacion, _derivationCard),
               when(i == mapIndex, () => stageMap(
                 stage: session.stage,
+                path: session.path,
                 map: session.mapas[session.stage],
                 fallbackText: session.sintesis[session.stage],
                 nextLabel: _nextLabel[session.stage]!,
@@ -149,7 +151,7 @@ class _ChatViewState extends State<ChatView> {
                 onAdjust: () => _input()?.focus(),
                 onResume: (id) {
                   component.onResumeTopic(id);
-                  final label = stageObjectives[session.stage]!.where((o) => o.id == id).firstOrNull?.label ?? '';
+                  final label = objectivesFor(session.stage, session.path).where((o) => o.id == id).firstOrNull?.label ?? '';
                   _setDraft('Quiero retomar lo de "$label".');
                 },
               )),
@@ -206,11 +208,11 @@ class _ChatViewState extends State<ChatView> {
 
   Component _header() {
     final idx = session.stage.index;
-    final objetivos = stageObjectives[session.stage]!;
+    final objetivos = objectivesFor(session.stage, session.path);
     final cubiertos = session.cubiertos[session.stage] ?? const <String>[];
     final omitidos = session.omitidos[session.stage] ?? const <String>[];
     final fraction = objetivos.isEmpty ? 0.0 : cubiertos.length / objetivos.length;
-    final intro = stageIntro[session.stage]!;
+    final intro = introFor(session.stage, session.path);
     final docsLabel = session.documentos.isNotEmpty ? 'Tu perfil: ${session.documentos.map((d) => d.tipo.label).join(' + ')}' : 'Sumar mi CV o LinkedIn';
 
     return el('header', 'border-b border-border-color bg-card px-4 py-3 sm:px-6', [

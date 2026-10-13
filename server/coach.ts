@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, type Content } from '@google/generative-ai'
 import {
-  STAGE_OBJECTIVES,
+  objectivesFor,
   EXTRACT_PROMPT,
   buildProfilePrompt,
   buildReportPrompt,
@@ -66,7 +66,7 @@ type CoachRequest =
 export type CoachResponse = { status: number; body: unknown }
 
 const STAGES: Stage[] = ['diagnostico', 'discovery', 'plan']
-const PATHS: Path[] = ['quiebre', 'perfil']
+const PATHS: Path[] = ['quiebre', 'perfil', 'formacion']
 const MAX_HISTORY = 120
 const MAX_MESSAGE = 6_000
 const MAX_CONTEXT = 30_000 // CV + LinkedIn
@@ -147,8 +147,8 @@ function toContents(history: ChatMessage[]): Content[] {
  * turnos del coach (cada uno declara su "temaEnFoco") y se le devuelve al modelo: así puede notar
  * que la persona esquiva un tema y decidir cómo retomarlo, en lugar de abandonarlo o repetirse.
  */
-export function askCounts(history: ChatMessage[], stage: Stage, cubiertos: string[], omitidos: string[] = []): Record<string, number> {
-  const pending = STAGE_OBJECTIVES[stage].map((o) => o.id).filter((id) => !cubiertos.includes(id) && !omitidos.includes(id))
+export function askCounts(history: ChatMessage[], stage: Stage, cubiertos: string[], omitidos: string[] = [], path: Path = 'quiebre'): Record<string, number> {
+  const pending = objectivesFor(stage, path).map((o) => o.id).filter((id) => !cubiertos.includes(id) && !omitidos.includes(id))
   const counts: Record<string, number> = {}
   for (const m of history) {
     if (m.role !== 'model') continue
@@ -160,6 +160,42 @@ export function askCounts(history: ChatMessage[], stage: Stage, cubiertos: strin
     }
   }
   return counts
+}
+
+// La pregunta de cierre de cada etapa: corta y sin resumen (el resumen es el mapa de pantalla).
+const ADJUST_QUESTION = '¿Hay algo que quieras ajustar o sumar antes de que te arme el mapa?'
+const ASKS_TO_ADJUST = /ajust|sumar|agreg|modific|cambiar algo/i
+
+/** ¿El último turno del coach ya tenía todos los temas cubiertos u omitidos? (o sea, ya hizo la pregunta de cierre) */
+function previousTurnWasComplete(history: ChatMessage[], valid: string[]): boolean {
+  const last = [...history].reverse().find((m) => m.role === 'model')
+  if (!last) return false
+  try {
+    const t = JSON.parse(last.text) as { objetivosCubiertos?: unknown; temasOmitidos?: unknown }
+    const done = new Set<string>([
+      ...(Array.isArray(t.objetivosCubiertos) ? t.objetivosCubiertos : []),
+      ...(Array.isArray(t.temasOmitidos) ? t.temasOmitidos : []),
+    ].filter((x): x is string => typeof x === 'string'))
+    return valid.every((id) => done.has(id))
+  } catch {
+    return false // turno sin JSON (sesión vieja): se trata como que todavía no preguntó
+  }
+}
+
+const MAP_WORD = /\bmapa\b/i
+
+/**
+ * Mientras falte un tema obligatorio la etapa no puede cerrar: no hay mapa que prometer. Si el
+ * modelo igual lo promete ("te dejo armado tu mapa"), se saca esa frase para que la persona no
+ * espere algo que no va a aparecer; si no queda nada, se dice la verdad con calidez.
+ */
+function withoutMapPromise(mensaje: string, pendingLabel: string): string {
+  const sentences = mensaje.split(/(?<=[.!?…])\s+/)
+  const kept = sentences.filter((sentence) => !MAP_WORD.test(sentence))
+  if (kept.length === sentences.length) return mensaje
+  const rest = kept.join(' ').trim()
+  if (rest.length >= 20) return rest
+  return `Para armarte el mapa me falta que me cuentes sobre "${pendingLabel}". Si hoy no tenés ganas, podemos frenar acá: tu conversación queda guardada y la retomás cuando quieras.`
 }
 
 const MAX_ITEM_TEXT = 400
@@ -174,9 +210,9 @@ function fold(text: string): string {
 // El "mapa" de cierre. Las citas tienen que ser TEXTUALES de lo que la persona
 // escribió (guardrail §5: anclar todo en lo que dijo): si el modelo inventa una
 // frase, se descarta la cita y se conserva el resto.
-function cleanItems(raw: unknown, stage: Stage, userText: string): SynthesisItem[] {
+function cleanItems(raw: unknown, stage: Stage, userText: string, path: Path): SynthesisItem[] {
   if (!Array.isArray(raw)) return []
-  const order = STAGE_OBJECTIVES[stage].map((o) => o.id)
+  const order = objectivesFor(stage, path).map((o) => o.id)
   const seen = new Set<string>()
   const items: SynthesisItem[] = []
   for (const it of raw) {
@@ -205,8 +241,9 @@ function normalizeTurn(
   history: ChatMessage[],
   etapaCerrada = false,
   prevOmitidos: string[] = [],
+  path: Path = 'quiebre',
 ): TurnResult {
-  const objetivos = STAGE_OBJECTIVES[stage]
+  const objetivos = objectivesFor(stage, path)
   const valid = objetivos.map((o) => o.id)
   const omitibles = new Set(objetivos.filter((o) => o.omitible).map((o) => o.id))
   const cubiertos = Array.from(
@@ -216,7 +253,7 @@ function normalizeTurn(
   // Temas que la persona eligió dejar para más adelante. El servidor no se fía del modelo:
   // solo vale si el tema se puede dejar, la persona ya tuvo la oportunidad de contestarlo (se
   // preguntó al menos una vez), no se pasa del tope por etapa, y no cuenta como cubierto.
-  const asked = askCounts(history, stage, cubiertos, prevOmitidos)
+  const asked = askCounts(history, stage, cubiertos, prevOmitidos, path)
   const nuevos = (Array.isArray(raw.temasOmitidos) ? raw.temasOmitidos : []).filter(
     (id): id is string => typeof id === 'string' && omitibles.has(id) && !prevOmitidos.includes(id) && (asked[id] ?? 0) >= 1,
   )
@@ -228,10 +265,14 @@ function normalizeTurn(
   const completos = valid.every((id) => cubiertos.includes(id) || omitidos.includes(id))
   // Una etapa cerrada sigue cerrada: lo que la persona escriba después (un "gracias", un ajuste)
   // no puede reabrirla aunque el modelo conteste con una pregunta.
-  const listo = completos && (Boolean(raw.listoParaAvanzar) || etapaCerrada)
+  // El cierre es en dos pasos: primero la pregunta corta de ajuste (con todos los temas ya cubiertos)
+  // y recién después, con la respuesta de la persona, el mapa. El modelo a veces lo junta en un solo
+  // turno y deja el mapa vacío: el servidor no lo permite.
+  const preguntaDeCierrePendiente = completos && !etapaCerrada && !previousTurnWasComplete(history, valid)
+  const listo = completos && (Boolean(raw.listoParaAvanzar) || etapaCerrada) && !preguntaDeCierrePendiente
 
   const userText = fold(history.filter((m) => m.role === 'user' && !m.text.startsWith('(')).map((m) => m.text).join(' \n '))
-  const modelItems = listo ? cleanItems(raw.sintesisItems, stage, userText).filter((i) => !omitidos.includes(i.id)) : []
+  const modelItems = listo ? cleanItems(raw.sintesisItems, stage, userText, path).filter((i) => !omitidos.includes(i.id)) : []
   // Los temas omitidos aparecen en el mapa como lo que son: "para más adelante". Solo si el turno
   // trae un mapa nuevo: si no, el cliente conserva el anterior.
   const dejados: SynthesisItem[] =
@@ -255,15 +296,34 @@ function normalizeTurn(
       ? raw.temaEnFoco
       : ''
 
+  let mensaje =
+    typeof raw.mensaje === 'string' && raw.mensaje.trim()
+      ? raw.mensaje.trim()
+      : listo
+        ? 'Gracias por contármelo con tanta claridad. Armé un mapa con lo que fuimos hablando: fijate si te representa.'
+        : '¿Me contás un poco más?'
+  if (preguntaDeCierrePendiente && !(ASKS_TO_ADJUST.test(mensaje) && mensaje.includes('?'))) {
+    // Se conserva lo que haya dicho para reconocer a la persona, sin sus preguntas ni resúmenes, y se pregunta.
+    const ack = mensaje
+      .split(/(?<=[.!?…])\s+/)
+      .filter((sentence) => !sentence.trim().endsWith('?') && !MAP_WORD.test(sentence))
+      .slice(0, 1)
+      .join(' ')
+      .trim()
+    mensaje = `${ack ? `${ack} ` : ''}${ADJUST_QUESTION}`
+  }
+  if (!completos) {
+    // Mientras falte un tema no hay mapa que prometer. Se nombra primero el tema por el que más veces se preguntó.
+    const pendientes = valid.filter((id) => !cubiertos.includes(id) && !omitidos.includes(id))
+    const masPreguntado = [...pendientes].sort((x, y) => (asked[y] ?? 0) - (asked[x] ?? 0))[0]
+    const label = objetivos.find((o) => o.id === masPreguntado)?.label ?? 'lo que falta'
+    mensaje = withoutMapPromise(mensaje, label)
+  }
+
   return {
     temaEnFoco: foco,
     temasOmitidos: omitidos,
-    mensaje:
-      typeof raw.mensaje === 'string' && raw.mensaje.trim()
-        ? raw.mensaje.trim()
-        : listo
-          ? 'Gracias por contármelo con tanta claridad. Armé un mapa con lo que fuimos hablando: fijate si te representa.'
-          : '¿Me contás un poco más?',
+    mensaje,
     objetivosCubiertos: cubiertos,
     listoParaAvanzar: listo,
     derivacion: Boolean(raw.derivacion),
@@ -283,13 +343,13 @@ async function runWithGemini(apiKey: string, req: CoachRequest): Promise<unknown
     case 'turno': {
       const model = genAI.getGenerativeModel({
         model: modelName,
-        systemInstruction: buildTurnSystemPrompt({ ...req, intentos: askCounts(req.history, req.stage, req.cubiertos, req.omitidos) }),
+        systemInstruction: buildTurnSystemPrompt({ ...req, intentos: askCounts(req.history, req.stage, req.cubiertos, req.omitidos, req.path) }),
         generationConfig,
       }, requestOptions)
       const raw = await generateJson<Partial<TurnResult>>(async () =>
         responseText((await model.generateContent({ contents: toContents(req.history) })).response, 'turno'),
       )
-      return normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos)
+      return normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path)
     }
     case 'informe': {
       const model = genAI.getGenerativeModel({
@@ -350,10 +410,31 @@ const DEMO_QUESTIONS: Record<Stage, string[]> = {
   ],
 }
 
+const DEMO_QUESTIONS_C: Record<Stage, string[]> = {
+  diagnostico: [
+    '— MODO DEMO — Contame con tus palabras: ¿qué te gustaría lograr con una formación?',
+    '¿Cómo es tu situación hoy: trabajás, estudiaste antes, qué tiempo tenés?',
+    '¿Qué opciones de formación ya estás mirando, si es que hay alguna?',
+    '¿Cuánto tiempo por semana y cuánto dinero, aproximado, podrías dedicarle?',
+  ],
+  discovery: [
+    '— MODO DEMO — ¿Qué temas o actividades te dan energía? Contame un ejemplo concreto.',
+    '¿Qué se te da bien, o qué aprendiste con facilidad?',
+    'Si tuvieras que comparar opciones, ¿qué 3 criterios usarías, de más a menos importante?',
+  ],
+  plan: [
+    '— MODO DEMO — De todo lo que viste, ¿qué opción elegís explorar primero?',
+    '¿En qué plazo querés decidir o empezar?',
+    '¿Cuánto tiempo y dinero le vas a asignar?',
+    '¿Cuál sería tu primer paso concreto, con quién o dónde y para cuándo?',
+    'Si esa opción no funciona, ¿cuál sería tu plan B?',
+  ],
+}
+
 function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
-  const ids = STAGE_OBJECTIVES[req.stage].map((o) => o.id)
+  const ids = objectivesFor(req.stage, req.path).map((o) => o.id)
   const lastModel = [...req.history].reverse().find((m) => m.role === 'model')?.text ?? ''
-  const askedSummary = lastModel.includes('¿Te representa este resumen?')
+  const askedSummary = lastModel.includes('antes de que te arme el mapa')
   const userTurnsInStage = req.history.at(-1)?.role === 'user' && !req.history.at(-1)?.text.startsWith('(') ? 1 : 0
   const cubiertos = [...req.cubiertos]
   if (userTurnsInStage && cubiertos.length < ids.length) cubiertos.push(ids[cubiertos.length])
@@ -377,7 +458,7 @@ function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
   }
   if (cubiertos.length === ids.length) {
     return {
-      mensaje: '— MODO DEMO — Resumo lo que dijiste hasta acá con tus palabras… ¿Te representa este resumen?',
+      mensaje: '— MODO DEMO — ¿Hay algo que quieras ajustar o sumar antes de que te arme el mapa?',
       temaEnFoco: '',
       temasOmitidos: [],
       objetivosCubiertos: cubiertos,
@@ -389,7 +470,7 @@ function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
     }
   }
   return {
-    mensaje: DEMO_QUESTIONS[req.stage][cubiertos.length],
+    mensaje: (req.path === 'formacion' ? DEMO_QUESTIONS_C : DEMO_QUESTIONS)[req.stage][cubiertos.length],
     temaEnFoco: ids[cubiertos.length] ?? '',
     temasOmitidos: [],
     objetivosCubiertos: cubiertos,

@@ -70,6 +70,14 @@ export interface ReportAction {
   cuatroC: string[]
 }
 
+/** Camino C: una opción de formación que la persona nombró, con lo que ella dijo y lo que falta verificar. */
+export interface ComparedOption {
+  nombre: string
+  aFavor: string
+  enContra: string
+  falta: string
+}
+
 export interface Report {
   objetivoSesion: string
   hallazgos: { texto: string; citaPersona: string }[]
@@ -78,6 +86,10 @@ export interface Report {
   checkIn: string
   horizonte: string
   preguntaAbierta: string
+  /** Solo en el Camino C. */
+  presupuesto?: string
+  respaldo?: string
+  comparativa?: { criterios: string[]; opciones: ComparedOption[] }
 }
 
 export type Phase = 'perfil' | 'chat' | 'informe'

@@ -108,6 +108,40 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
           <InfoCard title="Check-in" body={report.checkIn} />
         </div>
 
+        {(report.presupuesto || report.respaldo) && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {report.presupuesto && <InfoCard title="Tu presupuesto" body={report.presupuesto} />}
+            {report.respaldo && <InfoCard title="Tu plan B" body={report.respaldo} />}
+          </div>
+        )}
+
+        {report.comparativa && (report.comparativa.criterios.length > 0 || report.comparativa.opciones.length > 0) && (
+          <div className="card">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">Tus criterios y tus opciones</p>
+            <p className="mb-4 text-sm text-text-muted">Es lo que dijiste vos, ordenado. No es un ranking: la decisión es tuya.</p>
+            {report.comparativa.criterios.length > 0 && (
+              <ol className="mb-4 list-decimal space-y-1 pl-5 text-sm text-foreground">
+                {report.comparativa.criterios.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ol>
+            )}
+            <ul className="space-y-3">
+              {report.comparativa.opciones.map((o, i) => (
+                <li key={i} className="rounded-xl border border-border-color p-4 text-sm leading-relaxed">
+                  <p className="font-semibold text-foreground">{o.nombre}</p>
+                  {o.aFavor && <p className="mt-1 text-foreground"><span className="font-semibold text-primary">A favor:</span> {o.aFavor}</p>}
+                  {o.enContra && <p className="mt-1 text-foreground"><span className="font-semibold text-accent-ink">En contra:</span> {o.enContra}</p>}
+                  {o.falta && <p className="mt-1 text-text-muted"><span className="font-semibold">Falta verificar:</span> {o.falta}</p>}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-text-muted">
+              Bivio no tiene datos de la oferta educativa: costos, requisitos y fechas conviene confirmarlos en la página oficial de cada institución.
+            </p>
+          </div>
+        )}
+
         {report.preguntaAbierta && (
           <div className="ai-tint rounded-2xl p-6" style={{ borderLeft: '3px solid var(--color-accent)' }}>
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Para llevarte</p>

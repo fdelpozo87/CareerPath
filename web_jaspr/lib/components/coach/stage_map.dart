@@ -9,6 +9,7 @@ import '../../ui.dart';
 
 Component stageMap({
   required Stage stage,
+  required CoachPath path,
   required StageMap? map,
   required String? fallbackText,
   required String nextLabel,
@@ -16,12 +17,12 @@ Component stageMap({
   required void Function() onAdjust,
   required void Function(String id) onResume,
 }) {
-  String labelOf(String id) => stageObjectives[stage]!.where((o) => o.id == id).firstOrNull?.label ?? id;
+  String labelOf(String id) => objectivesFor(stage, path).where((o) => o.id == id).firstOrNull?.label ?? id;
   final titleId = 'mapa-${stage.id}';
 
   return el('section', 'ai-result rounded-3xl border border-primary/20 bg-primary-soft/40 p-5 sm:p-6', [
     el('p', 'mb-1 text-xs font-semibold uppercase tracking-widest text-primary', [t('Lo que fuimos armando')]),
-    el('h2', 'mb-1 text-2xl', [t(stageIntro[stage]!.titulo)], id: titleId),
+    el('h2', 'mb-1 text-2xl', [t(introFor(stage, path).titulo)], id: titleId),
     el('p', 'mb-5 text-sm leading-relaxed text-text-muted', [t('Esto es lo que dijiste, ordenado. Si algo no te representa, escribilo abajo y lo ajustamos antes de seguir.')]),
     if (map != null && map.items.isNotEmpty)
       el('ul', 'grid gap-3 sm:grid-cols-2', [

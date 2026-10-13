@@ -3,7 +3,7 @@ import 'package:jaspr/jaspr.dart';
 import '../ui.dart';
 
 // Marca de Bivio: un trazo que se bifurca en dos caminos (el momento de elegir), con la palabra
-// "bivio" (bifurcación, en italiano). Los verdes son los del logo original.
+// "bivio" (bifurcación, en italiano). Los burdeos son los del logo (variante del original en verde).
 
 Component _line(String x1, String y1, String x2, String y2, String stroke) =>
     el('line', null, [], attrs: {'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'stroke': stroke});
@@ -13,11 +13,11 @@ Component bivioMark(String classes) => el(
   'svg',
   classes,
   [
-    _line('170', '300', '170', '210', '#0F6E56'),
-    _line('170', '210', '260', '120', '#0F6E56'),
-    _line('170', '210', '260', '300', '#1D9E75'),
-    el('circle', null, [], attrs: {'cx': '260', 'cy': '120', 'r': '16', 'fill': '#0F6E56', 'stroke': 'none'}),
-    el('circle', null, [], attrs: {'cx': '260', 'cy': '300', 'r': '14', 'stroke': '#1D9E75', 'stroke-width': '7'}),
+    _line('170', '300', '170', '210', '#7A1F3D'),
+    _line('170', '210', '260', '120', '#7A1F3D'),
+    _line('170', '210', '260', '300', '#B3496B'),
+    el('circle', null, [], attrs: {'cx': '260', 'cy': '120', 'r': '16', 'fill': '#7A1F3D', 'stroke': 'none'}),
+    el('circle', null, [], attrs: {'cx': '260', 'cy': '300', 'r': '14', 'stroke': '#B3496B', 'stroke-width': '7'}),
   ],
   attrs: {
     'viewBox': '156 100 128 224',

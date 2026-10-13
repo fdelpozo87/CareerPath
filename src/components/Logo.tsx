@@ -1,15 +1,15 @@
 // Marca de Bivio: un trazo que se bifurca en dos caminos (el momento de elegir), con la palabra
-// "bivio" (bifurcación, en italiano). Los verdes son los del logo original.
+// "bivio" (bifurcación, en italiano). Los burdeos son los del logo (variante del original en verde).
 
 /** El símbolo solo: una rama gruesa que se abre en dos, con un punto lleno y uno vacío. */
 export function BivioMark({ className }: { className?: string }) {
   return (
     <svg viewBox="156 100 128 224" fill="none" strokeWidth="18" strokeLinecap="round" aria-hidden="true" className={className}>
-      <line x1="170" y1="300" x2="170" y2="210" stroke="#0F6E56" />
-      <line x1="170" y1="210" x2="260" y2="120" stroke="#0F6E56" />
-      <line x1="170" y1="210" x2="260" y2="300" stroke="#1D9E75" />
-      <circle cx="260" cy="120" r="16" fill="#0F6E56" stroke="none" />
-      <circle cx="260" cy="300" r="14" stroke="#1D9E75" strokeWidth="7" />
+      <line x1="170" y1="300" x2="170" y2="210" stroke="#7A1F3D" />
+      <line x1="170" y1="210" x2="260" y2="120" stroke="#7A1F3D" />
+      <line x1="170" y1="210" x2="260" y2="300" stroke="#B3496B" />
+      <circle cx="260" cy="120" r="16" fill="#7A1F3D" stroke="none" />
+      <circle cx="260" cy="300" r="14" stroke="#B3496B" strokeWidth="7" />
     </svg>
   )
 }

@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="156 100 128 224" fill="none" stroke-width="18" stroke-linecap="round">
   <title>Bivio</title>
-  <line x1="170" y1="300" x2="170" y2="210" stroke="#0F6E56"/>
-  <line x1="170" y1="210" x2="260" y2="120" stroke="#0F6E56"/>
-  <line x1="170" y1="210" x2="260" y2="300" stroke="#1D9E75"/>
-  <circle cx="260" cy="120" r="16" fill="#0F6E56" stroke="none"/>
-  <circle cx="260" cy="300" r="14" stroke="#1D9E75" stroke-width="7"/>
+  <line x1="170" y1="300" x2="170" y2="210" stroke="#7A1F3D"/>
+  <line x1="170" y1="210" x2="260" y2="120" stroke="#7A1F3D"/>
+  <line x1="170" y1="210" x2="260" y2="300" stroke="#B3496B"/>
+  <circle cx="260" cy="120" r="16" fill="#7A1F3D" stroke="none"/>
+  <circle cx="260" cy="300" r="14" stroke="#B3496B" stroke-width="7"/>
 </svg>

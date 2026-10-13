@@ -2,41 +2,34 @@ import 'package:jaspr/jaspr.dart';
 
 import '../ui.dart';
 
-// Marca de Bivio: un trazo que se bifurca en dos caminos (el momento de elegir), con la palabra
-// "bivio" (bifurcación, en italiano). Los burdeos son los del logo (variante del original en verde).
+// Marca de Bivio: dos puntos conectados por trazos que forman una V (el momento de elegir entre
+// dos caminos), con la palabra "bivio" (bifurcación, en italiano). Un solo color: el burdeos de la marca.
 
-Component _line(String x1, String y1, String x2, String y2, String stroke) =>
-    el('line', null, [], attrs: {'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'stroke': stroke});
+Component _circle(String cx) => el('circle', null, [], attrs: {'cx': cx, 'cy': '55.5', 'r': '31.5'});
+Component _path(String d) => el('path', null, [], attrs: {'d': d});
 
-/// El símbolo solo: una rama gruesa que se abre en dos, con un punto lleno y uno vacío.
+/// El símbolo solo.
 Component bivioMark(String classes) => el(
   'svg',
   classes,
   [
-    _line('170', '300', '170', '210', '#7A1F3D'),
-    _line('170', '210', '260', '120', '#7A1F3D'),
-    _line('170', '210', '260', '300', '#B3496B'),
-    el('circle', null, [], attrs: {'cx': '260', 'cy': '120', 'r': '16', 'fill': '#7A1F3D', 'stroke': 'none'}),
-    el('circle', null, [], attrs: {'cx': '260', 'cy': '300', 'r': '14', 'stroke': '#B3496B', 'stroke-width': '7'}),
+    _circle('78.5'),
+    _circle('257'),
+    _path('M69 96.5h20.5c13.3 0 23.8 6.4 30.8 17.4l73.8 111.3c6.8 10.2 2.9 22.6-7.9 29.2-11.1 6.8-25.4 4.4-33.3-7.3L55.5 121.4c-8.5-12.8-1.4-24.9 13.5-24.9Z'),
+    _path('M247.5 96.5h20.2c14.6 0 20.4 11.7 12.2 24.3l-76.5 116.8-31.7-47.8 44.8-68.2c7.5-11.4 17.5-15.1 31-15.1Z'),
   ],
-  attrs: {
-    'viewBox': '156 100 128 224',
-    'fill': 'none',
-    'stroke-width': '18',
-    'stroke-linecap': 'round',
-    'aria-hidden': 'true',
-  },
+  attrs: {'viewBox': '0 0 342 302', 'fill': '#781633', 'aria-hidden': 'true'},
 );
 
 /// Avatar del coach: aparece junto a cada mensaje y en el encabezado del chat.
 Component coachAvatar({bool small = false}) => el(
   'span',
   'flex ${small ? 'h-8 w-8' : 'h-10 w-10'} shrink-0 items-center justify-center rounded-full bg-primary-soft',
-  [bivioMark(small ? 'h-5' : 'h-6')],
+  [bivioMark(small ? 'h-4' : 'h-5')],
   attrs: {'aria-hidden': 'true'},
 );
 
 Component logo([String extra = '']) => el('span', 'inline-flex items-center gap-2.5 $extra', [
-  bivioMark('h-9'),
+  bivioMark('h-8'),
   el('span', 'text-2xl font-medium leading-none tracking-tight text-foreground', [t('bivio')]),
 ]);

@@ -80,10 +80,10 @@ export const STAGE_LABEL: Record<Stage, string> = {
 }
 
 export const STAGE_COLOR: Record<Stage, string> = {
-  // El burdeos del sistema (9,6:1 sobre el fondo). La etapa se distingue por el indicador de pasos, no por el color.
-  diagnostico: '#7a1f3d',
-  discovery: '#7a1f3d',
-  plan: '#7a1f3d',
+  // El burdeos del sistema (10,2:1 sobre el fondo). La etapa se distingue por el indicador de pasos, no por el color.
+  diagnostico: '#781633',
+  discovery: '#781633',
+  plan: '#781633',
 }
 
 // Orientación: qué se hace en cada etapa y qué viene después (para que nadie

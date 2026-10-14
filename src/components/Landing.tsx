@@ -122,7 +122,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
 
         <div className="mx-auto mt-14 max-w-4xl">
           <div className="glass-stage px-5 py-10 text-center sm:px-10 sm:py-12">
-            <p className="mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted">
+            <p className="glass-kicker mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted">
               Los tres caminos llevan al mismo proceso acompañado
             </p>
             <ol className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-3">
@@ -134,7 +134,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
                     </span>
                     <span className="text-sm font-medium">{s === 'discovery' ? 'Exploración de opciones' : STAGE_LABEL[s]}</span>
                   </span>
-                  {i < 2 && <span aria-hidden="true" className="hidden h-px w-6 bg-primary/35 sm:block" />}
+                  {i < 2 && <span aria-hidden="true" className="glass-link hidden h-px w-6 sm:block" />}
                 </li>
               ))}
             </ol>

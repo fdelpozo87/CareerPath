@@ -73,7 +73,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
                 <li key={i}>
                   <label className={`flex gap-3 rounded-xl border border-border-color p-4 ${editing ? 'cursor-pointer hover:bg-secondary' : ''}`}>
                     {editing && (
-                      <input type="checkbox" checked={selected.includes(i)} onChange={() => toggle(i)} className="mt-1 accent-orange-500 print:hidden" />
+                      <input type="checkbox" checked={selected.includes(i)} onChange={() => toggle(i)} className="mt-1 accent-primary print:hidden" />
                     )}
                     <div className="flex-1">
                       <p className="text-sm font-medium leading-relaxed text-foreground">{a.texto}</p>

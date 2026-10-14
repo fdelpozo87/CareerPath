@@ -5,14 +5,14 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
       title: 'Bajo rendimiento',
       desc: 'Diagnóstico Aptitud/Actitud y guía de conversación 1:1 para reencauzar a un colaborador.',
       color: '#ef4444',
-      bg: 'rgba(254,242,242,0.6)',
+      bg: 'color-mix(in srgb, #ef4444 12%, var(--color-card))',
     },
     {
       icon: '↗',
       title: 'Crecimiento y movilidad',
       desc: 'Plan de desarrollo 70-20-10 y conversación de carrera para el próximo nivel o el cambio de área.',
       color: '#10b981',
-      bg: 'rgba(240,253,244,0.6)',
+      bg: 'color-mix(in srgb, #10b981 12%, var(--color-card))',
     },
   ]
 
@@ -85,8 +85,8 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
               key={c.aspecto}
               className="flex items-start gap-3 rounded-2xl border p-5"
               style={{
-                borderColor: c.icon === '✓' ? '#10b98130' : '#e5e7eb',
-                background: c.icon === '✓' ? 'rgba(240,253,244,0.6)' : 'white',
+                borderColor: c.icon === '✓' ? '#10b98130' : 'var(--color-border-color)',
+                background: c.icon === '✓' ? 'color-mix(in srgb, #10b981 12%, var(--color-card))' : 'var(--color-card)',
               }}
             >
               <span
@@ -106,7 +106,7 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
         {/* CTA block */}
         <div
           className="rounded-2xl border border-border-color bg-card p-8 md:p-12"
-          style={{ boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)' }}
+          style={{ boxShadow: 'var(--shadow-soft)' }}
         >
           <div className="mx-auto max-w-xl text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">

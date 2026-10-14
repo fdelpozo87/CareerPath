@@ -108,7 +108,7 @@ Component landing({required void Function(CoachPath) onChoosePath, required Sess
       ]),
       el('div', 'mx-auto mt-14 max-w-4xl', [
         el('div', 'glass-stage px-5 py-10 text-center sm:px-10 sm:py-12', [
-          el('p', 'mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Los tres caminos llevan al mismo proceso acompañado')]),
+          el('p', 'glass-kicker mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Los tres caminos llevan al mismo proceso acompañado')]),
           el('ol', 'flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-3', [
             for (final (i, s) in Stage.values.indexed)
               el('li', 'flex items-center gap-3', [
@@ -116,7 +116,7 @@ Component landing({required void Function(CoachPath) onChoosePath, required Sess
                   el('span', 'glass-dot', [t('${i + 1}')], attrs: {'aria-hidden': 'true'}),
                   el('span', 'text-sm font-medium', [t(s == Stage.discovery ? 'Exploración de opciones' : s.label)]),
                 ], attrs: {'style': 'animation-delay: ${(i * 1.1).toStringAsFixed(1)}s'}),
-                when(i < 2, () => el('span', 'hidden h-px w-6 bg-primary/35 sm:block', [], attrs: {'aria-hidden': 'true'})),
+                when(i < 2, () => el('span', 'glass-link hidden h-px w-6 sm:block', [], attrs: {'aria-hidden': 'true'})),
               ]),
           ]),
           el('p', 'glass-pill glass-pill--quiet mt-8 text-sm', [t('Conversación guiada con preguntas — no veredictos, ni respuestas automáticas.')]),

@@ -6,7 +6,10 @@ import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { initMonitoring } from './lib/monitoring'
+import { applyTheme, watchSystemTheme } from './lib/theme'
 
+applyTheme()
+watchSystemTheme()
 void initMonitoring()
 
 createRoot(document.getElementById('root')!).render(

@@ -4,7 +4,7 @@
 /** El símbolo solo. */
 export function BivioMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 342 302" fill="#781633" aria-hidden="true" className={className}>
+    <svg viewBox="0 0 342 302" aria-hidden="true" className={`fill-brand ${className ?? ''}`}>
       <circle cx="78.5" cy="55.5" r="31.5" />
       <circle cx="257" cy="55.5" r="31.5" />
       <path d="M69 96.5h20.5c13.3 0 23.8 6.4 30.8 17.4l73.8 111.3c6.8 10.2 2.9 22.6-7.9 29.2-11.1 6.8-25.4 4.4-33.3-7.3L55.5 121.4c-8.5-12.8-1.4-24.9 13.5-24.9Z" />

@@ -5,8 +5,11 @@ import 'package:jaspr/client.dart';
 
 import 'app.dart';
 import 'services/monitoring.dart';
+import 'services/theme.dart';
 
 void main() {
+  applyTheme();
+  watchSystemTheme();
   initMonitoring();
   runApp(App());
 }

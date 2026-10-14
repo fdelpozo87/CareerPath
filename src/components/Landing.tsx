@@ -120,24 +120,28 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
           ))}
         </div>
 
-        <div className="mx-auto mt-14 max-w-3xl text-center">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-widest text-text-muted">
-            Los tres caminos llevan al mismo proceso acompañado
-          </p>
-          <ol className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
-            {(['diagnostico', 'discovery', 'plan'] as const).map((s, i) => (
-              <li key={s} className="flex items-center gap-2.5 text-sm text-foreground">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border-color bg-card text-xs font-semibold text-primary">
-                  {i + 1}
-                </span>
-                {s === 'discovery' ? 'Exploración de opciones' : STAGE_LABEL[s]}
-                {i < 2 && <span className="hidden text-border-color sm:inline">—</span>}
-              </li>
-            ))}
-          </ol>
-          <p className="mt-5 text-sm text-text-muted">
-            Conversación guiada con preguntas — no veredictos, ni respuestas automáticas.
-          </p>
+        <div className="mx-auto mt-14 max-w-4xl">
+          <div className="glass-stage px-5 py-10 text-center sm:px-10 sm:py-12">
+            <p className="mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted">
+              Los tres caminos llevan al mismo proceso acompañado
+            </p>
+            <ol className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-3">
+              {(['diagnostico', 'discovery', 'plan'] as const).map((s, i) => (
+                <li key={s} className="flex items-center gap-3">
+                  <span className="glass-pill" style={{ animationDelay: `${i * 1.1}s` }}>
+                    <span className="glass-dot" aria-hidden="true">
+                      {i + 1}
+                    </span>
+                    <span className="text-sm font-medium">{s === 'discovery' ? 'Exploración de opciones' : STAGE_LABEL[s]}</span>
+                  </span>
+                  {i < 2 && <span aria-hidden="true" className="hidden h-px w-6 bg-primary/35 sm:block" />}
+                </li>
+              ))}
+            </ol>
+            <p className="glass-pill glass-pill--quiet mt-8 text-sm">
+              Conversación guiada con preguntas — no veredictos, ni respuestas automáticas.
+            </p>
+          </div>
         </div>
       </div>
     </section>

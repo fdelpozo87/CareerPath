@@ -106,17 +106,21 @@ Component landing({required void Function(CoachPath) onChoosePath, required Sess
             btn('btn-primary w-full py-3', [t('Empezar por acá')], onClick: () => onChoosePath(p.path)),
           ]),
       ]),
-      el('div', 'mx-auto mt-14 max-w-3xl text-center', [
-        el('p', 'mb-5 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Los tres caminos llevan al mismo proceso acompañado')]),
-        el('ol', 'flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6', [
-          for (final (i, s) in Stage.values.indexed)
-            el('li', 'flex items-center gap-2.5 text-sm text-foreground', [
-              el('span', 'flex h-7 w-7 items-center justify-center rounded-full border border-border-color bg-card text-xs font-semibold text-primary', [t('${i + 1}')]),
-              t(s == Stage.discovery ? 'Exploración de opciones' : s.label),
-              when(i < 2, () => el('span', 'hidden text-border-color sm:inline', [t('—')])),
-            ]),
+      el('div', 'mx-auto mt-14 max-w-4xl', [
+        el('div', 'glass-stage px-5 py-10 text-center sm:px-10 sm:py-12', [
+          el('p', 'mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Los tres caminos llevan al mismo proceso acompañado')]),
+          el('ol', 'flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-3', [
+            for (final (i, s) in Stage.values.indexed)
+              el('li', 'flex items-center gap-3', [
+                el('span', 'glass-pill', [
+                  el('span', 'glass-dot', [t('${i + 1}')], attrs: {'aria-hidden': 'true'}),
+                  el('span', 'text-sm font-medium', [t(s == Stage.discovery ? 'Exploración de opciones' : s.label)]),
+                ], attrs: {'style': 'animation-delay: ${(i * 1.1).toStringAsFixed(1)}s'}),
+                when(i < 2, () => el('span', 'hidden h-px w-6 bg-primary/35 sm:block', [], attrs: {'aria-hidden': 'true'})),
+              ]),
+          ]),
+          el('p', 'glass-pill glass-pill--quiet mt-8 text-sm', [t('Conversación guiada con preguntas — no veredictos, ni respuestas automáticas.')]),
         ]),
-        el('p', 'mt-5 text-sm text-text-muted', [t('Conversación guiada con preguntas — no veredictos, ni respuestas automáticas.')]),
       ]),
     ]),
   ], id: 'profesional');

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { getThemeMode, setThemeMode, type ThemeMode } from '../lib/theme'
 
 // Menú de la persona: quién está con la sesión abierta y qué puede hacer con ella. Es un menú
 // desplegable simple (botón + lista de botones): se cierra con Escape y al tocar afuera, y el foco
@@ -27,6 +28,7 @@ const ITEM = 'block w-full rounded-xl px-3 py-2.5 text-left text-sm text-foregro
 
 export default function AccountMenu({ account }: { account: AccountInfo }) {
   const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<ThemeMode>(getThemeMode)
   const panelId = useId()
   const wrapRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -70,6 +72,35 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
           <div className="border-b border-border-color px-3 pb-3 pt-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-text-muted">Sesión de prueba</p>
             <p className="mt-1 truncate text-sm font-medium text-foreground">{account.label ?? (account.canLogout ? 'Sesión iniciada' : 'Acceso abierto, sin código')}</p>
+          </div>
+          <div className="border-b border-border-color px-3 pb-3 pt-3">
+            <p id={`${panelId}-tema`} className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">
+              Apariencia
+            </p>
+            <div role="group" aria-labelledby={`${panelId}-tema`} className="grid grid-cols-3 gap-1 rounded-full bg-secondary p-1">
+              {(
+                [
+                  ['light', 'Claro'],
+                  ['dark', 'Oscuro'],
+                  ['auto', 'Auto'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={mode === value}
+                  onClick={() => {
+                    setMode(value)
+                    setThemeMode(value)
+                  }}
+                  className={`rounded-full px-2 py-1.5 text-xs font-semibold transition-colors ${
+                    mode === value ? 'bg-primary text-on-primary' : 'text-text-muted hover:text-foreground'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           <ul className="mt-2 space-y-0.5">
             <li>

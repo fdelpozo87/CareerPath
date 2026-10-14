@@ -277,6 +277,10 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
 
 // ── Step: Context form ──────────────────────────────────────────────────────
 
+// Los colores de categoría se usan también como color de texto. Mezclados con el color de texto del
+// tema se oscurecen en modo claro y se aclaran en modo oscuro, así que siempre tienen contraste.
+const inkOf = (color: string) => `color-mix(in srgb, ${color} 70%, var(--color-foreground))`
+
 const CASO_OPTIONS: { value: CaseType; icon: string; titulo: string; desc: string; color: string; bg: string }[] = [
   {
     value: 'rendimiento',
@@ -284,7 +288,7 @@ const CASO_OPTIONS: { value: CaseType; icon: string; titulo: string; desc: strin
     titulo: 'Rendimiento o comportamiento',
     desc: 'Resultados por debajo de lo esperado, cambio de actitud o fricción con el equipo',
     color: '#ef4444',
-    bg: 'rgba(254,242,242,0.8)',
+      bg: 'color-mix(in srgb, #ef4444 12%, var(--color-card))',
   },
   {
     value: 'crecimiento',
@@ -292,7 +296,7 @@ const CASO_OPTIONS: { value: CaseType; icon: string; titulo: string; desc: strin
     titulo: 'Crecimiento o movilidad',
     desc: 'La persona quiere crecer de nivel, cambiar de área o asumir nuevas responsabilidades',
     color: '#10b981',
-    bg: 'rgba(240,253,244,0.8)',
+      bg: 'color-mix(in srgb, #10b981 12%, var(--color-card))',
   },
 ]
 
@@ -386,8 +390,8 @@ function ContextForm({
                 onClick={() => setCasoTipo(opt.value)}
                 className="rounded-2xl border p-5 text-left transition-all"
                 style={{
-                  borderColor: selected ? opt.color : '#e5e7eb',
-                  background: selected ? opt.bg : 'white',
+                  borderColor: selected ? opt.color : 'var(--color-border-color)',
+                  background: selected ? opt.bg : 'var(--color-card)',
                   boxShadow: selected ? `0 0 0 2px ${opt.color}30` : 'none',
                 }}
               >
@@ -451,7 +455,7 @@ function QuestionsScreen({
       <div className="mb-8">
         <div className="mb-2 flex items-center justify-between text-xs">
           <span className="text-text-muted">Pregunta {idx + 1} de {questions.length}</span>
-          <span className="font-medium" style={{ color: q.color }}>{q.etiqueta}</span>
+          <span className="font-medium" style={{ color: inkOf(q.color) }}>{q.etiqueta}</span>
         </div>
         <div className="h-1 w-full overflow-hidden rounded-full bg-border-color">
           <div
@@ -463,7 +467,7 @@ function QuestionsScreen({
 
       {/* Card */}
       <div className="card mb-5">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: q.color }}>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: inkOf(q.color) }}>
           {q.titulo}
         </p>
         <h3 className="mb-6 text-xl leading-snug">{q.pregunta}</h3>
@@ -476,8 +480,8 @@ function QuestionsScreen({
           autoFocus
           className="w-full resize-y rounded-xl border p-3.5 font-sans text-sm text-foreground outline-none transition-colors"
           style={{
-            borderColor: canContinue ? '#10b981' : '#e5e7eb',
-            background: canContinue ? '#f0fdf4' : 'white',
+            borderColor: canContinue ? '#10b981' : 'var(--color-border-color)',
+            background: canContinue ? 'color-mix(in srgb, #10b981 12%, var(--color-card))' : 'var(--color-card)',
           }}
         />
         <p className="mt-2 text-xs text-text-muted">{q.ayuda}</p>
@@ -556,8 +560,8 @@ function DocUploadScreen({
         aria-label={file ? `Documento: ${file.name}. Activar para elegir otro PDF` : 'Elegir el documento del colaborador en PDF'}
         className="mb-6 block w-full cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all"
         style={{
-          borderColor: dragOver ? '#c2410c' : file ? '#047857' : '#e5e7eb',
-          background: dragOver ? 'rgba(194,65,12,0.04)' : file ? '#f0fdf4' : 'white',
+          borderColor: dragOver ? '#c2410c' : file ? '#047857' : 'var(--color-border-color)',
+          background: dragOver ? 'rgba(194,65,12,0.08)' : file ? 'color-mix(in srgb, #10b981 12%, var(--color-card))' : 'var(--color-card)',
         }}
       >
         {file ? (
@@ -663,31 +667,31 @@ const BRECHA_CONFIG: Record<TipoDeBrecha, { label: string; color: string; bg: st
   Aptitud: {
     label: 'Brecha de Aptitud',
     color: '#4f46e5',
-    bg: 'rgba(238,236,255,0.7)',
+      bg: 'color-mix(in srgb, #4f46e5 12%, var(--color-card))',
     desc: 'El camino pasa por capacitación, nuevos proyectos con ownership real y mentoreo técnico.',
   },
   Actitud: {
     label: 'Brecha de Actitud',
     color: '#7c3aed',
-    bg: 'rgba(245,243,255,0.8)',
+      bg: 'color-mix(in srgb, #7c3aed 12%, var(--color-card))',
     desc: 'El camino pasa por conversación genuina, claridad de expectativas y rediseño de motivación.',
   },
   Mixto: {
     label: 'Brecha Mixta',
     color: '#b45309',
-    bg: 'rgba(255,251,235,0.8)',
+      bg: 'color-mix(in srgb, #b45309 12%, var(--color-card))',
     desc: 'Hay componentes de los dos. Empezar por la motivación antes de poner el foco en las habilidades.',
   },
   Crecimiento: {
     label: 'Plan de Crecimiento',
     color: '#059669',
-    bg: 'rgba(240,253,244,0.8)',
+      bg: 'color-mix(in srgb, #059669 12%, var(--color-card))',
     desc: 'La persona tiene el potencial. El trabajo es construir el camino y darle la exposición que necesita.',
   },
   Movilidad: {
     label: 'Plan de Movilidad',
     color: '#0284c7',
-    bg: 'rgba(240,249,255,0.8)',
+      bg: 'color-mix(in srgb, #0284c7 12%, var(--color-card))',
     desc: 'El movimiento es hacia otra área o rol. Requiere plan de transición y gestión del reemplazo.',
   },
 }
@@ -736,7 +740,7 @@ function ResultScreen({
           >
             {brecha.label}
           </span>
-          <p className="text-sm leading-relaxed" style={{ color: brecha.color }}>{brecha.desc}</p>
+          <p className="text-sm leading-relaxed" style={{ color: inkOf(brecha.color) }}>{brecha.desc}</p>
         </div>
 
         {/* Perfil + Situación central */}
@@ -783,7 +787,7 @@ function ResultScreen({
             Guía de Conversación 1:1
           </p>
           <div className="space-y-4">
-            <div className="rounded-xl border border-amber-100 bg-accent-soft p-4">
+            <div className="rounded-xl border border-border-color bg-accent-soft p-4">
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-accent-ink">Apertura</p>
               <p className="text-sm leading-relaxed text-accent-ink">{result.guiaDeConversacion.apertura}</p>
             </div>
@@ -803,7 +807,7 @@ function ResultScreen({
             </div>
             <div className="rounded-xl border border-primary/20 bg-primary-soft p-4">
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-primary">Cierre</p>
-              <p className="text-sm leading-relaxed text-green-900">{result.guiaDeConversacion.cierre}</p>
+              <p className="text-sm leading-relaxed text-foreground">{result.guiaDeConversacion.cierre}</p>
             </div>
           </div>
         </div>
@@ -815,13 +819,13 @@ function ResultScreen({
           </p>
           <div className="space-y-3">
             {/* 70% */}
-            <div className="rounded-xl border border-orange-100 bg-secondary p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-orange-700">
+            <div className="rounded-xl border border-border-color bg-secondary p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-accent-ink">
                 70% — En el trabajo
               </p>
               <ul className="space-y-2">
                 {result.planDeAccion.bloque70.map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-sm text-orange-900">
+                  <li key={item} className="flex items-start gap-2 text-sm text-foreground">
                     <span className="mt-0.5 font-bold">→</span>
                     {item}
                   </li>
@@ -829,13 +833,13 @@ function ResultScreen({
               </ul>
             </div>
             {/* 20% */}
-            <div className="rounded-xl border border-indigo-100 bg-secondary p-4">
+            <div className="rounded-xl border border-border-color bg-secondary p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
                 20% — De otros
               </p>
               <ul className="space-y-2">
                 {result.planDeAccion.bloque20.map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-sm text-indigo-900">
+                  <li key={item} className="flex items-start gap-2 text-sm text-foreground">
                     <span className="mt-0.5 font-bold">→</span>
                     {item}
                   </li>
@@ -843,13 +847,13 @@ function ResultScreen({
               </ul>
             </div>
             {/* 10% */}
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-emerald-700">
+            <div className="rounded-xl border border-border-color bg-primary-soft p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
                 10% — Formación
               </p>
               <ul className="space-y-2">
                 {result.planDeAccion.bloque10.map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-sm text-emerald-900">
+                  <li key={item} className="flex items-start gap-2 text-sm text-foreground">
                     <span className="mt-0.5 font-bold">→</span>
                     {item}
                   </li>

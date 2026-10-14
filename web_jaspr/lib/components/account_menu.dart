@@ -4,6 +4,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:universal_web/web.dart' as web;
 
+import '../services/theme.dart';
 import '../ui.dart';
 
 // Menú de la persona: quién está con la sesión abierta y qué puede hacer con ella. Es un menú
@@ -36,6 +37,7 @@ class AccountMenu extends StatefulComponent {
 
 class _AccountMenuState extends State<AccountMenu> {
   bool open = false;
+  ThemeMode mode = getThemeMode();
 
   late final JSFunction _onDown = ((web.Event e) {
     if (!open) return;
@@ -100,6 +102,22 @@ class _AccountMenuState extends State<AccountMenu> {
         el('div', 'border-b border-border-color px-3 pb-3 pt-2', [
           el('p', 'text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Sesión de prueba')]),
           el('p', 'mt-1 truncate text-sm font-medium text-foreground', [t(account.label ?? (account.canLogout ? 'Sesión iniciada' : 'Acceso abierto, sin código'))]),
+        ]),
+        el('div', 'border-b border-border-color px-3 pb-3 pt-3', [
+          el('p', 'mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Apariencia')], id: 'account-theme'),
+          el('div', 'grid grid-cols-3 gap-1 rounded-full bg-secondary p-1', [
+            for (final m in ThemeMode.values)
+              el(
+                'button',
+                'rounded-full px-2 py-1.5 text-xs font-semibold transition-colors ${mode == m ? 'bg-primary text-on-primary' : 'text-text-muted hover:text-foreground'}',
+                [t(m.label)],
+                attrs: {'type': 'button', 'aria-pressed': '${mode == m}'},
+                on: events(onClick: () {
+                  setThemeMode(m);
+                  setState(() => mode = m);
+                }),
+              ),
+          ], attrs: {'role': 'group', 'aria-labelledby': 'account-theme'}),
         ]),
         el('ul', 'mt-2 space-y-0.5', [
           el('li', null, [

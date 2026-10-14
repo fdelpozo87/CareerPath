@@ -8,6 +8,19 @@
     <meta name="description" content="Bivio - Tu próximo paso de carrera, pensado con vos. Coach de carrera IA disponible para profesionales y empresas." />
     <meta name="theme-color" content="#781633" />
 
+    <!-- Apariencia: se resuelve antes del primer dibujado para que no haya un destello claro. Misma regla que src/lib/theme.ts. -->
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem('cp_theme');
+          var dark = m === 'dark' || (m !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', dark ? '#170e12' : '#781633');
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- Fraunces (títulos) + Hanken Grotesk (texto): la tipografía del diseño del equipo -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

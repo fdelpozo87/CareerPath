@@ -47,7 +47,7 @@ Component _pickIcon() => _svgIcon([
 ]);
 
 Component _stepTitle(int n, String id, String title) => el('h3', 'mb-1.5 flex items-center gap-2.5 text-lg', [
-  el('span', 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white font-sans', [t('$n')], attrs: {'aria-hidden': 'true'}),
+  el('span', 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary font-sans', [t('$n')], attrs: {'aria-hidden': 'true'}),
   t(title),
 ], id: id);
 
@@ -257,7 +257,7 @@ class _ReadingViewState extends State<_ReadingView> {
           ]),
         ]),
       ]),
-      el('div', 'mt-8 rounded-2xl bg-foreground p-6 text-center text-white', [
+      el('div', 'mt-8 rounded-2xl bg-ink p-6 text-center text-white', [
         el('p', 'mb-4 text-sm', [t('Ahora lo conversamos: qué te resonó, qué no y qué querés hacer con esto. Esa charla es el Diagnóstico.')], attrs: {'style': 'color: rgba(255,255,255,0.75)'}),
         btn('rounded-xl bg-card px-7 py-3 font-semibold text-foreground transition hover:shadow-lg active:scale-95', [t('Empezar la conversación →')], onClick: () => component.onContinue(elegidas)),
       ]),

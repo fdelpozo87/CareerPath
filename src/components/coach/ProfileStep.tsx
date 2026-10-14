@@ -190,7 +190,7 @@ function PickIcon() {
 function StepTitle({ n, id, title }: { n: number; id: string; title: string }) {
   return (
     <h3 id={id} className="mb-1.5 flex items-center gap-2.5 text-lg">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white font-sans" aria-hidden="true">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary font-sans" aria-hidden="true">
         {n}
       </span>
       {title}
@@ -289,7 +289,7 @@ function ReadingView({
         </div>
       </div>
 
-      <div className="mt-8 rounded-2xl bg-foreground p-6 text-center text-white">
+      <div className="mt-8 rounded-2xl bg-ink p-6 text-center text-white">
         <p className="mb-4 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
           Ahora lo conversamos: qué te resonó, qué no y qué querés hacer con esto. Esa charla es el Diagnóstico.
         </p>

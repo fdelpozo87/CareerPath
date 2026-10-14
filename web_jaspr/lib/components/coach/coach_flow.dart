@@ -12,6 +12,7 @@ import '../../services/tracking.dart';
 import '../../ui.dart';
 import '../account_menu.dart';
 import '../logo.dart';
+import '../theme_toggle.dart';
 import 'chat_view.dart';
 import 'profile_step.dart';
 import 'report_view.dart';
@@ -307,7 +308,7 @@ class _CoachFlowState extends State<CoachFlow> {
         el('div', 'section-container flex items-center gap-4 py-4', [
           btn('text-sm text-text-muted transition-colors hover:text-foreground', [t('← Inicio')], onClick: component.onExit),
           logo(),
-          el('div', 'ml-auto flex items-center gap-4', [_stagesNav(), AccountMenu(account: component.account)]),
+          el('div', 'ml-auto flex items-center gap-4', [_stagesNav(), el('div', 'flex items-center gap-2', [const ThemeToggle(), AccountMenu(account: component.account)])]),
         ]),
       ]),
       el('main', 'flex-1 px-3 sm:px-4 ${chat ? 'min-h-0 py-3 sm:py-6' : 'py-8'}', [

@@ -4,6 +4,7 @@ import 'package:jaspr/jaspr.dart';
 import '../services/access.dart';
 import '../ui.dart';
 import 'logo.dart';
+import 'theme_toggle.dart';
 
 // Pantalla de acceso de prueba: mientras Bivio se prueba fuera de local, solo entra quien
 // tiene un código de invitación. El código lo valida el servidor en cada pedido a la API; esta
@@ -57,7 +58,7 @@ class _AccessGateState extends State<AccessGate> {
   Component build(BuildContext context) {
     return el('div', 'flex min-h-screen flex-col bg-background font-sans', [
       el('header', 'border-b border-border-color', [
-        el('div', 'section-container py-4', [logo()]),
+        el('div', 'section-container flex items-center justify-between py-4', [logo(), const ThemeToggle()]),
       ]),
       el('main', 'flex flex-1 items-center justify-center px-4 py-12', [
         el('div', 'card w-full max-w-md', [

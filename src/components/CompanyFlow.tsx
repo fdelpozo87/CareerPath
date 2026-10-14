@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { callCompanyAnalysis, fileToBase64 } from '../lib/aiClient'
+import Logo from './Logo'
+import ThemeToggle from './ThemeToggle'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -957,17 +959,18 @@ export function CompanyFlow({ onBack }: { onBack: () => void }) {
           >
             ← Inicio
           </button>
-          <span className="text-base font-semibold tracking-tight text-foreground">
-            Career<span className="text-primary">Path</span>
-          </span>
+          <Logo />
           <span className="ml-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
             Empresas
           </span>
-          {stepLabels[step] && (
-            <span className="ml-auto text-xs text-text-muted">
-              Desarrollo de Equipo · {stepLabels[step]}
-            </span>
-          )}
+          <div className="ml-auto flex items-center gap-4">
+            {stepLabels[step] && (
+              <span className="hidden text-xs text-text-muted sm:inline">
+                Desarrollo de Equipo · {stepLabels[step]}
+              </span>
+            )}
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

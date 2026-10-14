@@ -1,4 +1,5 @@
 import Logo from './Logo'
+import ThemeToggle from './ThemeToggle'
 
 // Política de privacidad y términos de uso.
 // BORRADOR: redactado a partir de lo que la app hace hoy con los datos. Antes
@@ -17,6 +18,9 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
             ← Volver
           </button>
           <Logo />
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

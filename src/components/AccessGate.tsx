@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { checkAccess, saveAccessCode } from '../lib/access'
 import Logo from './Logo'
+import ThemeToggle from './ThemeToggle'
 
 // Pantalla de acceso de prueba: mientras Bivio se prueba fuera de local,
 // solo entra quien tiene un código de invitación. El código lo valida el
@@ -41,8 +42,9 @@ export default function AccessGate({ initialError, onGranted }: AccessGateProps)
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans">
       <header className="border-b border-border-color">
-        <div className="section-container py-4">
+        <div className="section-container flex items-center justify-between py-4">
           <Logo />
+          <ThemeToggle />
         </div>
       </header>
 

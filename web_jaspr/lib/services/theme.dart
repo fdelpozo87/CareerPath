@@ -17,6 +17,9 @@ enum ThemeMode {
   final String label;
 }
 
+/// Se dispara cada vez que cambia el tema aplicado, para que los botones se actualicen.
+const themeEvent = 'cp:theme';
+
 const _key = 'cp_theme';
 const _themeColor = {'light': '#781633', 'dark': '#170e12'};
 
@@ -38,6 +41,7 @@ void applyTheme([ThemeMode? mode]) {
   final theme = resolveTheme(mode ?? getThemeMode());
   web.document.documentElement?.setAttribute('data-theme', theme);
   web.document.querySelector('meta[name="theme-color"]')?.setAttribute('content', _themeColor[theme]!);
+  web.window.dispatchEvent(web.Event(themeEvent));
 }
 
 void setThemeMode(ThemeMode mode) {

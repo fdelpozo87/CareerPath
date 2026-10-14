@@ -4,6 +4,9 @@
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
 
+/** Se dispara cada vez que cambia el tema aplicado, para que los botones se actualicen. */
+export const THEME_EVENT = 'cp:theme'
+
 const KEY = 'cp_theme'
 // Color de la barra del navegador en el celular.
 const THEME_COLOR = { light: '#781633', dark: '#170e12' } as const
@@ -29,6 +32,7 @@ export function applyTheme(mode: ThemeMode = getThemeMode()): void {
   const theme = resolveTheme(mode)
   document.documentElement.dataset.theme = theme
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[theme])
+  window.dispatchEvent(new Event(THEME_EVENT))
 }
 
 export function setThemeMode(mode: ThemeMode): void {

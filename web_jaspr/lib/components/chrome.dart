@@ -3,6 +3,7 @@ import 'package:jaspr/jaspr.dart';
 import '../ui.dart';
 import 'account_menu.dart';
 import 'logo.dart';
+import 'theme_toggle.dart';
 
 const _navLink = 'text-sm text-text-muted transition-colors hover:text-foreground';
 const _footLink = 'transition-colors hover:text-foreground';
@@ -15,7 +16,7 @@ Component siteHeader(AccountInfo account) => el('header', 'sticky top-0 z-50 bor
         anchor(_navLink, '#profesional', [t('Para Profesionales')]),
         anchor(_navLink, '#empresa', [t('Para Empresas')]),
       ]),
-      AccountMenu(account: account),
+      el('div', 'flex items-center gap-2', [const ThemeToggle(), AccountMenu(account: account)]),
     ]),
   ]),
 ]);

@@ -1,5 +1,6 @@
 import AccountMenu, { type AccountInfo } from './AccountMenu'
 import Logo from './Logo'
+import ThemeToggle from './ThemeToggle'
 
 export default function Header({ account }: { account: AccountInfo }) {
   return (
@@ -15,7 +16,10 @@ export default function Header({ account }: { account: AccountInfo }) {
               Para Empresas
             </a>
           </nav>
-          <AccountMenu account={account} />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <AccountMenu account={account} />
+          </div>
         </div>
       </div>
     </header>

@@ -6,6 +6,7 @@ import type { DocTipo, Session, Stage, TurnResult, UiMessage } from '../../lib/c
 import { trackEvent, type FunnelEvent } from '../../lib/tracking'
 import AccountMenu, { type AccountInfo } from '../AccountMenu'
 import Logo from '../Logo'
+import ThemeToggle from '../ThemeToggle'
 import { ChatView } from './ChatView'
 import { ProfileStep } from './ProfileStep'
 import { ReportView } from './ReportView'
@@ -243,7 +244,10 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
               )
             })}
           </ol>
-          <AccountMenu account={account} />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <AccountMenu account={account} />
+          </div>
           </div>
         </div>
       </header>

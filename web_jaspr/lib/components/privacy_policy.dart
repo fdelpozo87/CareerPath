@@ -2,6 +2,7 @@ import 'package:jaspr/jaspr.dart';
 
 import '../ui.dart';
 import 'logo.dart';
+import 'theme_toggle.dart';
 
 // Política de privacidad y términos de uso.
 // BORRADOR: redactado a partir de lo que la app hace hoy con los datos. Antes de publicarlo debe
@@ -20,6 +21,7 @@ Component privacyPolicy({required void Function() onBack}) {
       el('div', 'section-container flex items-center gap-4 py-4', [
         btn('text-sm text-text-muted transition-colors hover:text-foreground', [t('← Volver')], onClick: onBack),
         logo(),
+        el('div', 'ml-auto', [const ThemeToggle()]),
       ]),
     ]),
     el('main', 'section-container max-w-3xl flex-1 py-12', [

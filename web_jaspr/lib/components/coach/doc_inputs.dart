@@ -2,6 +2,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:universal_web/web.dart' as web;
 
+import '../../i18n/i18n.dart';
 import '../../models/docs.dart';
 import '../../models/types.dart';
 import '../../ui.dart';
@@ -10,23 +11,23 @@ import '../../ui.dart';
 // prohíben el scraping): la persona exporta su propio perfil a PDF, que es gratis y controla qué comparte.
 
 Component linkedInHowTo({bool compact = false}) => el('details', compact ? 'text-[11px] text-text-muted' : 'text-xs text-text-muted', [
-  el('summary', 'cursor-pointer font-semibold text-primary underline-offset-2 hover:underline', [t('¿Cómo bajo mi perfil de LinkedIn en PDF?')]),
+  el('summary', 'cursor-pointer font-semibold text-primary underline-offset-2 hover:underline', [t(tl('docs.howto'))]),
   el('ol', 'mt-2 list-decimal space-y-1 pl-4 leading-relaxed', [
-    el('li', null, [t('Entrá a LinkedIn desde la computadora (en la app del celular no está la opción).')]),
-    el('li', null, [t('Abrí tu perfil: tocá tu foto → “Ver perfil”.')]),
+    el('li', null, [t(tl('docs.howto.1'))]),
+    el('li', null, [t(tl('docs.howto.2'))]),
     el('li', null, [
-      t('Debajo de tu nombre y titular, tocá '),
-      el('strong', null, [t('“Más”')]),
-      t(' (en algunas versiones, '),
-      el('strong', null, [t('“Recursos”')]),
-      t(').'),
+      t(tl('docs.howto.3a')),
+      el('strong', null, [t(tl('docs.howto.3b'))]),
+      t(tl('docs.howto.3c')),
+      el('strong', null, [t(tl('docs.howto.3d'))]),
+      t(tl('docs.howto.3e')),
     ]),
     el('li', null, [
-      t('Elegí '),
-      el('strong', null, [t('“Guardar en PDF”')]),
-      t('. Se descarga un archivo tipo '),
-      el('em', null, [t('Profile.pdf')]),
-      t(': subilo acá.'),
+      t(tl('docs.howto.4a')),
+      el('strong', null, [t(tl('docs.howto.4b'))]),
+      t(tl('docs.howto.4c')),
+      el('em', null, [t(tl('docs.howto.4d'))]),
+      t(tl('docs.howto.4e')),
     ]),
   ]),
 ]);
@@ -39,15 +40,12 @@ class _SlotCopy {
   final String placeholder;
 }
 
-const _slotCopy = {
-  DocTipo.cv: _SlotCopy('Tu CV', 'El que mandás cuando te postulás.', 'PDF, máximo 3 MB', 'Pegá el texto de tu CV tal como está hoy.'),
-  DocTipo.linkedin: _SlotCopy(
-    'Tu perfil de LinkedIn',
-    'Se baja en PDF desde tu perfil (te explico cómo, abajo).',
-    'El PDF que exporta LinkedIn, máximo 3 MB',
-    'Pegá tu titular, el “Acerca de” y tu experiencia tal como están hoy en LinkedIn.',
-  ),
-};
+_SlotCopy _slotCopy(DocTipo tipo) => _SlotCopy(
+  tl('docs.${tipo.id}.title'),
+  tl('docs.${tipo.id}.desc'),
+  tl('docs.${tipo.id}.hint'),
+  tl('docs.${tipo.id}.placeholder'),
+);
 
 void _clickById(String id) => (web.document.getElementById(id) as web.HTMLElement?)?.click();
 
@@ -74,7 +72,7 @@ class _DocSlotState extends State<DocSlot> {
   Component build(BuildContext context) {
     final tipo = component.tipo;
     final draft = component.draft;
-    final copy = _slotCopy[tipo]!;
+    final copy = _slotCopy(tipo);
     final inputId = 'file-${tipo.id}';
 
     return el('div', 'rounded-xl border border-border-color p-4', [
@@ -88,11 +86,11 @@ class _DocSlotState extends State<DocSlot> {
             el(
               'button',
               'rounded-full border px-2.5 py-1 transition ${draft.mode == m ? 'border-primary bg-secondary font-semibold text-primary' : 'border-border-color text-text-muted hover:bg-secondary'}',
-              [t(m == DocMode.pdf ? 'PDF' : 'Pegar texto')],
+              [t(m == DocMode.pdf ? tl('docs.mode.pdf') : tl('docs.mode.text'))],
               attrs: {'type': 'button', 'aria-pressed': '${draft.mode == m}'},
               on: events(onClick: () => component.onChange(draft.copyWith(mode: m))),
             ),
-        ], attrs: {'role': 'group', 'aria-label': 'Cómo cargar ${copy.title.toLowerCase()}'}),
+        ], attrs: {'role': 'group', 'aria-label': tl('docs.mode.group', {'what': copy.title.toLowerCase()})}),
       ]),
       if (draft.mode == DocMode.pdf) ...[
         // Botón real (no un div clickeable): recibe foco y se activa con Enter/Espacio.
@@ -103,15 +101,15 @@ class _DocSlotState extends State<DocSlot> {
             if (draft.file != null)
               el('span', 'block text-sm font-semibold text-primary', [t('✓ ${draft.file!.name}')])
             else ...[
-              el('span', 'block text-sm text-foreground', [t('Arrastrá el PDF o hacé click')]),
+              el('span', 'block text-sm text-foreground', [t(tl('docs.drop'))]),
               el('span', 'mt-0.5 block text-xs text-text-muted', [t(copy.hint)]),
             ],
           ],
           attrs: {
             'type': 'button',
             'aria-label': draft.file != null
-                ? '${copy.title}: archivo ${draft.file!.name}. Activar para elegir otro PDF'
-                : '${copy.title}: elegir un archivo PDF',
+                ? tl('docs.fileLabel', {'title': copy.title, 'name': draft.file!.name})
+                : tl('docs.pickLabel', {'title': copy.title}),
             'style': 'border-color: var(--color-${draft.file != null ? 'primary' : 'border-color'}); background: var(--color-${draft.file != null ? 'primary-soft' : 'card'})',
           },
           on: {
@@ -161,14 +159,14 @@ class _DocsPanelState extends State<DocsPanel> {
   Component build(BuildContext context) {
     final faltan = [for (final tp in DocTipo.values) if (!component.docs.any((d) => d.tipo == tp)) tp];
     return el('div', 'space-y-2', [
-      el('p', 'text-sm leading-relaxed text-foreground', [t('Si querés, compartí tu CV o tu LinkedIn: me ayuda a conocer tu historia y a hacerte mejores preguntas.')]),
-      for (final d in component.docs) el('p', 'text-xs text-text-muted', [t('✓ ${d.tipo.label}: ${d.nombre}')]),
+      el('p', 'text-sm leading-relaxed text-foreground', [t(tl('docs.panel.intro'))]),
+      for (final d in component.docs) el('p', 'text-xs text-text-muted', [t(tl('docs.panel.added', {'kind': d.tipo.label, 'name': d.nombre}))]),
       if (component.status != null)
         el('p', 'text-xs text-text-muted', [t(component.status!)])
       else if (faltan.isNotEmpty) ...[
         el('div', 'flex flex-wrap gap-x-3 gap-y-1', [
           for (final tp in faltan)
-            btn('text-xs font-semibold text-primary underline underline-offset-2', [t('Sumar ${tp == DocTipo.cv ? 'mi CV' : 'mi LinkedIn'}')], onClick: () {
+            btn('text-xs font-semibold text-primary underline underline-offset-2', [t(tp == DocTipo.cv ? tl('docs.panel.addCv') : tl('docs.panel.addLinkedin'))], onClick: () {
               setState(() => pending = tp);
               _clickById('file-panel');
             }),
@@ -187,7 +185,7 @@ class _DocsPanelState extends State<DocsPanel> {
         when(faltan.contains(DocTipo.linkedin), () => linkedInHowTo(compact: true)),
       ],
       when(error != null, () => el('p', 'text-xs text-danger', [t(error!)], attrs: {'role': 'alert'})),
-      el('p', 'pt-1 text-[11px] leading-snug text-text-muted', [t('Es opcional y solo lo uso como contexto: puedo preguntarte por lo que dice, pero no lo corrijo ni lo reescribo.')]),
+      el('p', 'pt-1 text-[11px] leading-snug text-text-muted', [t(tl('docs.panel.note'))]),
     ]);
   }
 }

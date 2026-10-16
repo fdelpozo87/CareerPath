@@ -1,8 +1,10 @@
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
+import '../i18n/i18n.dart';
 import '../services/access.dart';
 import '../ui.dart';
+import 'language_toggle.dart';
 import 'logo.dart';
 import 'theme_toggle.dart';
 
@@ -46,9 +48,9 @@ class _AccessGateState extends State<AccessGate> {
         component.onGranted(status.label);
         return;
       }
-      setState(() => error = status.error ?? 'Ese código no es válido.');
+      setState(() => error = status.error ?? tl('gate.invalid'));
     } catch (_) {
-      setState(() => error = 'No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.');
+      setState(() => error = tl('gate.network'));
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -58,16 +60,16 @@ class _AccessGateState extends State<AccessGate> {
   Component build(BuildContext context) {
     return el('div', 'flex min-h-screen flex-col bg-background font-sans', [
       el('header', 'border-b border-border-color', [
-        el('div', 'section-container flex items-center justify-between py-4', [logo(), const ThemeToggle()]),
+        el('div', 'section-container flex items-center justify-between py-4', [logo(), el('div', 'flex items-center gap-2', [languageToggle(), const ThemeToggle()])]),
       ]),
       el('main', 'flex flex-1 items-center justify-center px-4 py-12', [
         el('div', 'card w-full max-w-md', [
-          el('h1', 'mb-3 text-2xl md:text-3xl', [t('Bivio está en pruebas privadas')]),
+          el('h1', 'mb-3 text-2xl md:text-3xl', [t(tl('gate.title'))]),
           el('p', 'mb-6 text-sm leading-relaxed text-text-muted', [
-            t('Ingresá el código de acceso que te enviamos. Lo usamos para cuidar el costo del servicio mientras lo probamos con un grupo reducido de personas.'),
+            t(tl('gate.body')),
           ]),
           el('form', null, [
-            el('label', 'mb-2 block text-sm font-semibold text-foreground', [t('Código de acceso')], attrs: {'for': 'codigo'}),
+            el('label', 'mb-2 block text-sm font-semibold text-foreground', [t(tl('gate.codeLabel'))], attrs: {'for': 'codigo'}),
             el('input', 'w-full rounded-xl border border-border-color p-3 font-mono text-sm tracking-wider outline-none focus:border-primary', [],
               id: 'codigo',
               attrs: {
@@ -83,7 +85,7 @@ class _AccessGateState extends State<AccessGate> {
               on: events<String>(onInput: (v) => setState(() => code = v)),
             ),
             el('div', 'min-h-6 pt-2 text-sm text-danger', [t(error ?? '')], id: 'codigo-error', attrs: {'role': 'alert'}),
-            el('button', 'btn-primary mt-2 w-full py-3 disabled:cursor-not-allowed disabled:opacity-40', [t(busy ? 'Verificando…' : 'Entrar')],
+            el('button', 'btn-primary mt-2 w-full py-3 disabled:cursor-not-allowed disabled:opacity-40', [t(busy ? tl('gate.verifying') : tl('gate.enter'))],
               attrs: {'type': 'submit', if (code.trim().isEmpty || busy) 'disabled': ''}),
           ], on: {
             'submit': (e) {
@@ -92,8 +94,8 @@ class _AccessGateState extends State<AccessGate> {
             },
           }, attrs: {'novalidate': ''}),
           el('p', 'mt-6 text-xs text-text-muted', [
-            t('¿No tenés código? Pedíselo a quien te invitó. '),
-            anchor('underline underline-offset-2', '#privacidad', [t('Privacidad y términos')]),
+            t('${tl('gate.noCode')} '),
+            anchor('underline underline-offset-2', '#privacidad', [t(tl('footer.privacy'))]),
           ]),
         ]),
       ]),

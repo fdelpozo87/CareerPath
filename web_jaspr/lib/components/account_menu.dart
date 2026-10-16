@@ -4,6 +4,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:universal_web/web.dart' as web;
 
+import '../i18n/i18n.dart';
 import '../ui.dart';
 
 // Menú de la persona: quién está con la sesión abierta y qué puede hacer con ella. Es un menú
@@ -92,27 +93,27 @@ class _AccountMenuState extends State<AccountMenu> {
           'type': 'button',
           'aria-expanded': '$open',
           if (open) 'aria-controls': 'account-panel',
-          'aria-label': label != null && label.isNotEmpty ? 'Mi cuenta ($label)' : 'Mi cuenta',
+          'aria-label': label != null && label.isNotEmpty ? tl('account.menuNamed', {'label': label}) : tl('account.menu'),
         },
         on: events(onClick: () => setState(() => open = !open)),
       ),
       when(open, () => el('div', 'card absolute right-0 top-full z-50 mt-2 w-64 p-2', [
         el('div', 'border-b border-border-color px-3 pb-3 pt-2', [
-          el('p', 'text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Sesión de prueba')]),
-          el('p', 'mt-1 truncate text-sm font-medium text-foreground', [t(account.label ?? (account.canLogout ? 'Sesión iniciada' : 'Acceso abierto, sin código'))]),
+          el('p', 'text-xs font-semibold uppercase tracking-widest text-text-muted', [t(tl('account.testSession'))]),
+          el('p', 'mt-1 truncate text-sm font-medium text-foreground', [t(account.label ?? (account.canLogout ? tl('account.unknown') : tl('account.open')))]),
         ]),
         el('ul', 'mt-2 space-y-0.5', [
           el('li', null, [
-            el('a', _item, [t('Privacidad y términos')], attrs: {'href': '#privacidad'}, on: events(onClick: () => setState(() => open = false))),
+            el('a', _item, [t(tl('account.privacy'))], attrs: {'href': '#privacidad'}, on: events(onClick: () => setState(() => open = false))),
           ]),
           el('li', null, [
-            btn(_item, [t('Borrar mi conversación')], onClick: () {
+            btn(_item, [t(tl('account.delete'))], onClick: () {
               setState(() => open = false);
               account.onDeleteData();
             }),
           ]),
           when(account.canLogout, () => el('li', null, [
-            btn('$_item font-semibold', [t('Cerrar sesión')], onClick: () {
+            btn('$_item font-semibold', [t(tl('account.logout'))], onClick: () {
               setState(() => open = false);
               account.onLogout();
             }),

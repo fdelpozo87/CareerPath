@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { STAGE_COLOR, STAGE_ORDER, stageName } from '../../../shared/stages'
-import { stageLabel, tr } from '../../lib/i18n'
+import { getLang, stageLabel, tr, type Key } from '../../lib/i18n'
 import { extractPdfText, requestReport, requestTurn } from '../../lib/coach/api'
 import { saveSession } from '../../lib/coach/session'
 import type { DocTipo, Session, Stage, TurnResult, UiMessage } from '../../lib/coach/types'
 import { trackEvent, type FunnelEvent } from '../../lib/tracking'
 import AccountMenu, { type AccountInfo } from '../AccountMenu'
 import Logo from '../Logo'
+import LanguageToggle from '../LanguageToggle'
 import ThemeToggle from '../ThemeToggle'
 import { ChatView } from './ChatView'
 import { ProfileStep } from './ProfileStep'
@@ -21,17 +22,11 @@ const STAGE_COMPLETED_EVENT: Record<Stage, FunnelEvent> = {
   plan: 'action_plan_completed',
 }
 
-// Mensajes de control: le indican al agente que abra una etapa. No se muestran.
+// Mensajes de control: le indican al agente que abra una etapa. No se muestran. Van en el idioma
+// de la interfaz: si no, el coach tiende a contestar en el idioma de la instrucción.
 function openingInstruction(s: Session): string {
-  if (s.stage === 'diagnostico') {
-    if (s.path === 'formacion') {
-      return '(Inicio de la sesión, Camino C: la persona quiere decidir en qué formarse. Preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y haz tu primera pregunta abierta sobre qué le gustaría lograr con una formación. No sugieras carreras ni cursos.)'
-    }
-    return s.path === 'perfil'
-      ? '(Inicio de la sesión, Camino B. La persona acaba de ver la lectura externa de su perfil. Preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y pregúntale qué le resonó y qué no de esa lectura. Indaga antes de sumar cualquier lectura propia.)'
-      : '(Inicio de la sesión, Camino A. Preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y haz tu primera pregunta abierta.)'
-  }
-  return `(La persona confirmó la síntesis de la etapa anterior y pasa a ${stageName(s.stage)}. Haz una transición de una oración apoyada en lo que dijo y tu primera pregunta de esta etapa.)`
+  if (s.stage === 'diagnostico') return tr(`srv.open.${s.path}` as Key)
+  return tr('srv.open.next', { stage: stageName(s.stage, getLang()) })
 }
 
 // Si la etapa actual todavía no arrancó, agrega el mensaje de control que la abre.
@@ -246,6 +241,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
             })}
           </ol>
           <div className="flex items-center gap-2">
+            <LanguageToggle />
             <ThemeToggle />
             <AccountMenu account={account} />
           </div>

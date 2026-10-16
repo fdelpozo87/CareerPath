@@ -4,6 +4,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:universal_web/web.dart' as web;
 
+import '../../i18n/i18n.dart';
 import '../../models/stages.dart';
 import '../../models/types.dart';
 import '../../ui.dart';
@@ -11,18 +12,10 @@ import '../logo.dart';
 import 'doc_inputs.dart';
 import 'stage_map.dart';
 
-const _nextLabel = {
-  Stage.diagnostico: 'Seguir a Discovery →',
-  Stage.discovery: 'Seguir al Plan de Acción →',
-  Stage.plan: 'Ver mi informe y elegir compromisos →',
-};
+String _nextLabel(Stage stage) => tl('chat.next.${stage.id}');
 
 // Para vencer la hoja en blanco: frases para arrancar que la persona puede editar.
-const _starters = {
-  CoachPath.quiebre: ['Siento que estoy estancado/a', 'No sé si quedarme o cambiar de trabajo', 'Quiero crecer pero no sé por dónde empezar'],
-  CoachPath.perfil: ['Algo de lo que dice mi perfil me sorprendió', 'Quiero saber qué cambiar primero', 'No me siento reflejado/a en mi perfil'],
-  CoachPath.formacion: ['No sé qué estudiar', 'Estoy entre dos opciones y no puedo decidir', 'Quiero cambiar de rumbo y formarme para eso'],
-};
+List<String> _starters(CoachPath path) => [for (var n = 1; n <= 3; n++) tl('chat.starters.${path.id}.$n')];
 
 const _inputId = 'chat-input';
 const _logId = 'chat-log';
@@ -133,7 +126,7 @@ class _ChatViewState extends State<ChatView> {
         // Región con scroll propio: enfocable con teclado (tabindex) para poder leer el historial.
         el('div', 'relative flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6', [
           when(component.demo, () => el('div', 'rounded-xl border border-accent/30 bg-accent-soft px-4 py-2.5 text-xs text-accent-ink', [
-            t('Modo demo: no hay GEMINI_API_KEY configurada, las respuestas son de guion.'),
+            t(tl('chat.demo')),
           ])),
           when(!hasUserMessage, _onboarding),
           for (final (i, m) in visible.indexed)
@@ -146,31 +139,31 @@ class _ChatViewState extends State<ChatView> {
                 path: session.path,
                 map: session.mapas[session.stage],
                 fallbackText: session.sintesis[session.stage],
-                nextLabel: _nextLabel[session.stage]!,
+                nextLabel: _nextLabel(session.stage),
                 onAdvance: component.onAdvance,
                 onAdjust: () => _input()?.focus(),
                 onResume: (id) {
                   component.onResumeTopic(id);
                   final label = objectivesFor(session.stage, session.path).where((o) => o.id == id).firstOrNull?.label ?? '';
-                  _setDraft('Quiero retomar lo de "$label".');
+                  _setDraft(tl('chat.resumeDraft', {'label': label}));
                 },
               )),
             ]),
           when(component.thinking, _typing),
           when(component.error != null, () => el('div', 'flex items-center justify-between gap-3 rounded-2xl border border-danger/20 bg-danger-soft p-3.5 text-sm text-danger', [
             el('span', null, [t(component.error!)]),
-            btn('shrink-0 font-semibold underline underline-offset-2', [t('Reintentar')], onClick: component.onRetry),
+            btn('shrink-0 font-semibold underline underline-offset-2', [t(tl('common.retry'))], onClick: component.onRetry),
           ], attrs: {'role': 'alert'})),
-        ], id: _logId, attrs: {'role': 'log', 'aria-live': 'polite', 'aria-label': 'Conversación', 'tabindex': '0'}),
+        ], id: _logId, attrs: {'role': 'log', 'aria-live': 'polite', 'aria-label': tl('chat.log'), 'tabindex': '0'}),
 
         // El cierre no se pierde: aunque la persona siga escribiendo, el botón para seguir queda a la vista.
         when(session.stageReady, () => el('div', 'flex flex-wrap items-center justify-between gap-2 border-t border-primary/20 bg-primary-soft px-4 py-2.5 sm:px-6', [
-          el('p', 'text-sm font-medium text-primary', [t('Tu mapa de ${session.stage.label} está listo.')]),
-          btn('btn-primary px-5 py-2 text-sm', [t(_nextLabel[session.stage]!)], onClick: component.onAdvance),
+          el('p', 'text-sm font-medium text-primary', [t(tl('chat.mapReady', {'stage': session.stage.label}))]),
+          btn('btn-primary px-5 py-2 text-sm', [t(_nextLabel(session.stage))], onClick: component.onAdvance),
         ])),
 
         _composer(),
-      ], attrs: {'aria-label': 'Conversación con tu coach'}),
+      ], attrs: {'aria-label': tl('chat.section')}),
     ]);
   }
 
@@ -180,7 +173,7 @@ class _ChatViewState extends State<ChatView> {
       el('div', 'flex items-end gap-2 rounded-2xl border border-border-color bg-background p-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15', [
         el('textarea', 'max-h-40 min-h-11 flex-1 resize-none bg-transparent px-2 py-1.5 text-base leading-6 outline-none placeholder:text-text-muted/70', [],
           id: _inputId,
-          attrs: {'rows': '1', 'maxlength': '4000', 'placeholder': 'Escribí con tus palabras. No hay respuestas correctas.', 'aria-label': 'Tu respuesta'},
+          attrs: {'rows': '1', 'maxlength': '4000', 'placeholder': tl('chat.placeholder'), 'aria-label': tl('chat.answerLabel')},
           on: {
             'input': (e) {
               final ta = e.target as web.HTMLTextAreaElement;
@@ -195,11 +188,11 @@ class _ChatViewState extends State<ChatView> {
               }
             },
           }),
-        btn('btn-primary h-11 shrink-0 px-5 text-sm disabled:cursor-not-allowed disabled:opacity-40', [t('Enviar')], onClick: _send, disabled: !canSend),
+        btn('btn-primary h-11 shrink-0 px-5 text-sm disabled:cursor-not-allowed disabled:opacity-40', [t(tl('common.send'))], onClick: _send, disabled: !canSend),
       ]),
       el('p', 'mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] text-text-muted [@media(max-height:560px)]:hidden', [
-        el('span', null, [t(touch ? 'Tocá Enviar cuando termines' : 'Enter para enviar · Shift+Enter para un salto de línea')]),
-        el('span', 'inline-flex items-center gap-1', [_lockIcon(), t(' Lo que escribís queda en tu navegador')]),
+        el('span', null, [t(touch ? tl('chat.hint.touch') : tl('chat.hint.keyboard'))]),
+        el('span', 'inline-flex items-center gap-1', [_lockIcon(), t(' ${tl('chat.privacy')}')]),
       ]),
     ]);
   }
@@ -213,14 +206,14 @@ class _ChatViewState extends State<ChatView> {
     final omitidos = session.omitidos[session.stage] ?? const <String>[];
     final fraction = objetivos.isEmpty ? 0.0 : cubiertos.length / objetivos.length;
     final intro = introFor(session.stage, session.path);
-    final docsLabel = session.documentos.isNotEmpty ? 'Tu perfil: ${session.documentos.map((d) => d.tipo.label).join(' + ')}' : 'Sumar mi CV o LinkedIn';
+    final docsLabel = session.documentos.isNotEmpty ? tl('chat.docs.profile', {'docs': session.documentos.map((d) => d.tipo.label).join(' + ')}) : tl('chat.docs.add');
 
     return el('header', 'border-b border-border-color bg-card px-4 py-3 sm:px-6', [
       el('div', 'flex items-center gap-3', [
         coachAvatar(),
         el('div', 'min-w-0 flex-1', [
-          el('p', 'truncate font-display text-lg leading-tight text-foreground', [t('Tu coach de carrera')]),
-          el('p', 'truncate text-xs text-text-muted [@media(max-height:560px)]:hidden', [t('Te escucho, sin apuro.')]),
+          el('p', 'truncate font-display text-lg leading-tight text-foreground', [t(tl('chat.title'))]),
+          el('p', 'truncate text-xs text-text-muted [@media(max-height:560px)]:hidden', [t(tl('chat.subtitle'))]),
         ]),
         el(
           'button',
@@ -241,8 +234,8 @@ class _ChatViewState extends State<ChatView> {
       // Dónde estás: etapa, qué se hace ahora y qué viene después.
       el('div', 'mt-2.5', [
         el('div', 'flex items-baseline justify-between gap-3 text-xs', [
-          el('p', 'font-semibold text-primary', [t('Etapa ${idx + 1} de ${Stage.values.length} · ${session.stage.label}')]),
-          el('p', 'hidden text-text-muted sm:block', [t('Después: ${intro.despues}')]),
+          el('p', 'font-semibold text-primary', [t(tl('chat.stageOf', {'n': idx + 1, 'total': Stage.values.length, 'stage': session.stage.label}))]),
+          el('p', 'hidden text-text-muted sm:block', [t(tl('chat.after', {'next': intro.despues}))]),
         ]),
         el('div', 'mt-2 flex gap-1.5', [
           for (final s in Stage.values)
@@ -252,12 +245,12 @@ class _ChatViewState extends State<ChatView> {
               }),
             ]),
         ], attrs: {'aria-hidden': 'true'}),
-        el('p', 'mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden', [t('Ahora: ${intro.queHacemos}')]),
+        el('p', 'mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden', [t(tl('chat.now', {'what': intro.queHacemos}))]),
 
         // Con poca altura (teclado abierto, celular horizontal) se deja más lugar a la conversación.
         el('ul', 'mt-1.5 flex flex-wrap gap-1.5 [@media(max-height:560px)]:hidden', [
           for (final o in objetivos) _topicChip(o, cubiertos, omitidos),
-        ], attrs: {'role': 'list', 'aria-label': 'Temas de esta etapa'}),
+        ], attrs: {'role': 'list', 'aria-label': tl('chat.topics')}),
       ]),
     ]);
   }
@@ -278,16 +271,16 @@ class _ChatViewState extends State<ChatView> {
       when(done, _checkIcon),
       when(enFoco, () => el('span', 'h-1.5 w-1.5 rounded-full bg-accent', [], attrs: {'aria-hidden': 'true'})),
       t(o.label),
-      when(dejado, () => el('span', null, [t(' · para después')], attrs: {'aria-hidden': 'true'})),
+      when(dejado, () => el('span', null, [t(tl('chat.topic.laterTag'))], attrs: {'aria-hidden': 'true'})),
       // El estado no puede depender solo del color o del ícono.
       el('span', 'sr-only', [
         t(done
-            ? ': ya lo hablamos'
+            ? tl('chat.topic.done')
             : dejado
-                ? ': lo dejaste para más adelante'
+                ? tl('chat.topic.later')
                 : enFoco
-                    ? ': es de lo que estamos hablando ahora y falta'
-                    : ': pendiente'),
+                    ? tl('chat.topic.focus')
+                    : tl('chat.topic.pending')),
       ]),
     ]);
   }
@@ -297,14 +290,14 @@ class _ChatViewState extends State<ChatView> {
   Component _coachBubble(String text) => el('div', 'flex items-start gap-3', [
     coachAvatar(small: true),
     el('div', 'max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base', [
-      el('span', 'sr-only', [t('Tu coach: ')]),
+      el('span', 'sr-only', [t(tl('chat.coachSays'))]),
       t(text),
     ]),
   ]);
 
   Component _userBubble(String text) => el('div', 'flex justify-end', [
     el('div', 'max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary-soft px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base', [
-      el('span', 'sr-only', [t('Vos: ')]),
+      el('span', 'sr-only', [t(tl('chat.youSay'))]),
       t(text),
     ]),
   ]);
@@ -312,36 +305,36 @@ class _ChatViewState extends State<ChatView> {
   Component _typing() => el('div', 'flex items-start gap-3', [
     coachAvatar(small: true),
     el('div', 'flex items-center gap-2.5 rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3.5', [
-      el('span', 'sr-only', [t('Tu coach está escribiendo…')]),
+      el('span', 'sr-only', [t(tl('chat.typing.sr'))]),
       el('span', 'flex gap-1', [
         for (var d = 0; d < 3; d++)
           el('span', 'h-1.5 w-1.5 rounded-full bg-primary', [], attrs: {'style': 'animation: ai-pulse-glow 1.2s ${d * 0.2}s infinite'}),
       ], attrs: {'aria-hidden': 'true'}),
-      el('span', 'text-xs italic text-text-muted', [t('pensando lo que me contás…')], attrs: {'aria-hidden': 'true'}),
+      el('span', 'text-xs italic text-text-muted', [t(tl('chat.typing'))], attrs: {'aria-hidden': 'true'}),
     ]),
   ]);
 
   // Antes del primer mensaje: cómo funciona, y frases para arrancar.
   Component _onboarding() => el('div', 'rounded-2xl border border-border-color bg-secondary/50 p-5 text-sm', [
-    el('p', 'mb-3 font-display text-lg text-foreground', [t('Antes de empezar')]),
+    el('p', 'mb-3 font-display text-lg text-foreground', [t(tl('chat.onb.title'))]),
     el('ul', 'space-y-2 leading-relaxed text-text-muted', [
       el('li', null, [
-        el('strong', 'font-semibold text-foreground', [t('Te voy a escuchar y a hacerte preguntas.')]),
-        t(' No hay respuestas correctas, y las conclusiones son tuyas: no voy a decidir por vos.'),
+        el('strong', 'font-semibold text-foreground', [t(tl('chat.onb.1.strong'))]),
+        t(tl('chat.onb.1.rest')),
       ]),
       el('li', null, [
-        el('strong', 'font-semibold text-foreground', [t('Vamos en tres etapas')]),
-        t(' (Diagnóstico, Discovery y Plan de Acción). Arriba siempre ves dónde estás y qué falta.'),
+        el('strong', 'font-semibold text-foreground', [t(tl('chat.onb.2.strong'))]),
+        t(tl('chat.onb.2.rest')),
       ]),
       el('li', null, [
-        el('strong', 'font-semibold text-foreground', [t('Podés cerrar y volver.')]),
-        t(' Tu conversación queda en este navegador. '),
-        anchor('underline underline-offset-2', '#privacidad', [t('Cómo cuidamos tus datos')], external: true),
+        el('strong', 'font-semibold text-foreground', [t(tl('chat.onb.3.strong'))]),
+        t('${tl('chat.onb.3.rest')} '),
+        anchor('underline underline-offset-2', '#privacidad', [t(tl('chat.onb.3.link'))], external: true),
       ]),
     ]),
-    el('p', 'mb-2 mt-4 text-xs font-semibold uppercase tracking-wider text-text-muted', [t('¿Te cuesta arrancar? Podés empezar con alguna de estas:')]),
+    el('p', 'mb-2 mt-4 text-xs font-semibold uppercase tracking-wider text-text-muted', [t(tl('chat.onb.stuck'))]),
     el('ul', 'flex flex-wrap gap-2', [
-      for (final text in _starters[session.path]!)
+      for (final text in _starters(session.path))
         el('li', null, [
           btn('rounded-full border border-border-color bg-card px-3.5 py-2 text-left text-sm text-foreground transition hover:border-primary hover:bg-primary-soft', [t(text)], onClick: () => _setDraft(text)),
         ]),
@@ -356,14 +349,14 @@ class _ChatViewState extends State<ChatView> {
 
   // Protocolo de derivación. Los recursos son de Argentina (zona horaria del equipo); a validar con el equipo antes de producción.
   Component _derivationCard() => el('div', 'ml-11 max-w-[88%] rounded-2xl border border-primary/20 bg-primary-soft p-4 text-sm text-foreground', [
-    el('p', 'mb-2 font-semibold text-primary', [t('Para esto conviene otra ayuda, y no tenés que resolverlo sola/o')]),
+    el('p', 'mb-2 font-semibold text-primary', [t(tl('chat.deriv.title'))]),
     el('ul', 'list-disc space-y-1 pl-5', [
-      el('li', null, [t('Si hay riesgo inmediato para vos: 911 (emergencias) o 107 (emergencias médicas).')]),
-      el('li', null, [t('Violencia o acoso por motivos de género: Línea 144, gratuita y las 24 horas.')]),
-      el('li', null, [t('Maltrato o acoso laboral: un/a abogado/a laboralista, tu sindicato o la oficina de violencia laboral del Ministerio de Trabajo.')]),
-      el('li', null, [t('Si te está afectando la salud: un/a profesional de salud mental o tu médico/a de cabecera.')]),
+      el('li', null, [t(tl('chat.deriv.1'))]),
+      el('li', null, [t(tl('chat.deriv.2'))]),
+      el('li', null, [t(tl('chat.deriv.3'))]),
+      el('li', null, [t(tl('chat.deriv.4'))]),
     ]),
-    el('p', 'mt-2 text-xs text-text-muted', [t('Cuando quieras, seguimos acá con lo de tu carrera.')]),
+    el('p', 'mt-2 text-xs text-text-muted', [t('${tl('chat.deriv.country')} ${tl('chat.deriv.after')}')]),
   ]);
 
   // ── Íconos ──────────────────────────────────────────────────────────────────

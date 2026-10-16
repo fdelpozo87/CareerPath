@@ -11,6 +11,7 @@ import {
 import { DEFAULT_LANG, isLang, translate, type Lang } from '../shared/i18n.js'
 import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type SynthesisItem } from '../shared/stages.js'
 import { generateJson, responseText } from './gemini.js'
+import { wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
 
 // Lógica compartida del agente conversacional. La usan api/coach.ts (Vercel)
@@ -144,8 +145,13 @@ function validate(body: unknown): CoachRequest | null {
   }
 }
 
-function toContents(history: ChatMessage[]): Content[] {
-  return history.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
+function toContents(history: ChatMessage[], lang: Lang, extra = ''): Content[] {
+  const contents: Content[] = history.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
+  // El historial puede estar en otro idioma (la persona cambió el idioma de la interfaz a mitad de la
+  // charla) y el modelo tiende a seguir al historial: una nota en el último mensaje fija el idioma.
+  const last = contents.at(-1)
+  if (last && last.role === 'user') last.parts = [{ text: `${last.parts[0].text}\n\n${translate(lang, 'srv.langNote')}${extra ? `\n${extra}` : ''}` }]
+  return contents
 }
 
 /**
@@ -352,9 +358,18 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
         systemInstruction: buildTurnSystemPrompt({ ...req, lang, intentos: askCounts(req.history, req.stage, req.cubiertos, req.omitidos, req.path) }),
         generationConfig,
       }, requestOptions)
-      const raw = await generateJson<Partial<TurnResult>>(async () =>
-        responseText((await model.generateContent({ contents: toContents(req.history) })).response, 'turno'),
-      )
+      const run = (extra = '') =>
+        generateJson<Partial<TurnResult>>(async () =>
+          responseText((await model.generateContent({ contents: toContents(req.history, lang, extra) })).response, 'turno'),
+        )
+      let raw = await run()
+      // Salió en el idioma equivocado (suele pasar si el historial está en el otro idioma): una segunda vez, con más énfasis.
+      // Si la persona misma está escribiendo en el otro idioma, el coach le contesta en el suyo y no se reintenta.
+      const lastUser = [...req.history].reverse().find((m) => m.role === 'user')?.text ?? ''
+      if (typeof raw.mensaje === 'string' && wrongLanguage(raw.mensaje, lang) && !wrongLanguage(lastUser, lang)) {
+        logEvent('warn', 'coach_idioma_equivocado', { lang })
+        raw = await run(translate(lang, 'srv.langRetry'))
+      }
       return normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path, lang)
     }
     case 'informe': {
@@ -363,8 +378,8 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
         systemInstruction: buildReportPrompt({ ...req, lang }),
         generationConfig: { ...generationConfig, temperature: 0.3 },
       }, requestOptions)
-      const contents = toContents(req.history)
-      contents.push({ role: 'user', parts: [{ text: '(Fin de la conversación. Genera el informe de cierre en JSON.)' }] })
+      const contents = toContents(req.history, lang)
+      contents.push({ role: 'user', parts: [{ text: `${translate(lang, 'srv.reportEnd')}\n${translate(lang, 'srv.langNote')}` }] })
       return generateJson(async () => responseText((await model.generateContent({ contents })).response, 'informe'))
     }
     case 'perfil': {

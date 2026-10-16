@@ -13,6 +13,7 @@ vi.mock('@google/generative-ai', () => ({
 import { runEndpoint } from '../server/endpoints'
 import { resetRateLimits } from '../server/guard'
 import { askCounts } from '../server/coach'
+import { wrongLanguage } from '../server/lang'
 import { buildProfilePrompt, buildReportPrompt, buildTurnSystemPrompt } from '../server/prompts'
 import { en, es } from '../shared/locales/dictionaries'
 import { readFileSync } from 'node:fs'
@@ -614,6 +615,42 @@ describe('idiomas: español neutro latinoamericano e inglés', () => {
     const msg = (r2.body as { data: { mensaje: string } }).data.mensaje
     expect(msg).toContain('Where you are today')
     expect(msg.toLowerCase()).not.toContain('leave your map')
+  })
+
+  it('detecta si una respuesta salió en el idioma equivocado', () => {
+    expect(wrongLanguage('Hola, cuéntame qué es lo que te trae por aquí hoy y cómo te sientes con tu trabajo.', 'en')).toBe(true)
+    expect(wrongLanguage('Hello, tell me what brings you here today and how you feel about your work.', 'es')).toBe(true)
+    expect(wrongLanguage('Hello, tell me what brings you here today and how you feel about your work.', 'en')).toBe(false)
+    expect(wrongLanguage('Hola, cuéntame qué es lo que te trae por aquí hoy y cómo te sientes con tu trabajo.', 'es')).toBe(false)
+    expect(wrongLanguage('Sí.', 'en')).toBe(false) // demasiado corto para decidir
+    // Un par de palabras en otro idioma (feedback, coach) no cambia el veredicto.
+    expect(wrongLanguage('Me contaste que el feedback de tu jefe te cayó mal; ¿qué fue lo que más te pesó de eso?', 'es')).toBe(false)
+  })
+
+  it('si el coach contesta en el idioma equivocado, se reintenta una vez con más énfasis', async () => {
+    gemini.generateContent
+      .mockResolvedValueOnce(modelReply({ mensaje: 'Hola, cuéntame qué es lo que te trae por aquí hoy y cómo te sientes con tu trabajo.', objetivosCubiertos: [] }))
+      .mockResolvedValueOnce(modelReply({ mensaje: 'Hi, tell me what brings you here today and how you are feeling about your work.', objetivosCubiertos: [] }))
+    const r = await runEndpoint('coach', makeReq(turnBody({ lang: 'en' })), KEY)
+    expect(gemini.generateContent).toHaveBeenCalledTimes(2)
+    expect((r.body as { data: { mensaje: string } }).data.mensaje).toMatch(/^Hi, tell me/)
+    // el segundo intento lleva la nota de énfasis en el último mensaje
+    expect(JSON.stringify(gemini.generateContent.mock.calls[1][0])).toContain('IMPORTANT: your reply must be in English only')
+  })
+
+  it('si la persona escribe en el otro idioma, el coach le contesta en el suyo y no se reintenta', async () => {
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'Hola, cuéntame qué es lo que te trae por aquí hoy y cómo te sientes con tu trabajo.', objetivosCubiertos: [] }))
+    const history = [{ role: 'user', text: 'Me siento estancada en mi trabajo y no sé qué hacer con eso, hace años que lo pienso.' }]
+    await runEndpoint('coach', makeReq(turnBody({ lang: 'en', history })), KEY)
+    expect(gemini.generateContent).toHaveBeenCalledTimes(1)
+  })
+
+  it('si la respuesta ya está en el idioma pedido, no se reintenta', async () => {
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'Hi, tell me what brings you here today and how you are feeling about your work.', objetivosCubiertos: [] }))
+    await runEndpoint('coach', makeReq(turnBody({ lang: 'en' })), KEY)
+    expect(gemini.generateContent).toHaveBeenCalledTimes(1)
+    // la nota de idioma viaja siempre en el último mensaje del usuario
+    expect(JSON.stringify(gemini.generateContent.mock.calls[0][0])).toContain('(Reply in English.)')
   })
 
   it('el idioma del pedido se valida', async () => {

@@ -4,7 +4,7 @@ import '../services/storage.dart';
 import 'strings.g.dart';
 
 // Idioma de la interfaz: español (neutro latinoamericano) o inglés. Misma regla que src/lib/i18n.ts.
-// Los componentes llaman a tr() al construirse; App se reconstruye cuando cambia el idioma.
+// Los componentes llaman a tl() al construirse; App se reconstruye cuando cambia el idioma.
 
 enum Lang {
   es('es', 'ES'),
@@ -32,17 +32,17 @@ Lang get currentLang => _current;
 String _fill(String text, Map<String, Object>? vars) =>
     vars == null ? text : text.replaceAllMapped(RegExp(r'\{(\w+)\}'), (m) => '${vars[m[1]] ?? m[0]}');
 
-String tr(String key, [Map<String, Object>? vars]) =>
+String tl(String key, [Map<String, Object>? vars]) =>
     _fill((_current == Lang.en ? stringsEn : stringsEs)[key] ?? key, vars);
 
 /// Plural simple: busca `$base.one` (n == 1) o `$base.other`. Siempre expone {n}.
-String trn(String base, int n, [Map<String, Object>? vars]) => tr('$base.${n == 1 ? 'one' : 'other'}', {'n': n, ...?vars});
+String tln(String base, int n, [Map<String, Object>? vars]) => tl('$base.${n == 1 ? 'one' : 'other'}', {'n': n, ...?vars});
 
 /// Refleja el idioma en el documento (lector de pantalla, traductor del navegador, título).
 void applyLang() {
   web.document.documentElement?.setAttribute('lang', _current.code);
-  web.document.title = tr('meta.title');
-  web.document.querySelector('meta[name="description"]')?.setAttribute('content', tr('meta.description'));
+  web.document.title = tl('meta.title');
+  web.document.querySelector('meta[name="description"]')?.setAttribute('content', tl('meta.description'));
 }
 
 void setLang(Lang lang) {

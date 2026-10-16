@@ -265,7 +265,9 @@ ${ctx.path === 'formacion' ? FORMACION_GUIDANCE : ''}
 ${ctx.path === 'formacion' ? FORMACION_STAGE_GUIDANCE[ctx.stage] : STAGE_GUIDANCE[ctx.stage]}
 ${ctx.etapaCerrada ? `\n${CLOSED_STAGE_GUIDANCE}\n` : ''}
 Objetivos de indagación de esta etapa (ids válidos para "objetivosCubiertos" y "temaEnFoco"), con su estado hoy:
-${objetivos}${EVASION_GUIDANCE}${obligatorios}`
+${objetivos}${EVASION_GUIDANCE}${obligatorios}
+
+${languageSection(ctx.lang)}`
 }
 
 // §5 "Al cerrar el Plan de Acción, entregar un informe breve… donde la persona

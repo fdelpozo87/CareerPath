@@ -119,7 +119,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
                     onResume={(id) => {
                       onResumeTopic(id)
                       const label = objectiveLabel(id, getLang())
-                      setDraft(`Quiero retomar lo de "${label}".`)
+                      setDraft(tr('chat.resumeDraft', { label }))
                       inputRef.current?.focus()
                     }}
                   />

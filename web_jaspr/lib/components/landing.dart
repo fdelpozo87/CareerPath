@@ -1,5 +1,6 @@
 import 'package:jaspr/jaspr.dart';
 
+import '../i18n/i18n.dart';
 import '../models/stages.dart';
 import '../models/types.dart';
 import '../ui.dart';
@@ -41,38 +42,17 @@ class _PathCard {
   final String? note;
 }
 
-final _paths = [
-  _PathCard(
-    CoachPath.quiebre,
-    'Camino A',
-    _routeIcon,
-    'Me siento estancado/a y no sé qué hacer con eso',
-    'Llevás un tiempo con la misma duda: ¿me quedo, intento crecer acá o toca cambiar de rumbo? Podemos ponerle palabras y orden de prioridad a esa pregunta.',
-  ),
-  _PathCard(
-    CoachPath.perfil,
-    'Camino B',
-    _searchIcon,
-    'Quiero explorar el mercado, empezando por mi perfil',
-    'Te interesan nuevas oportunidades, pero antes de salir a buscar querés saber qué comunica tu perfil hoy para los puestos que te atraen.',
-  ),
-  _PathCard(
-    CoachPath.formacion,
-    'Camino C',
-    _capIcon,
-    'Quiero decidir qué estudiar o en qué formarme',
-    'Un curso, una tecnicatura, una carrera, un posgrado o un cambio de rumbo. Ordenamos qué querés, qué podés y con qué criterios comparar tus opciones.',
-    'Para mayores de 18 años.',
-  ),
+// Se arma al dibujar: los textos dependen del idioma actual.
+List<_PathCard> _paths() => [
+  _PathCard(CoachPath.quiebre, tl('landing.pathA.tag'), _routeIcon, tl('landing.pathA.title'), tl('landing.pathA.body')),
+  _PathCard(CoachPath.perfil, tl('landing.pathB.tag'), _searchIcon, tl('landing.pathB.title'), tl('landing.pathB.body')),
+  _PathCard(CoachPath.formacion, tl('landing.pathC.tag'), _capIcon, tl('landing.pathC.title'), tl('landing.pathC.body'), tl('landing.pathC.note')),
 ];
 
 String _resumeText(Session s) {
-  if (s.compromisos != null) {
-    final n = s.compromisos!.length;
-    return 'Asumiste $n compromiso${n == 1 ? '' : 's'}. Retomá desde ahí.';
-  }
-  if (s.phase == Phase.informe) return 'Tu informe de cierre te espera para elegir tus compromisos.';
-  return 'Quedaste en ${s.stage.label}.';
+  if (s.compromisos != null) return tln('landing.resume.commitments', s.compromisos!.length);
+  if (s.phase == Phase.informe) return tl('landing.resume.report');
+  return tl('landing.resume.stage', {'stage': s.stage.label});
 }
 
 Component landing({required void Function(CoachPath) onChoosePath, required Session? saved, required void Function() onResume}) {
@@ -80,20 +60,20 @@ Component landing({required void Function(CoachPath) onChoosePath, required Sess
     el('div', 'section-container', [
       when(saved != null, () => el('div', 'mx-auto mb-12 flex max-w-6xl flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between', [
         el('div', null, [
-          el('p', 'text-sm font-semibold text-foreground', [t('Tenés un proceso en curso')]),
+          el('p', 'text-sm font-semibold text-foreground', [t(tl('landing.resume.title'))]),
           el('p', 'text-sm text-text-muted', [t(_resumeText(saved!))]),
         ]),
-        btn('btn-primary shrink-0 px-5 py-2.5 text-sm', [t('Retomar →')], onClick: onResume),
+        btn('btn-primary shrink-0 px-5 py-2.5 text-sm', [t(tl('landing.resume.button'))], onClick: onResume),
       ])),
       el('div', 'mx-auto mb-12 max-w-3xl text-center', [
-        el('p', 'mb-4 text-xs font-semibold uppercase tracking-widest text-primary', [t('Un momento para decidir')]),
-        el('h1', 'mb-5 leading-tight', [t('Antes de empezar: ¿dónde estás parada o parado hoy?')]),
+        el('p', 'mb-4 text-xs font-semibold uppercase tracking-widest text-primary', [t(tl('landing.eyebrow'))]),
+        el('h1', 'mb-5 leading-tight', [t(tl('landing.title'))]),
         el('p', 'mx-auto max-w-xl text-lg leading-relaxed text-text-muted', [
-          t('Elegí el punto de partida que más se parezca a tu situación. No es un test y no queda nada definido hoy: lo afinamos conversando.'),
+          t(tl('landing.lede')),
         ]),
       ]),
       el('div', 'mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3', [
-        for (final p in _paths)
+        for (final p in _paths())
           el('div', 'card flex flex-col p-7', [
             el('div', 'mb-6 flex items-center justify-between', [
               el('span', 'rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary', [t(p.tag)]),
@@ -103,23 +83,23 @@ Component landing({required void Function(CoachPath) onChoosePath, required Sess
             el('p', '${p.note != null ? 'mb-3' : 'mb-8'} flex-1 text-sm leading-relaxed text-text-muted', [t(p.body)]),
             when(p.note != null, () => el('p', 'mb-5 text-xs font-semibold text-text-muted', [t(p.note!)])),
             // Mismo estilo en los dos: ningún camino se presenta como el recomendado.
-            btn('btn-primary w-full py-3', [t('Empezar por acá')], onClick: () => onChoosePath(p.path)),
+            btn('btn-primary w-full py-3', [t(tl('landing.start'))], onClick: () => onChoosePath(p.path)),
           ]),
       ]),
       el('div', 'mx-auto mt-14 max-w-4xl', [
         el('div', 'glass-stage px-5 py-10 text-center sm:px-10 sm:py-12', [
-          el('p', 'glass-kicker mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Los tres caminos llevan al mismo proceso acompañado')]),
+          el('p', 'glass-kicker mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted', [t(tl('landing.steps.title'))]),
           el('ol', 'flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-3', [
             for (final (i, s) in Stage.values.indexed)
               el('li', 'flex items-center gap-3', [
                 el('span', 'glass-pill', [
                   el('span', 'glass-dot', [t('${i + 1}')], attrs: {'aria-hidden': 'true'}),
-                  el('span', 'text-sm font-medium', [t(s == Stage.discovery ? 'Exploración de opciones' : s.label)]),
+                  el('span', 'text-sm font-medium', [t(s == Stage.discovery ? tl('landing.steps.discovery') : s.label)]),
                 ], attrs: {'style': 'animation-delay: ${(i * 1.1).toStringAsFixed(1)}s'}),
                 when(i < 2, () => el('span', 'glass-link hidden h-px w-6 sm:block', [], attrs: {'aria-hidden': 'true'})),
               ]),
           ]),
-          el('p', 'glass-pill glass-pill--quiet mt-8 text-sm', [t('Conversación guiada con preguntas — no veredictos, ni respuestas automáticas.')]),
+          el('p', 'glass-pill glass-pill--quiet mt-8 text-sm', [t(tl('landing.steps.note'))]),
         ]),
       ]),
     ]),

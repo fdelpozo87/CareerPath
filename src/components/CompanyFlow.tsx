@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { callCompanyAnalysis, fileToBase64 } from '../lib/aiClient'
 import { tr, type Key } from '../lib/i18n'
+import LanguageToggle from './LanguageToggle'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
@@ -876,6 +877,7 @@ export function CompanyFlow({ onBack }: { onBack: () => void }) {
                 {tr('cf.head', { step: stepLabels[step] ?? '' })}
               </span>
             )}
+            <LanguageToggle />
             <ThemeToggle />
           </div>
         </div>

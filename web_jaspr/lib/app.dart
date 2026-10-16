@@ -4,6 +4,7 @@ import 'package:jaspr/jaspr.dart';
 import 'package:universal_web/web.dart' as web;
 
 import 'components/access_gate.dart';
+import 'i18n/i18n.dart';
 import 'components/account_menu.dart';
 import 'components/chrome.dart';
 import 'components/coach/coach_flow.dart';
@@ -59,6 +60,10 @@ class _AppState extends State<App> {
       view = _View.landing;
     });
   }).toJS;
+  // Al cambiar el idioma se reconstruye todo (los componentes leen el idioma al construirse).
+  late final JSFunction _onLang = ((web.Event _) {
+    if (mounted) setState(() {});
+  }).toJS;
   late final JSFunction _onHash = ((web.Event _) {
     if (_isPrivacyHash()) {
       trackEvent('privacy_viewed');
@@ -86,18 +91,20 @@ class _AppState extends State<App> {
       if (mounted) setState(() => access = const _Open());
     });
     web.window.addEventListener(accessLostEvent, _onLost);
+    web.window.addEventListener(langEvent, _onLang);
     web.window.addEventListener('hashchange', _onHash);
   }
 
   @override
   void dispose() {
     web.window.removeEventListener(accessLostEvent, _onLost);
+    web.window.removeEventListener(langEvent, _onLang);
     web.window.removeEventListener('hashchange', _onHash);
     super.dispose();
   }
 
   void _startPath(CoachPath path, Session? saved) {
-    if (saved != null && !web.window.confirm('Tenés un proceso en curso. ¿Querés empezar uno nuevo? El anterior se va a borrar.')) return;
+    if (saved != null && !web.window.confirm(tl('app.resumeConfirm'))) return;
     trackEvent('path_selected', {'path': path.id});
     clearSession();
     setState(() {
@@ -124,7 +131,7 @@ class _AppState extends State<App> {
       _scrollTop();
     },
     onDeleteData: () {
-      if (!web.window.confirm('¿Borrar tu conversación de este navegador? No se puede deshacer.')) return;
+      if (!web.window.confirm(tl('account.deleteConfirm'))) return;
       trackEvent('data_deleted');
       clearSession();
       setState(() {
@@ -148,7 +155,7 @@ class _AppState extends State<App> {
     final a = access;
     if (a is _Checking) {
       return el('div', 'flex min-h-screen items-center justify-center bg-background', [
-        el('p', 'text-sm text-text-muted', [t('Cargando…')], attrs: {'role': 'status'}),
+        el('p', 'text-sm text-text-muted', [t(tl('common.loading'))], attrs: {'role': 'status'}),
       ]);
     }
     if (a is _Locked) {

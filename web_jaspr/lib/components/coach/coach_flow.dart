@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:jaspr/jaspr.dart';
 import 'package:universal_web/web.dart' as web;
 
+import '../../i18n/i18n.dart';
 import '../../models/stages.dart';
 import '../../models/types.dart';
 import '../../services/coach_api.dart';
@@ -11,6 +12,7 @@ import '../../services/session_store.dart';
 import '../../services/tracking.dart';
 import '../../ui.dart';
 import '../account_menu.dart';
+import '../language_toggle.dart';
 import '../logo.dart';
 import '../theme_toggle.dart';
 import 'chat_view.dart';
@@ -26,17 +28,11 @@ const _stageCompletedEvent = {
   Stage.plan: 'action_plan_completed',
 };
 
-// Mensajes de control: le indican al agente que abra una etapa. No se muestran.
+// Mensajes de control: le indican al agente que abra una etapa. No se muestran. Van en el idioma
+// de la interfaz: si no, el coach tiende a contestar en el idioma de la instrucción.
 String _openingInstruction(Session s) {
-  if (s.stage == Stage.diagnostico) {
-    if (s.path == CoachPath.formacion) {
-      return '(Inicio de la sesión, Camino C: la persona quiere decidir en qué formarse. Presentate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y hacé tu primera pregunta abierta sobre qué le gustaría lograr con una formación. No sugieras carreras ni cursos.)';
-    }
-    return s.path == CoachPath.perfil
-        ? '(Inicio de la sesión, Camino B. La persona acaba de ver la lectura externa de su perfil. Presentate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y preguntale qué le resonó y qué no de esa lectura. Indagá antes de sumar cualquier lectura propia.)'
-        : '(Inicio de la sesión, Camino A. Presentate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y hacé tu primera pregunta abierta.)';
-  }
-  return '(La persona confirmó la síntesis de la etapa anterior y pasa a ${s.stage.label}. Hacé una transición de una oración apoyada en lo que dijo y tu primera pregunta de esta etapa.)';
+  if (s.stage == Stage.diagnostico) return tl('srv.open.${s.path.id}');
+  return tl('srv.open.next', {'stage': s.stage.label});
 }
 
 /// Si la etapa actual todavía no arrancó, agrega el mensaje de control que la abre. Devuelve true si lo agregó.
@@ -111,9 +107,9 @@ class _CoachFlowState extends State<CoachFlow> {
     final openingPending = _withOpening(session);
     // Si la sesión retomada quedó esperando al coach, se ofrece reintentar.
     if (session.phase == Phase.informe && session.informe == null) {
-      error = 'El informe no llegó a generarse.';
+      error = tl('flow.err.report');
     } else if (session.phase == Phase.chat && session.messages.isNotEmpty && session.messages.last.isUser && !openingPending) {
-      error = 'La última respuesta del coach no llegó.';
+      error = tl('flow.err.lastReply');
     }
     saveSession(session);
     if (openingPending) {
@@ -149,7 +145,7 @@ class _CoachFlowState extends State<CoachFlow> {
         trackEvent(_stageCompletedEvent[stage]!, {'path': path.id});
       }
     } catch (e) {
-      if (mounted) setState(() => error = e is ApiException ? e.message : 'Algo falló. Intentá de nuevo.');
+      if (mounted) setState(() => error = e is ApiException ? e.message : tl('flow.err.generic'));
     } finally {
       inFlight = false;
       if (mounted) setState(() => thinking = false);
@@ -214,7 +210,7 @@ class _CoachFlowState extends State<CoachFlow> {
   });
 
   Future<void> _handleAttachDoc(DocTipo tipo, web.File file) async {
-    setState(() => docStatus = tipo == DocTipo.cv ? 'Leyendo tu CV…' : 'Leyendo tu perfil de LinkedIn…');
+    setState(() => docStatus = tipo == DocTipo.cv ? tl('flow.reading.cv') : tl('flow.reading.linkedin'));
     try {
       final texto = await extractPdfText(file);
       _update(() {
@@ -240,7 +236,7 @@ class _CoachFlowState extends State<CoachFlow> {
     final stageIdx = session.stage.index;
     return el('ol', 'hidden items-center gap-4 text-xs sm:flex', [
       if (session.path == CoachPath.perfil)
-        el('li', session.phase == Phase.perfil ? 'font-semibold text-foreground' : 'text-text-muted', [t('Tu perfil')]),
+        el('li', session.phase == Phase.perfil ? 'font-semibold text-foreground' : 'text-text-muted', [t(tl('flow.profileStep'))]),
       for (final (i, s) in Stage.values.indexed)
         () {
           final active = session.phase == Phase.chat && s == session.stage;
@@ -251,10 +247,10 @@ class _CoachFlowState extends State<CoachFlow> {
             el('span', null, [t(done ? '✓' : '${i + 1}.')], attrs: {'aria-hidden': 'true'}),
             t(' '),
             el('span', active ? 'font-semibold' : '', [t(s.label)]),
-            when(done, () => el('span', 'sr-only', [t(' (completada)')])),
+            when(done, () => el('span', 'sr-only', [t(tl('flow.done'))])),
           ], attrs: {'style': 'color: $color', if (active) 'aria-current': 'step'});
         }(),
-    ], attrs: {'role': 'list', 'aria-label': 'Etapas del proceso'});
+    ], attrs: {'role': 'list', 'aria-label': tl('flow.stages')});
   }
 
   Component _reportBody() {
@@ -277,7 +273,7 @@ class _CoachFlowState extends State<CoachFlow> {
     if (error != null) {
       return el('div', 'mx-auto max-w-md rounded-xl border border-danger/20 bg-danger-soft p-4 text-sm text-danger', [
         t('$error '),
-        btn('font-semibold underline underline-offset-2', [t('Reintentar')], onClick: _handleRetry),
+        btn('font-semibold underline underline-offset-2', [t(tl('common.retry'))], onClick: _handleRetry),
       ]);
     }
     return el('div', 'mx-auto max-w-sm py-20 text-center', [
@@ -287,7 +283,7 @@ class _CoachFlowState extends State<CoachFlow> {
           el('span', 'text-lg text-text-muted', [t('✦')]),
         ], attrs: {'style': 'inset: 3px'}),
       ]),
-      el('p', 'text-sm text-text-muted', [t('Ordenando lo que construiste…')], attrs: {'role': 'status'}),
+      el('p', 'text-sm text-text-muted', [t(tl('flow.report.loading'))], attrs: {'role': 'status'}),
     ]);
   }
 
@@ -296,9 +292,9 @@ class _CoachFlowState extends State<CoachFlow> {
     context.binding.addPostFrameCallback(_focusHeadingOnPlaceChange);
     final chat = session.phase == Phase.chat;
     final heading = switch (session.phase) {
-      Phase.perfil => 'Cómo te lee un reclutador',
-      Phase.informe => 'Informe de cierre y compromisos',
-      Phase.chat => 'Conversación con el coach: ${session.stage.label}',
+      Phase.perfil => tl('flow.h1.profile'),
+      Phase.informe => tl('flow.h1.report'),
+      Phase.chat => tl('flow.h1.chat', {'stage': session.stage.label}),
     };
 
     // En el chat la página ocupa exactamente la pantalla y no scrollea: lo único que se desplaza es la
@@ -306,9 +302,9 @@ class _CoachFlowState extends State<CoachFlow> {
     return el('div', 'flex flex-col bg-background font-sans ${chat ? 'h-dvh overflow-hidden' : 'min-h-screen'}', [
       el('header', 'sticky top-0 z-50 border-b border-border-color bg-background/90 backdrop-blur-sm print:hidden', [
         el('div', 'section-container flex items-center gap-4 py-4', [
-          btn('text-sm text-text-muted transition-colors hover:text-foreground', [t('← Inicio')], onClick: component.onExit),
+          btn('text-sm text-text-muted transition-colors hover:text-foreground', [t(tl('common.home'))], onClick: component.onExit),
           logo(),
-          el('div', 'ml-auto flex items-center gap-4', [_stagesNav(), el('div', 'flex items-center gap-2', [const ThemeToggle(), AccountMenu(account: component.account)])]),
+          el('div', 'ml-auto flex items-center gap-4', [_stagesNav(), el('div', 'flex items-center gap-2', [languageToggle(), const ThemeToggle(), AccountMenu(account: component.account)])]),
         ]),
       ]),
       el('main', 'flex-1 px-3 sm:px-4 ${chat ? 'min-h-0 py-3 sm:py-6' : 'py-8'}', [

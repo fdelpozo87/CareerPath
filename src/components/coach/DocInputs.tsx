@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { DOC_LABEL, checkPdf, type DocDraft } from '../../lib/coach/docs'
+import { checkPdf, docLabel, type DocDraft } from '../../lib/coach/docs'
+import { tr } from '../../lib/i18n'
 import type { DocTipo, ProfileDoc } from '../../lib/coach/types'
 
 // Carga de CV y perfil de LinkedIn. LinkedIn no se lee por URL (requiere login
@@ -9,42 +10,40 @@ import type { DocTipo, ProfileDoc } from '../../lib/coach/types'
 export function LinkedInHowTo({ compact = false }: { compact?: boolean }) {
   return (
     <details className={compact ? 'text-[11px] text-text-muted' : 'text-xs text-text-muted'}>
-      <summary className="cursor-pointer font-semibold text-primary underline-offset-2 hover:underline">
-        ¿Cómo bajo mi perfil de LinkedIn en PDF?
-      </summary>
+      <summary className="cursor-pointer font-semibold text-primary underline-offset-2 hover:underline">{tr('docs.howto')}</summary>
       <ol className="mt-2 list-decimal space-y-1 pl-4 leading-relaxed">
-        <li>Entrá a LinkedIn desde la computadora (en la app del celular no está la opción).</li>
-        <li>Abrí tu perfil: tocá tu foto → “Ver perfil”.</li>
+        <li>{tr('docs.howto.1')}</li>
+        <li>{tr('docs.howto.2')}</li>
         <li>
-          Debajo de tu nombre y titular, tocá <strong>“Más”</strong> (en algunas versiones, <strong>“Recursos”</strong>).
+          {tr('docs.howto.3a')}
+          <strong>{tr('docs.howto.3b')}</strong>
+          {tr('docs.howto.3c')}
+          <strong>{tr('docs.howto.3d')}</strong>
+          {tr('docs.howto.3e')}
         </li>
         <li>
-          Elegí <strong>“Guardar en PDF”</strong>. Se descarga un archivo tipo <em>Profile.pdf</em>: subilo acá.
+          {tr('docs.howto.4a')}
+          <strong>{tr('docs.howto.4b')}</strong>
+          {tr('docs.howto.4c')}
+          <em>{tr('docs.howto.4d')}</em>
+          {tr('docs.howto.4e')}
         </li>
       </ol>
     </details>
   )
 }
 
-const SLOT_COPY: Record<DocTipo, { title: string; desc: string; hint: string; placeholder: string }> = {
-  cv: {
-    title: 'Tu CV',
-    desc: 'El que mandás cuando te postulás.',
-    hint: 'PDF, máximo 3 MB',
-    placeholder: 'Pegá el texto de tu CV tal como está hoy.',
-  },
-  linkedin: {
-    title: 'Tu perfil de LinkedIn',
-    desc: 'Se baja en PDF desde tu perfil (te explico cómo, abajo).',
-    hint: 'El PDF que exporta LinkedIn, máximo 3 MB',
-    placeholder: 'Pegá tu titular, el “Acerca de” y tu experiencia tal como están hoy en LinkedIn.',
-  },
-}
+const slotCopy = (tipo: DocTipo) => ({
+  title: tr(`docs.${tipo}.title`),
+  desc: tr(`docs.${tipo}.desc`),
+  hint: tr(`docs.${tipo}.hint`),
+  placeholder: tr(`docs.${tipo}.placeholder`),
+})
 
 export function DocSlot({ tipo, draft, onChange }: { tipo: DocTipo; draft: DocDraft; onChange: (d: DocDraft) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
-  const copy = SLOT_COPY[tipo]
+  const copy = slotCopy(tipo)
 
   const handleFile = (f: File) => {
     const err = checkPdf(f)
@@ -59,7 +58,7 @@ export function DocSlot({ tipo, draft, onChange }: { tipo: DocTipo; draft: DocDr
           <p className="text-sm font-semibold text-foreground">{copy.title}</p>
           <p className="text-xs text-text-muted">{copy.desc}</p>
         </div>
-        <div className="flex gap-1 text-xs" role="group" aria-label={`Cómo cargar ${copy.title.toLowerCase()}`}>
+        <div className="flex gap-1 text-xs" role="group" aria-label={tr('docs.mode.group', { what: copy.title.toLowerCase() })}>
           {(['pdf', 'texto'] as const).map((m) => (
             <button
               key={m}
@@ -68,7 +67,7 @@ export function DocSlot({ tipo, draft, onChange }: { tipo: DocTipo; draft: DocDr
               onClick={() => onChange({ ...draft, mode: m })}
               className={`rounded-full border px-2.5 py-1 transition ${draft.mode === m ? 'border-primary bg-secondary font-semibold text-primary' : 'border-border-color text-text-muted hover:bg-secondary'}`}
             >
-              {m === 'pdf' ? 'PDF' : 'Pegar texto'}
+              {m === 'pdf' ? tr('docs.mode.pdf') : tr('docs.mode.text')}
             </button>
           ))}
         </div>
@@ -88,8 +87,8 @@ export function DocSlot({ tipo, draft, onChange }: { tipo: DocTipo; draft: DocDr
             }}
             aria-label={
               draft.file
-                ? `${copy.title}: archivo ${draft.file.name}. Activar para elegir otro PDF`
-                : `${copy.title}: elegir un archivo PDF`
+                ? tr('docs.fileLabel', { title: copy.title, name: draft.file.name })
+                : tr('docs.pickLabel', { title: copy.title })
             }
             className="block w-full cursor-pointer rounded-lg border-2 border-dashed p-5 text-center transition"
             style={{ borderColor: draft.file ? 'var(--color-primary)' : 'var(--color-border-color)', background: draft.file ? 'var(--color-primary-soft)' : 'var(--color-card)' }}
@@ -98,7 +97,7 @@ export function DocSlot({ tipo, draft, onChange }: { tipo: DocTipo; draft: DocDr
               <span className="block text-sm font-semibold text-primary">✓ {draft.file.name}</span>
             ) : (
               <>
-                <span className="block text-sm text-foreground">Arrastrá el PDF o hacé click</span>
+                <span className="block text-sm text-foreground">{tr('docs.drop')}</span>
                 <span className="mt-0.5 block text-xs text-text-muted">{copy.hint}</span>
               </>
             )}
@@ -160,11 +159,11 @@ export function DocsPanel({
   return (
     <div className="space-y-2">
       <p className="text-sm leading-relaxed text-foreground">
-        Si querés, compartí tu CV o tu LinkedIn: me ayuda a conocer tu historia y a hacerte mejores preguntas.
+        {tr('docs.panel.intro')}
       </p>
       {docs.map((d) => (
         <p key={d.tipo} className="text-xs text-text-muted">
-          ✓ {DOC_LABEL[d.tipo]}: {d.nombre}
+          {tr('docs.panel.added', { kind: docLabel(d.tipo), name: d.nombre })}
         </p>
       ))}
       {status ? (
@@ -182,7 +181,7 @@ export function DocsPanel({
                   }}
                   className="text-xs font-semibold text-primary underline underline-offset-2"
                 >
-                  Sumar {t === 'cv' ? 'mi CV' : 'mi LinkedIn'}
+                  {t === 'cv' ? tr('docs.panel.addCv') : tr('docs.panel.addLinkedin')}
                 </button>
               ))}
             </div>
@@ -210,7 +209,7 @@ export function DocsPanel({
         </p>
       )}
       <p className="pt-1 text-[11px] leading-snug text-text-muted">
-        Es opcional y solo lo uso como contexto: puedo preguntarte por lo que dice, pero no lo corrijo ni lo reescribo.
+        {tr('docs.panel.note')}
       </p>
     </div>
   )

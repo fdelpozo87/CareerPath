@@ -1,4 +1,6 @@
 import AccountMenu, { type AccountInfo } from './AccountMenu'
+import { tr } from '../lib/i18n'
+import LanguageToggle from './LanguageToggle'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
@@ -10,13 +12,14 @@ export default function Header({ account }: { account: AccountInfo }) {
         <div className="flex items-center gap-8">
           <nav className="hidden gap-8 md:flex">
             <a href="#profesional" className="text-sm text-text-muted transition-colors hover:text-foreground">
-              Para Profesionales
+              {tr('nav.professionals')}
             </a>
             <a href="#empresa" className="text-sm text-text-muted transition-colors hover:text-foreground">
-              Para Empresas
+              {tr('nav.companies')}
             </a>
           </nav>
           <div className="flex items-center gap-2">
+            <LanguageToggle />
             <ThemeToggle />
             <AccountMenu account={account} />
           </div>

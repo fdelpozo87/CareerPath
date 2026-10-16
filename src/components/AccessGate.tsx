@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { checkAccess, saveAccessCode } from '../lib/access'
+import { tr } from '../lib/i18n'
+import LanguageToggle from './LanguageToggle'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
@@ -31,9 +33,9 @@ export default function AccessGate({ initialError, onGranted }: AccessGateProps)
         onGranted(status.label)
         return
       }
-      setError(status.error ?? 'Ese código no es válido.')
+      setError(status.error ?? tr('gate.invalid'))
     } catch {
-      setError('No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.')
+      setError(tr('gate.network'))
     } finally {
       setBusy(false)
     }
@@ -44,21 +46,23 @@ export default function AccessGate({ initialError, onGranted }: AccessGateProps)
       <header className="border-b border-border-color">
         <div className="section-container flex items-center justify-between py-4">
           <Logo />
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="card w-full max-w-md">
-          <h1 className="mb-3 text-2xl md:text-3xl">Bivio está en pruebas privadas</h1>
+          <h1 className="mb-3 text-2xl md:text-3xl">{tr('gate.title')}</h1>
           <p className="mb-6 text-sm leading-relaxed text-text-muted">
-            Ingresá el código de acceso que te enviamos. Lo usamos para cuidar el costo del servicio mientras lo probamos con un grupo
-            reducido de personas.
+            {tr('gate.body')}
           </p>
 
           <form onSubmit={submit} noValidate>
             <label htmlFor="codigo" className="mb-2 block text-sm font-semibold text-foreground">
-              Código de acceso
+              {tr('gate.codeLabel')}
             </label>
             <input
               id="codigo"
@@ -78,14 +82,14 @@ export default function AccessGate({ initialError, onGranted }: AccessGateProps)
               {error}
             </div>
             <button type="submit" disabled={!code.trim() || busy} className="btn-primary mt-2 w-full py-3 disabled:cursor-not-allowed disabled:opacity-40">
-              {busy ? 'Verificando…' : 'Entrar'}
+              {busy ? tr('gate.verifying') : tr('gate.enter')}
             </button>
           </form>
 
           <p className="mt-6 text-xs text-text-muted">
-            ¿No tenés código? Pedíselo a quien te invitó.{' '}
+            {tr('gate.noCode')}{' '}
             <a href="#privacidad" className="underline underline-offset-2">
-              Privacidad y términos
+              {tr('footer.privacy')}
             </a>
           </p>
         </div>

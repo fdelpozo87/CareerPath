@@ -1,4 +1,5 @@
 import type { IncomingMessage } from 'node:http'
+import { DEFAULT_LANG, isLang, translate, type Lang } from '../shared/i18n.js'
 
 // Protecciones compartidas por los endpoints de IA: límite de peticiones,
 // verificación de origen, errores públicos saneados y logs sin datos sensibles.
@@ -107,16 +108,16 @@ export function upstreamStatus(err: unknown): number | undefined {
 
 // Mensaje para la persona: nunca el error crudo (puede traer URLs internas,
 // nombres de modelo o detalles del proveedor).
-export function publicError(err: unknown): { status: number; message: string } {
+export function publicError(err: unknown, lang: Lang = DEFAULT_LANG): { status: number; message: string } {
   const up = upstreamStatus(err)
-  if (up === 429) return { status: 503, message: 'El coach está con mucha demanda. Probá de nuevo en un minuto.' }
+  if (up === 429) return { status: 503, message: translate(lang, 'srv.busy') }
   if (up === 400 && err instanceof Error && /safety|blocked/i.test(err.message)) {
-    return { status: 422, message: 'No pudimos procesar ese mensaje. ¿Lo podés reformular?' }
+    return { status: 422, message: translate(lang, 'srv.blocked') }
   }
   if (err instanceof SyntaxError || (err instanceof Error && err.message.startsWith('La IA no devolvió'))) {
-    return { status: 502, message: 'La respuesta del coach llegó incompleta. Intentá de nuevo.' }
+    return { status: 502, message: translate(lang, 'srv.incomplete') }
   }
-  return { status: 502, message: 'No pudimos conectar con el coach. Intentá de nuevo en unos segundos.' }
+  return { status: 502, message: translate(lang, 'srv.upstream') }
 }
 
 // Log estructurado para los logs de Vercel. Nunca incluye el contenido de la
@@ -139,4 +140,11 @@ export function ipTag(ip: string): string {
   let h = 2166136261
   for (let i = 0; i < ip.length; i++) h = Math.imul(h ^ ip.charCodeAt(i), 16777619)
   return (h >>> 0).toString(36)
+}
+
+/** Idioma de la respuesta: el header x-lang que manda el cliente (es | en); por defecto, español. */
+export function requestLang(req: IncomingMessage): Lang {
+  const h = req.headers['x-lang']
+  const v = Array.isArray(h) ? h[0] : h
+  return isLang(v) ? v : DEFAULT_LANG
 }

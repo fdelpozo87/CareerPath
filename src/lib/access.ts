@@ -1,6 +1,8 @@
 // Código de acceso de prueba (ver server/access.ts). Se guarda en el navegador
 // para no pedirlo en cada visita y se manda como header en cada pedido a /api.
 
+import { getLang, tr } from './i18n'
+
 const KEY = 'cp_access'
 const LABEL_KEY = 'cp_access_label'
 
@@ -54,11 +56,11 @@ export interface AccessStatus {
 export async function checkAccess(code?: string): Promise<AccessStatus> {
   const res = await fetch('/api/access', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-lang': getLang() },
     body: JSON.stringify(code ? { code } : {}),
   })
   const json = (await res.json().catch(() => ({}))) as { required?: boolean; ok?: boolean; label?: string; error?: string }
   if (res.ok) return { required: Boolean(json.required), ok: Boolean(json.ok), label: json.label }
   // 401 (código inválido), 429 (demasiados intentos) o 503 (sin configurar).
-  return { required: true, ok: false, error: json.error ?? 'No pudimos verificar el código. Intentá de nuevo.' }
+  return { required: true, ok: false, error: json.error ?? tr('net.verify') }
 }

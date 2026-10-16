@@ -1,7 +1,8 @@
+import { tr } from '../i18n'
 import { MAX_PDF_BYTES } from './api'
 import type { DocTipo } from './types'
 
-export const DOC_LABEL: Record<DocTipo, string> = { cv: 'CV', linkedin: 'LinkedIn' }
+export const docLabel = (tipo: DocTipo): string => tr(tipo === 'cv' ? 'docs.cv' : 'docs.linkedin')
 
 export interface DocDraft {
   mode: 'pdf' | 'texto'
@@ -16,8 +17,8 @@ export const draftReady = (d: DocDraft) => (d.mode === 'pdf' ? !!d.file : d.text
 /** Valida un PDF; devuelve un mensaje de error o null. */
 export function checkPdf(f: File): string | null {
   if (!(f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
-    return 'Solo aceptamos PDF.'
+    return tr('docs.err.type')
   }
-  if (f.size > MAX_PDF_BYTES) return 'El PDF supera los 3 MB. Probá exportarlo de nuevo o pegá el texto.'
+  if (f.size > MAX_PDF_BYTES) return tr('docs.err.size')
   return null
 }

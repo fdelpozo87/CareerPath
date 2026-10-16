@@ -1,4 +1,5 @@
-import { introFor, objectivesFor } from '../../../shared/stages'
+import { introFor, objectiveLabel } from '../../../shared/stages'
+import { getLang, tr } from '../../lib/i18n'
 import type { Path, Stage, StageMap as StageMapData } from '../../lib/coach/types'
 
 // Cierre de cada etapa: el "mapa" de lo que la persona fue diciendo, con sus
@@ -19,17 +20,17 @@ interface StageMapProps {
 }
 
 export function StageMap({ stage, path, map, fallbackText, nextLabel, onAdvance, onAdjust, onResume }: StageMapProps) {
-  const labelOf = (id: string) => objectivesFor(stage, path).find((o) => o.id === id)?.label ?? id
+  const labelOf = (id: string) => objectiveLabel(id, getLang())
   const titleId = `mapa-${stage}`
 
   return (
     <section id="stage-map" aria-labelledby={titleId} className="ai-result rounded-3xl border border-primary/20 bg-primary-soft/40 p-5 sm:p-6">
-      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary">Lo que fuimos armando</p>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary">{tr('map.eyebrow')}</p>
       <h2 id={titleId} className="mb-1 text-2xl">
-        {introFor(stage, path).titulo}
+        {introFor(stage, path, getLang()).titulo}
       </h2>
       <p className="mb-5 text-sm leading-relaxed text-text-muted">
-        Esto es lo que dijiste, ordenado. Si algo no te representa, escribilo abajo y lo ajustamos antes de seguir.
+        {tr('map.lede')}
       </p>
 
       {map && map.items.length > 0 ? (
@@ -39,9 +40,9 @@ export function StageMap({ stage, path, map, fallbackText, nextLabel, onAdvance,
               // Un tema que la persona eligió dejar para después: se muestra tal cual es, sin inventarle contenido.
               <li key={item.id} className="rounded-2xl border border-dashed border-text-muted/50 bg-transparent p-4">
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted">{labelOf(item.id)}</p>
-                <p className="text-[15px] leading-relaxed text-text-muted">Lo dejaste para más adelante. Cuando quieras, lo retomamos.</p>
+                <p className="text-[15px] leading-relaxed text-text-muted">{tr('map.later')}</p>
                 <button type="button" onClick={() => onResume(item.id)} className="mt-3 text-sm font-semibold text-primary underline underline-offset-2">
-                  Retomarlo ahora
+                  {tr('map.resume')}
                 </button>
               </li>
             ) : (
@@ -50,7 +51,7 @@ export function StageMap({ stage, path, map, fallbackText, nextLabel, onAdvance,
               <p className="text-[15px] leading-relaxed text-foreground">{item.texto}</p>
               {item.cita && (
                 <blockquote className="mt-3 border-l-2 border-accent pl-3 text-sm italic leading-relaxed text-text-muted">
-                  <span className="sr-only">Vos dijiste: </span>“{item.cita}”
+                  <span className="sr-only">{tr('map.youSaid')}</span>“{item.cita}”
                 </blockquote>
               )}
             </li>
@@ -63,7 +64,7 @@ export function StageMap({ stage, path, map, fallbackText, nextLabel, onAdvance,
 
       {map?.pregunta && (
         <div className="mt-4 rounded-2xl bg-accent-soft p-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-accent-ink">Una pregunta para llevarte</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-accent-ink">{tr('map.bridge')}</p>
           <p className="font-display text-lg leading-snug text-foreground">{map.pregunta}</p>
         </div>
       )}
@@ -73,7 +74,7 @@ export function StageMap({ stage, path, map, fallbackText, nextLabel, onAdvance,
           {nextLabel}
         </button>
         <button onClick={onAdjust} className="btn-secondary px-5 py-3 text-sm">
-          Quiero ajustar algo
+          {tr('map.adjust')}
         </button>
       </div>
     </section>

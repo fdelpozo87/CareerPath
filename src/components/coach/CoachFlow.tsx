@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { STAGE_COLOR, STAGE_LABEL, STAGE_ORDER } from '../../../shared/stages'
+import { STAGE_COLOR, STAGE_ORDER, stageName } from '../../../shared/stages'
+import { stageLabel, tr } from '../../lib/i18n'
 import { extractPdfText, requestReport, requestTurn } from '../../lib/coach/api'
 import { saveSession } from '../../lib/coach/session'
 import type { DocTipo, Session, Stage, TurnResult, UiMessage } from '../../lib/coach/types'
@@ -24,13 +25,13 @@ const STAGE_COMPLETED_EVENT: Record<Stage, FunnelEvent> = {
 function openingInstruction(s: Session): string {
   if (s.stage === 'diagnostico') {
     if (s.path === 'formacion') {
-      return '(Inicio de la sesión, Camino C: la persona quiere decidir en qué formarse. Presentate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y hacé tu primera pregunta abierta sobre qué le gustaría lograr con una formación. No sugieras carreras ni cursos.)'
+      return '(Inicio de la sesión, Camino C: la persona quiere decidir en qué formarse. Preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y haz tu primera pregunta abierta sobre qué le gustaría lograr con una formación. No sugieras carreras ni cursos.)'
     }
     return s.path === 'perfil'
-      ? '(Inicio de la sesión, Camino B. La persona acaba de ver la lectura externa de su perfil. Presentate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y preguntale qué le resonó y qué no de esa lectura. Indagá antes de sumar cualquier lectura propia.)'
-      : '(Inicio de la sesión, Camino A. Presentate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y hacé tu primera pregunta abierta.)'
+      ? '(Inicio de la sesión, Camino B. La persona acaba de ver la lectura externa de su perfil. Preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y pregúntale qué le resonó y qué no de esa lectura. Indaga antes de sumar cualquier lectura propia.)'
+      : '(Inicio de la sesión, Camino A. Preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y haz tu primera pregunta abierta.)'
   }
-  return `(La persona confirmó la síntesis de la etapa anterior y pasa a ${STAGE_LABEL[s.stage]}. Hacé una transición de una oración apoyada en lo que dijo y tu primera pregunta de esta etapa.)`
+  return `(La persona confirmó la síntesis de la etapa anterior y pasa a ${stageName(s.stage)}. Haz una transición de una oración apoyada en lo que dijo y tu primera pregunta de esta etapa.)`
 }
 
 // Si la etapa actual todavía no arrancó, agrega el mensaje de control que la abre.
@@ -86,8 +87,8 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
   const [thinking, setThinking] = useState(false)
   // Si la sesión retomada quedó esperando al coach, se ofrece reintentar.
   const [error, setError] = useState<string | null>(() => {
-    if (initialSession.phase === 'informe' && !initialSession.informe) return 'El informe no llegó a generarse.'
-    if (initialSession.phase === 'chat' && initialSession.messages.at(-1)?.role === 'user') return 'La última respuesta del coach no llegó.'
+    if (initialSession.phase === 'informe' && !initialSession.informe) return tr('flow.err.report')
+    if (initialSession.phase === 'chat' && initialSession.messages.at(-1)?.role === 'user') return tr('flow.err.lastReply')
     return null
   })
   const [demo, setDemo] = useState(false)
@@ -111,7 +112,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
         trackEvent(STAGE_COMPLETED_EVENT[snapshot.stage], { path: snapshot.path })
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Algo falló. Intentá de nuevo.')
+      setError(e instanceof Error ? e.message : tr('flow.err.generic'))
     } finally {
       inFlight.current = false
       setThinking(false)
@@ -127,7 +128,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
       setSession((prev) => ({ ...prev, informe: data, updatedAt: new Date().toISOString() }))
       trackEvent('report_generated', { acciones: data.acciones.length })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos armar el informe.')
+      setError(e instanceof Error ? e.message : tr('flow.err.reportFail'))
     } finally {
       inFlight.current = false
     }
@@ -184,7 +185,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
   }
 
   const handleAttachDoc = async (tipo: DocTipo, file: File) => {
-    setDocStatus(tipo === 'cv' ? 'Leyendo tu CV…' : 'Leyendo tu perfil de LinkedIn…')
+    setDocStatus(tipo === 'cv' ? tr('flow.reading.cv') : tr('flow.reading.linkedin'))
     try {
       const texto = await extractPdfText(file)
       setSession((prev) => ({
@@ -193,7 +194,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
       }))
       setDocStatus(null)
     } catch (e) {
-      setDocStatus(e instanceof Error ? e.message : 'No pudimos leer el PDF.')
+      setDocStatus(e instanceof Error ? e.message : tr('flow.err.pdf'))
     }
   }
 
@@ -219,13 +220,13 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
       <header className="sticky top-0 z-50 border-b border-border-color bg-background/90 backdrop-blur-sm print:hidden">
         <div className="section-container flex items-center gap-4 py-4">
           <button onClick={onExit} className="text-sm text-text-muted transition-colors hover:text-foreground">
-            ← Inicio
+            {tr('common.home')}
           </button>
           <Logo />
           <div className="ml-auto flex items-center gap-4">
-          <ol role="list" aria-label="Etapas del proceso" className="hidden items-center gap-4 text-xs sm:flex">
+          <ol role="list" aria-label={tr('flow.stages')} className="hidden items-center gap-4 text-xs sm:flex">
             {session.path === 'perfil' && (
-              <li className={session.phase === 'perfil' ? 'font-semibold text-foreground' : 'text-text-muted'}>Tu perfil</li>
+              <li className={session.phase === 'perfil' ? 'font-semibold text-foreground' : 'text-text-muted'}>{tr('flow.profileStep')}</li>
             )}
             {STAGE_ORDER.map((s, i) => {
               const active = session.phase === 'chat' && s === session.stage
@@ -238,8 +239,8 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
                   style={{ color: active ? STAGE_COLOR[s] : done ? 'var(--color-foreground)' : 'var(--color-text-muted)' }}
                 >
                   <span aria-hidden="true">{done ? '✓' : `${i + 1}.`}</span>{' '}
-                  <span className={active ? 'font-semibold' : ''}>{STAGE_LABEL[s]}</span>
-                  {done && <span className="sr-only"> (completada)</span>}
+                  <span className={active ? 'font-semibold' : ''}>{stageLabel(s)}</span>
+                  {done && <span className="sr-only">{tr('flow.done')}</span>}
                 </li>
               )
             })}
@@ -256,10 +257,10 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
         {/* Encabezado para lectores de pantalla: cada fase se ubica por su h1. */}
         <h1 ref={headingRef} tabIndex={-1} className="sr-only">
           {session.phase === 'perfil'
-            ? 'Cómo te lee un reclutador'
+            ? tr('flow.h1.profile')
             : session.phase === 'informe'
-              ? 'Informe de cierre y compromisos'
-              : `Conversación con el coach: ${STAGE_LABEL[session.stage]}`}
+              ? tr('flow.h1.report')
+              : tr('flow.h1.chat', { stage: stageLabel(session.stage) })}
         </h1>
         {session.phase === 'perfil' && (
           <ProfileStep
@@ -306,7 +307,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
             <div className="mx-auto max-w-md rounded-xl border border-danger/20 bg-danger-soft p-4 text-sm text-danger">
               {error}{' '}
               <button onClick={handleRetry} className="font-semibold underline underline-offset-2">
-                Reintentar
+                {tr('common.retry')}
               </button>
             </div>
           ) : (
@@ -317,7 +318,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
                   <span className="text-lg text-text-muted">✦</span>
                 </div>
               </div>
-              <p role="status" className="text-sm text-text-muted">Ordenando lo que construiste…</p>
+              <p role="status" className="text-sm text-text-muted">{tr('flow.report.loading')}</p>
             </div>
           ))}
       </main>

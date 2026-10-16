@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { documentsToText, extractPdfText, requestProfileReading } from '../../lib/coach/api'
 import { draftReady, emptyDraft, type DocDraft } from '../../lib/coach/docs'
 import type { DocTipo, Observation, ProfileDoc, ProfileReading } from '../../lib/coach/types'
+import { tr } from '../../lib/i18n'
 import { trackEvent } from '../../lib/tracking'
 import { CoachAvatar } from '../Logo'
 import { DocSlot } from './DocInputs'
@@ -32,7 +33,7 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
   const hasPuesto = puesto.trim().length >= 3
   const ready = hasPuesto && listos.length > 0
   // Si el botón está apagado, se le dice a la persona qué falta (en vez de dejarla adivinar).
-  const missing = !hasPuesto ? 'Contame a qué puesto apuntás para poder seguir.' : listos.length === 0 ? 'Falta tu CV o tu LinkedIn: con uno alcanza.' : null
+  const missing = !hasPuesto ? tr('profile.missing.role') : listos.length === 0 ? tr('profile.missing.doc') : null
 
   const submit = async () => {
     setError(null)
@@ -41,18 +42,18 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
       for (const tipo of listos) {
         const d = drafts[tipo]
         if (d.mode === 'pdf' && d.file) {
-          setStatus(tipo === 'cv' ? 'Leyendo tu CV…' : 'Leyendo tu perfil de LinkedIn…')
+          setStatus(tipo === 'cv' ? tr('flow.reading.cv') : tr('flow.reading.linkedin'))
           documentos.push({ tipo, nombre: d.file.name, texto: await extractPdfText(d.file) })
         } else {
           documentos.push({ tipo, nombre: 'Texto pegado', texto: d.texto.trim() })
         }
       }
-      setStatus(documentos.length > 1 ? 'Comparando tu CV y tu LinkedIn como lo haría un reclutador…' : 'Mirándolo como lo haría un reclutador…')
+      setStatus(documentos.length > 1 ? tr('profile.busy.both') : tr('profile.busy.one'))
       const { data } = await requestProfileReading(puesto.trim(), documentsToText(documentos) ?? '')
       trackEvent('profile_reading_completed', { docs: listos.join('+') })
       onReading(puesto.trim(), data, documentos)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Algo falló. Intentá de nuevo.')
+      setError(e instanceof Error ? e.message : tr('flow.err.generic'))
     } finally {
       setStatus(null)
     }
@@ -68,7 +69,7 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
           </div>
         </div>
         <p role="status" className="font-display text-xl text-foreground">{status}</p>
-        <p className="mt-2 text-sm text-text-muted">Puede tardar unos segundos.</p>
+        <p className="mt-2 text-sm text-text-muted">{tr('profile.busy.wait')}</p>
       </div>
     )
   }
@@ -76,11 +77,10 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
   return (
     <div className="mx-auto max-w-2xl">
       <header className="mb-8 text-center">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Camino B · Tu perfil</p>
-        <h2 className="mb-3">Empecemos por cómo te ve el mercado</h2>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{tr('profile.eyebrow')}</p>
+        <h2 className="mb-3">{tr('profile.title')}</h2>
         <p className="mx-auto max-w-xl text-lg leading-relaxed text-text-muted">
-          Voy a leer tu perfil como lo haría un reclutador y a contarte, con frases de tu propio perfil, qué comunica hoy. Después lo
-          conversamos con calma.
+          {tr('profile.lede')}
         </p>
       </header>
 
@@ -92,13 +92,13 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
 
       <section aria-labelledby="que-recibis" className="card mb-5">
         <h3 id="que-recibis" className="mb-4">
-          Qué vas a recibir
+          {tr('profile.receive')}
         </h3>
         <ul role="list" className="grid gap-4 sm:grid-cols-3">
           {[
-            [<EyeIcon key="e" />, 'Cómo se lee tu perfil', 'La primera impresión: lo que se entiende en los primeros segundos.'],
-            [<QuoteIcon key="q" />, 'Lo que funciona y lo que falta', 'Con frases textuales de tu propio perfil, para que veas de dónde sale cada cosa.'],
-            [<PickIcon key="p" />, 'Hasta 3 cambios posibles', 'Vos elegís cuáles tomar. Ninguno es obligatorio.'],
+            [<EyeIcon key="e" />, tr('profile.b1.title'), tr('profile.b1.body')],
+            [<QuoteIcon key="q" />, tr('profile.b2.title'), tr('profile.b2.body')],
+            [<PickIcon key="p" />, tr('profile.b3.title'), tr('profile.b3.body')],
           ].map(([icon, title, body]) => (
             <li key={title as string} className="flex gap-3 sm:block">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary sm:mb-2" aria-hidden="true">
@@ -112,29 +112,29 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
           ))}
         </ul>
         <p className="mt-5 rounded-2xl bg-secondary p-3.5 text-sm leading-relaxed text-text-muted">
-          <strong className="font-semibold text-foreground">Lo que no hago:</strong> no reescribo tu CV, no invento logros que no tengas y
-          la nota mide qué tan bien comunica tu perfil, no cuánto valés como profesional.
+          <strong className="font-semibold text-foreground">{tr('profile.wont.strong')}</strong>
+          {tr('profile.wont.rest')}
         </p>
       </section>
 
       <section aria-labelledby="paso-puesto" className="card mb-5">
-        <StepTitle n={1} id="paso-puesto" title="¿A qué tipo de puesto apuntás?" />
-        <p className="mb-3 text-sm text-text-muted">La misma experiencia se lee distinto según el puesto al que apuntás. Por eso lo necesito.</p>
+        <StepTitle n={1} id="paso-puesto" title={tr('profile.step1.title')} />
+        <p className="mb-3 text-sm text-text-muted">{tr('profile.step1.hint')}</p>
         <input
           id="puesto"
           aria-labelledby="paso-puesto"
           value={puesto}
           onChange={(e) => setPuesto(e.target.value)}
           maxLength={200}
-          placeholder="Ej: Product Manager en fintech, Analista de datos senior…"
+          placeholder={tr('profile.step1.placeholder')}
           className="w-full rounded-2xl border border-border-color bg-background p-3.5 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
       </section>
 
       <section aria-labelledby="paso-perfil" className="card mb-5">
-        <StepTitle n={2} id="paso-perfil" title="Mostrame tu perfil" />
+        <StepTitle n={2} id="paso-perfil" title={tr('profile.step2.title')} />
         <p className="mb-4 text-sm text-text-muted">
-          Con uno alcanza. Si compartís los dos, además veo si tu CV y tu LinkedIn cuentan la misma historia.
+          {tr('profile.step2.hint')}
         </p>
         <div className="space-y-3">
           {TIPOS.map((t) => (
@@ -142,15 +142,15 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
           ))}
         </div>
         <p className="mt-4 text-xs leading-relaxed text-text-muted">
-          Se lee solo durante esta sesión y no se guarda en ningún servidor.{' '}
+          {tr('profile.step2.privacy')}{' '}
           <a href="#privacidad" target="_blank" rel="noopener" className="underline underline-offset-2">
-            Cómo cuidamos tus datos
+            {tr('chat.onb.3.link')}
           </a>
         </p>
       </section>
 
       <button onClick={submit} disabled={!ready} aria-describedby={missing ? 'falta' : undefined} className="btn-primary w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-40">
-        Ver cómo me lee un reclutador →
+        {tr('profile.submit')}
       </button>
       <p id="falta" className="mt-3 min-h-5 text-center text-sm text-text-muted">
         {missing}
@@ -231,38 +231,37 @@ function ReadingView({
   return (
     <div className="ai-result mx-auto max-w-2xl">
       <div className="mb-8 text-center">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">Lectura externa · {puesto}</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('profile.read.eyebrow', { role: puesto })}</p>
         <h2 ref={titleRef} tabIndex={-1} className="outline-none">
-          Cómo te lee un reclutador
+          {tr('flow.h1.profile')}
         </h2>
       </div>
 
       <div className="flex flex-col gap-4">
         <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5">
           <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-semibold text-accent-ink">{lectura.nota}/10</span>
+            <span className="text-3xl font-semibold text-accent-ink">{tr('profile.read.score', { n: lectura.nota })}</span>
             <p className="text-sm font-medium text-accent-ink">{lectura.notaComunica}</p>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-accent-ink">
-            Esta nota mide qué tan bien tu perfil comunica hoy lo que buscan para “{puesto}”. No mide cuánto valés como
-            profesional, ni tu formación, ni tu experiencia real.
+            {tr('profile.read.scoreNote', { role: puesto })}
           </p>
         </div>
 
         <div className="card">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">Primera impresión</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('profile.read.first')}</p>
           <p className="text-sm leading-relaxed text-foreground">{lectura.primeraImpresion}</p>
           <p className="mt-3 text-sm leading-relaxed text-text-muted">{lectura.consistenciaMarca}</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <ObservationList title="Lo que ya comunica bien" items={lectura.fortalezas} />
-          <ObservationList title="Lo que no aparece" items={lectura.ausencias} />
+          <ObservationList title={tr('profile.read.good')} items={lectura.fortalezas} />
+          <ObservationList title={tr('profile.read.missing')} items={lectura.ausencias} />
         </div>
 
         <div className="card">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">Hasta 3 cambios posibles</p>
-          <p className="mb-4 text-sm text-text-muted">Son sugerencias. Marcá las que querés tomar; las demás quedan afuera.</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('profile.read.changes')}</p>
+          <p className="mb-4 text-sm text-text-muted">{tr('profile.read.changesHint')}</p>
           <ul className="space-y-3">
             {recomendaciones.map((r, i) => (
               <li key={i}>
@@ -278,7 +277,7 @@ function ReadingView({
                     )}
                     {r.tipo === 'decision_personal' && (
                       <p className="mt-2 inline-block rounded-full bg-secondary px-2.5 py-0.5 text-xs text-text-muted">
-                        Convención de mercado · la decisión es tuya
+                        {tr('profile.read.convention')}
                       </p>
                     )}
                   </div>
@@ -291,13 +290,13 @@ function ReadingView({
 
       <div className="mt-8 rounded-2xl bg-ink p-6 text-center text-white">
         <p className="mb-4 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
-          Ahora lo conversamos: qué te resonó, qué no y qué querés hacer con esto. Esa charla es el Diagnóstico.
+          {tr('profile.read.cta')}
         </p>
         <button
           onClick={() => onContinue(elegidas)}
           className="rounded-xl bg-card px-7 py-3 font-semibold text-foreground transition hover:shadow-lg active:scale-95"
         >
-          Empezar la conversación →
+          {tr('profile.read.start')}
         </button>
       </div>
     </div>

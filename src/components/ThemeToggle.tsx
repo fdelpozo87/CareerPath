@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { tr } from '../lib/i18n'
 import { THEME_EVENT, getThemeMode, resolveTheme, setThemeMode } from '../lib/theme'
 
 // Botón de sol/luna para pasar de modo claro a oscuro. Muestra la acción que va a hacer: la luna
@@ -34,7 +35,7 @@ export default function ThemeToggle() {
   }, [])
 
   const dark = theme === 'dark'
-  const label = dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'
+  const label = dark ? tr('theme.toLight') : tr('theme.toDark')
   return (
     <button
       type="button"

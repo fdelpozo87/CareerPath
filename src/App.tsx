@@ -12,6 +12,7 @@ import type { Path, Session } from './lib/coach/types'
 import { ACCESS_LOST_EVENT, checkAccess, clearAccessCode, getAccessCode, getAccessLabel, saveAccessCode } from './lib/access'
 import type { AccountInfo } from './components/AccountMenu'
 import { trackEvent } from './lib/tracking'
+import { tr, useLang } from './lib/i18n'
 
 type View = 'landing' | 'coach' | 'company' | 'privacidad'
 
@@ -20,6 +21,8 @@ const isPrivacyHash = () => window.location.hash === '#privacidad'
 type Access = { state: 'checking' } | { state: 'locked'; error?: string } | { state: 'open' }
 
 function App() {
+  // Se vuelve a dibujar cuando cambia el idioma (y con él, todo lo que cuelga de acá).
+  useLang()
   const [view, setView] = useState<View>(() => (isPrivacyHash() ? 'privacidad' : 'landing'))
   const [session, setSession] = useState<Session | null>(null)
   const [access, setAccess] = useState<Access>({ state: 'checking' })
@@ -71,7 +74,7 @@ function App() {
   }, [])
 
   const startPath = (path: Path) => {
-    if (hasProgress(saved) && !window.confirm('Tenés un proceso en curso. ¿Querés empezar uno nuevo? El anterior se va a borrar.')) {
+    if (hasProgress(saved) && !window.confirm(tr('app.resumeConfirm'))) {
       return
     }
     trackEvent('path_selected', { path })
@@ -96,7 +99,7 @@ function App() {
       window.scrollTo(0, 0)
     },
     onDeleteData: () => {
-      if (!window.confirm('¿Borrar tu conversación de este navegador? No se puede deshacer.')) return
+      if (!window.confirm(tr('account.deleteConfirm'))) return
       trackEvent('data_deleted')
       clearSession()
       setSession(null)
@@ -120,7 +123,7 @@ function App() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p role="status" className="text-sm text-text-muted">
-          Cargando…
+          {tr('common.loading')}
         </p>
       </div>
     )

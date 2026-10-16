@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { callCompanyAnalysis, fileToBase64 } from '../lib/aiClient'
+import { tr, type Key } from '../lib/i18n'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
@@ -38,84 +39,28 @@ export interface CompanyDiagnosisResult {
 }
 
 // ── Questions config ────────────────────────────────────────────────────────
+// El texto de cada pregunta vive en shared/locales (cf.q.<id>.<campo>).
 
-const QUESTIONS_RENDIMIENTO = [
-  {
-    id: 'observacion',
-    titulo: 'Lo que estás viendo',
-    etiqueta: 'Situación',
-    color: '#ef4444',
-    pregunta: '¿Qué comportamientos o resultados concretos te generan preocupación? Describí específicamente lo que está pasando.',
-    placeholder: 'Ej: En los últimos 2 sprints no cumplió los objetivos acordados. En reuniones participa menos y dos compañeros me comentaron fricciones con él/ella.',
-    ayuda: 'Cuanto más específico, más preciso el diagnóstico. Hechos observables, no interpretaciones.',
-  },
-  {
-    id: 'contexto',
-    titulo: 'El contexto y el timing',
-    etiqueta: 'Contexto',
-    color: '#f97316',
-    pregunta: '¿Desde cuándo notás este cambio? ¿Hubo algún evento, cambio organizacional o situación que lo precedió?',
-    placeholder: 'Ej: Empezó hace 3 meses, coincidiendo con el cambio de PM. / No hay un evento claro, fue gradual a lo largo del año.',
-    ayuda: 'El timing y el contexto revelan la causa raíz mejor que el síntoma en sí.',
-  },
-  {
-    id: 'conversaciones',
-    titulo: 'Conversaciones previas',
-    etiqueta: 'Historial',
-    color: '#6366f1',
-    pregunta: '¿Qué conversaciones ya tuviste con esta persona al respecto? ¿Cómo respondió? ¿Qué funcionó o no funcionó?',
-    placeholder: 'Ej: Tuvimos una 1:1 donde señalé los incumplimientos, lo tomó a la defensiva. / No hablé todavía, no sé cómo encararlo.',
-    ayuda: 'Esto permite calibrar la próxima conversación y evitar repetir lo que no funcionó.',
-  },
-  {
-    id: 'objetivo',
-    titulo: 'El resultado que buscás',
-    etiqueta: 'Objetivo',
-    color: '#10b981',
-    pregunta: '¿Qué resultado concreto querés que salga de este proceso? ¿Qué sería un éxito para vos en 30-60 días?',
-    placeholder: 'Ej: Quiero que vuelva al nivel anterior y pueda sostenerlo. / Necesito saber si hay lugar para esta persona en el equipo o si es momento de una conversación más difícil.',
-    ayuda: 'Definir el éxito antes de la conversación cambia completamente cómo la encarás.',
-  },
-]
+const QUESTION_DEFS: Record<CaseType, { id: string; color: string }[]> = {
+  rendimiento: [
+    { id: 'observacion', color: '#ef4444' },
+    { id: 'contexto', color: '#f97316' },
+    { id: 'conversaciones', color: '#6366f1' },
+    { id: 'objetivo', color: '#10b981' },
+  ],
+  crecimiento: [
+    { id: 'aspiracion', color: '#10b981' },
+    { id: 'brechaActual', color: '#6366f1' },
+    { id: 'oportunidades', color: '#0ea5e9' },
+    { id: 'alineacion', color: '#f97316' },
+  ],
+}
 
-const QUESTIONS_CRECIMIENTO = [
-  {
-    id: 'aspiracion',
-    titulo: 'Hacia dónde quiere ir',
-    etiqueta: 'Objetivo',
-    color: '#10b981',
-    pregunta: '¿Hacia dónde quiere crecer o moverse esta persona? ¿Lo expresó claramente o lo estás infiriendo vos?',
-    placeholder: 'Ej: Me dijo que quiere liderar un equipo en 2 años. / Creo que quiere moverse a producto, aunque no lo dijo explícitamente.',
-    ayuda: 'Hay diferencia entre lo que el colaborador expresó y lo que el líder infiere. Ambos son válidos pero requieren conversaciones distintas.',
-  },
-  {
-    id: 'brechaActual',
-    titulo: 'Fortalezas y brecha hoy',
-    etiqueta: 'Realidad',
-    color: '#6366f1',
-    pregunta: '¿Cuáles son sus fortalezas más claras? ¿Y qué habilidades o comportamientos le faltan para el próximo nivel?',
-    placeholder: 'Ej: Es muy sólido técnicamente y los clientes lo valoran mucho. Le falta comunicación ejecutiva y no toma decisiones sin validar con alguien.',
-    ayuda: '"Le falta liderazgo" es demasiado vago. ¿Qué comportamientos concretos no están apareciendo todavía?',
-  },
-  {
-    id: 'oportunidades',
-    titulo: 'Las oportunidades disponibles',
-    etiqueta: 'Opciones',
-    color: '#0ea5e9',
-    pregunta: '¿Qué oportunidades concretas existen en tu equipo o en la empresa para este camino de crecimiento?',
-    placeholder: 'Ej: Se abre un rol de tech lead en Q3. / No hay un rol claro, pero podría liderar proyectos transversales. / En otra área hay más espacio.',
-    ayuda: 'Si no hay oportunidades reales, el plan de desarrollo va a frustrar más que motivar. Mejor saberlo ahora.',
-  },
-  {
-    id: 'alineacion',
-    titulo: 'Alineación con el negocio',
-    etiqueta: 'Compromiso',
-    color: '#f97316',
-    pregunta: '¿Qué tan alineado está su deseo de crecimiento con las necesidades del negocio? ¿El equipo gana con este movimiento?',
-    placeholder: 'Ej: Totalmente alineado, necesitamos ese perfil. / Hay tensión: si crece en lo que quiere, perdemos su expertise actual.',
-    ayuda: 'Los mejores planes de desarrollo son los que ganan tanto el colaborador como el equipo. Cuando hay tensión, hay que nombrarla.',
-  },
-]
+const questionsFor = (caso: CaseType) =>
+  QUESTION_DEFS[caso].map((d) => {
+    const f = (field: string) => tr(`cf.q.${d.id}.${field}` as Key)
+    return { ...d, titulo: f('titulo'), etiqueta: f('etiqueta'), pregunta: f('pregunta'), placeholder: f('placeholder'), ayuda: f('ayuda') }
+  })
 
 // ── Demo results ────────────────────────────────────────────────────────────
 
@@ -134,14 +79,14 @@ const DEMO_RENDIMIENTO: CompanyDiagnosisResult = {
     '¿Hay algo que esta persona quiere pero no está pidiendo, y el bajo rendimiento es la forma indirecta de comunicarlo?',
   ],
   guiaDeConversacion: {
-    apertura: 'Empezá desde la curiosidad, no desde el juicio. Algo como: "Quería hablar con vos sobre algo que estoy observando, y quiero entender mejor qué está pasando desde tu perspectiva antes de sacar conclusiones."',
+    apertura: 'Empieza desde la curiosidad, no desde el juicio. Algo como: "Quería hablar contigo sobre algo que estoy observando, y quiero entender mejor qué está pasando desde tu perspectiva antes de sacar conclusiones."',
     preguntasClave: [
-      '¿Cómo te estás sintiendo con el trabajo últimamente? ¿Hay algo que cambió para vos en estos meses?',
+      '¿Cómo te estás sintiendo con el trabajo últimamente? ¿Hay algo que cambió para ti en estos meses?',
       '¿Qué es lo que más te está costando del trabajo hoy?',
-      'Si pudieras cambiar algo de tu rol o de cómo trabajás con el equipo, ¿qué sería?',
-      '¿Qué necesitarías de mi parte para poder dar lo mejor de vos en los próximos 30 días?',
+      'Si pudieras cambiar algo de tu rol o de cómo trabajas con el equipo, ¿qué sería?',
+      '¿Qué necesitarías de mi parte para poder dar lo mejor de ti en los próximos 30 días?',
     ],
-    cierre: 'Cerrá con un acuerdo concreto y revisable, no con un ultimátum. "¿Qué te comprometés a hacer diferente esta semana? Yo me comprometo a X. Nos reunimos en 2 semanas a revisar." El compromiso bilateral convierte la conversación en un punto de inflexión.',
+    cierre: 'Cierra con un acuerdo concreto y revisable, no con un ultimátum. "¿Qué te comprometes a hacer diferente esta semana? Yo me comprometo a X. Nos reunimos en 2 semanas a revisar." El compromiso bilateral convierte la conversación en un punto de inflexión.',
   },
   planDeAccion: {
     bloque70: [
@@ -157,10 +102,10 @@ const DEMO_RENDIMIENTO: CompanyDiagnosisResult = {
     ],
   },
   proximosPasos: [
-    'Esta semana: agendá la 1:1 con un frame explícito: "quiero entender cómo estás", no "quiero hablar de tu rendimiento"',
-    'En 30 días: si no hay cambio visible después de la conversación, definí con RRHH qué sigue — no dejes pasar más de un mes sin una decisión',
+    'Esta semana: agenda la 1:1 con un frame explícito: "quiero entender cómo estás", no "quiero hablar de tu rendimiento"',
+    'En 30 días: si no hay cambio visible después de la conversación, define con RRHH qué sigue — no dejes pasar más de un mes sin una decisión',
   ],
-  mensajeParaElLider: '— MODO DEMO — Lo que describís tiene las características de un freno de Actitud, no de Aptitud. Eso es buena y mala noticia al mismo tiempo: es más recuperable, pero requiere una conversación real, no solo más seguimiento de métricas. Antes de esa conversación, una pregunta: ¿qué tan seguido tenés 1:1s con esta persona donde la pregunta central no sea el trabajo, sino cómo está ella o él?',
+  mensajeParaElLider: '— MODO DEMO — Lo que describes tiene las características de un freno de Actitud, no de Aptitud. Eso es buena y mala noticia al mismo tiempo: es más recuperable, pero requiere una conversación real, no solo más seguimiento de métricas. Antes de esa conversación, una pregunta: ¿qué tan seguido tienes 1:1s con esta persona donde la pregunta central no sea el trabajo, sino cómo está ella o él?',
 }
 
 const DEMO_CRECIMIENTO: CompanyDiagnosisResult = {
@@ -178,14 +123,14 @@ const DEMO_CRECIMIENTO: CompanyDiagnosisResult = {
     '¿Hay algo que el líder no está nombrando sobre por qué no ocurrió el movimiento antes — deadline, presupuesto, estructura?',
   ],
   guiaDeConversacion: {
-    apertura: 'Abrí desde el reconocimiento antes de hablar del plan: "Quería hablar específicamente sobre tu crecimiento porque creo que estás en un buen momento y quiero que tengamos una conversación clara sobre hacia dónde vas."',
+    apertura: 'Abre desde el reconocimiento antes de hablar del plan: "Quería hablar específicamente sobre tu crecimiento porque creo que estás en un buen momento y quiero que tengamos una conversación clara sobre hacia dónde vas."',
     preguntasClave: [
-      'Cuando imaginás que estés en el próximo nivel, ¿qué querés que sea diferente en tu día a día — no en el título, sino en cómo trabajás?',
-      '¿Qué creés que te falta todavía para llegar ahí? ¿Y qué creés que ya tenés?',
+      'Cuando imaginas que estás en el próximo nivel, ¿qué quieres que sea diferente en tu día a día — no en el título, sino en cómo trabajas?',
+      '¿Qué crees que te falta todavía para llegar ahí? ¿Y qué crees que ya tienes?',
       '¿Qué obstáculos reales ves, dentro o fuera de tu control?',
       'Si pudieras diseñar los próximos 6 meses para prepararte para ese paso, ¿qué incluirías?',
     ],
-    cierre: 'Cerrá con un plan conjunto, no unilateral. "¿Qué acordamos como próximo paso concreto? Yo de mi lado hago X, vos te comprometés a Y. Nos revisamos en Z semanas." El plan co-construido tiene 3 veces más probabilidad de ejecutarse.',
+    cierre: 'Cierra con un plan conjunto, no unilateral. "¿Qué acordamos como próximo paso concreto? Yo de mi lado hago X, tú te comprometes a Y. Nos revisamos en Z semanas." El plan co-construido tiene 3 veces más probabilidad de ejecutarse.',
   },
   planDeAccion: {
     bloque70: [
@@ -197,14 +142,14 @@ const DEMO_CRECIMIENTO: CompanyDiagnosisResult = {
       'Incluirlo en 1-2 reuniones de liderazgo donde normalmente no estaría — exposición al tipo de conversaciones que va a tener que manejar',
     ],
     bloque10: [
-      'Un programa de comunicación ejecutiva o liderazgo situacional — que lo elija él/ella de una lista corta que vos armás',
+      'Un programa de comunicación ejecutiva o liderazgo situacional — que lo elija él/ella de una lista corta que tú armas',
     ],
   },
   proximosPasos: [
-    'Esta semana: agendá la 1:1 de carrera con el frame explícito de "quiero hablar de tu crecimiento" — no improvises esta conversación',
-    'En 30 días: definí con él/ella el primer proyecto del plan y poné una fecha de revisión formal en 90 días',
+    'Esta semana: agenda la 1:1 de carrera con el frame explícito de "quiero hablar de tu crecimiento" — no improvises esta conversación',
+    'En 30 días: define con él/ella el primer proyecto del plan y pon una fecha de revisión formal en 90 días',
   ],
-  mensajeParaElLider: '— MODO DEMO — Lo que describís es una de las mejores situaciones que puede tener un líder: alguien con potencial que lo está expresando. El riesgo no es si va a poder crecer — ese potencial existe. El riesgo es que si no pasa nada concreto en los próximos 60-90 días, la energía de esta persona va a buscar otro lugar donde canalizarse. La pregunta que te hago: ¿qué te está frenando a vos para hacer este movimiento antes?',
+  mensajeParaElLider: '— MODO DEMO — Lo que describes es una de las mejores situaciones que puede tener un líder: alguien con potencial que lo está expresando. El riesgo no es si va a poder crecer — ese potencial existe. El riesgo es que si no pasa nada concreto en los próximos 60-90 días, la energía de esta persona va a buscar otro lugar donde canalizarse. La pregunta que te hago: ¿qué te está frenando a ti para hacer este movimiento antes?',
 }
 
 // ── Gemini API ──────────────────────────────────────────────────────────────
@@ -235,29 +180,23 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
       <div className="mb-8 text-center">
         <div
           className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-card shadow-sm"
-          style={{ border: '1px solid #e5e7eb' }}
+          style={{ border: '1px solid var(--color-border-color)' }}
         >
           <span className="text-2xl">◈</span>
         </div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Para Líderes y RRHH</p>
-        <h2 className="mb-3">Preparar conversación de desarrollo</h2>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{tr('cf.intro.eyebrow')}</p>
+        <h2 className="mb-3">{tr('cf.intro.title')}</h2>
         <p className="leading-relaxed text-text-muted">
-          Describís la situación de un colaborador y la IA te genera un{' '}
-          <strong className="text-foreground font-semibold">diagnóstico + guía de conversación 1:1 + plan de acción</strong>{' '}
-          listo para usar.
+          {tr('cf.intro.lede.a')}
+          <strong className="text-foreground font-semibold">{tr('cf.intro.lede.b')}</strong>
+          {tr('cf.intro.lede.c')}
         </p>
       </div>
 
       <div className="card mb-6">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-text-muted">¿Qué vas a obtener?</p>
+        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('cf.intro.get')}</p>
         <ul className="space-y-3">
-          {[
-            'Diagnóstico del tipo de brecha (Aptitud / Actitud / Crecimiento)',
-            '3 hipótesis sobre la causa raíz real',
-            'Guía de conversación 1:1 con preguntas potentes',
-            'Plan de Acción 70-20-10 personalizado',
-            'Próximos pasos concretos para vos como líder',
-          ].map((item) => (
+          {[1, 2, 3, 4, 5].map((n) => tr(`company.out.${n}` as Key)).map((item) => (
             <li key={item} className="flex items-start gap-2.5 text-sm text-text-muted">
               <span className="mt-0.5 font-bold text-primary">→</span>
               {item}
@@ -267,11 +206,11 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
       </div>
 
       <p className="mb-6 text-center text-xs text-text-muted">
-        4 preguntas + evaluación opcional (PDF) · ~8 minutos
+        {tr('cf.intro.meta')}
       </p>
 
       <button onClick={onStart} className="btn-primary w-full py-3.5 text-base">
-        Empezar análisis →
+        {tr('cf.intro.start')}
       </button>
     </div>
   )
@@ -283,22 +222,22 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
 // tema se oscurecen en modo claro y se aclaran en modo oscuro, así que siempre tienen contraste.
 const inkOf = (color: string) => `color-mix(in srgb, ${color} 70%, var(--color-foreground))`
 
-const CASO_OPTIONS: { value: CaseType; icon: string; titulo: string; desc: string; color: string; bg: string }[] = [
+const casoOptions = (): { value: CaseType; icon: string; titulo: string; desc: string; color: string; bg: string }[] => [
   {
     value: 'rendimiento',
     icon: '↘',
-    titulo: 'Rendimiento o comportamiento',
-    desc: 'Resultados por debajo de lo esperado, cambio de actitud o fricción con el equipo',
+    titulo: tr('cf.case.rendimiento.title'),
+    desc: tr('cf.case.rendimiento.desc'),
     color: '#ef4444',
-      bg: 'color-mix(in srgb, #ef4444 12%, var(--color-card))',
+    bg: 'color-mix(in srgb, #ef4444 12%, var(--color-card))',
   },
   {
     value: 'crecimiento',
     icon: '↗',
-    titulo: 'Crecimiento o movilidad',
-    desc: 'La persona quiere crecer de nivel, cambiar de área o asumir nuevas responsabilidades',
+    titulo: tr('cf.case.crecimiento.title'),
+    desc: tr('cf.case.crecimiento.desc'),
     color: '#10b981',
-      bg: 'color-mix(in srgb, #10b981 12%, var(--color-card))',
+    bg: 'color-mix(in srgb, #10b981 12%, var(--color-card))',
   },
 ]
 
@@ -324,20 +263,20 @@ function ContextForm({
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-8">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">Paso 1</p>
-        <h3 className="text-xl font-semibold">Contame sobre el colaborador</h3>
-        <p className="mt-1 text-sm text-text-muted">No necesitamos el nombre — solo el contexto relevante.</p>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('cf.ctx.step')}</p>
+        <h3 className="text-xl font-semibold">{tr('cf.ctx.title')}</h3>
+        <p className="mt-1 text-sm text-text-muted">{tr('cf.ctx.hint')}</p>
       </div>
 
       <div className="card mb-5 space-y-5">
         {/* Rol */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-foreground">Rol del colaborador</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">{tr('cf.ctx.role')}</label>
           <input
             type="text"
             value={rol}
             onChange={(e) => setRol(e.target.value)}
-            placeholder="Ej: Desarrollador frontend, Analista de datos, Product Manager"
+            placeholder={tr('cf.ctx.rolePh')}
             className="w-full rounded-xl border border-border-color p-3 text-sm outline-none transition-colors focus:border-primary"
           />
         </div>
@@ -345,34 +284,31 @@ function ContextForm({
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Seniority */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Seniority</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">{tr('cf.ctx.seniority')}</label>
             <select
               value={seniority}
               onChange={(e) => setSeniority(e.target.value)}
               className="w-full rounded-xl border border-border-color bg-card p-3 text-sm outline-none transition-colors focus:border-primary"
             >
-              <option value="">Seleccioná</option>
-              <option>Junior (0-2 años)</option>
-              <option>Semi-senior (2-4 años)</option>
-              <option>Senior (4-8 años)</option>
-              <option>Lead / Staff (8+ años)</option>
-              <option>Gerencia / Dirección</option>
+              <option value="">{tr('cf.ctx.select')}</option>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option key={n}>{tr(`cf.sen.${n}` as Key)}</option>
+              ))}
             </select>
           </div>
 
           {/* Tiempo en equipo */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Tiempo en el equipo</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">{tr('cf.ctx.tenure')}</label>
             <select
               value={tiempo}
               onChange={(e) => setTiempo(e.target.value)}
               className="w-full rounded-xl border border-border-color bg-card p-3 text-sm outline-none transition-colors focus:border-primary"
             >
-              <option value="">Seleccioná</option>
-              <option>Menos de 6 meses</option>
-              <option>6 a 12 meses</option>
-              <option>1 a 3 años</option>
-              <option>Más de 3 años</option>
+              <option value="">{tr('cf.ctx.select')}</option>
+              {[1, 2, 3, 4].map((n) => (
+                <option key={n}>{tr(`cf.ten.${n}` as Key)}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -380,9 +316,9 @@ function ContextForm({
 
       {/* Caso tipo */}
       <div className="mb-6">
-        <p className="mb-3 text-sm font-medium text-foreground">¿Cuál es la situación?</p>
+        <p className="mb-3 text-sm font-medium text-foreground">{tr('cf.ctx.which')}</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          {CASO_OPTIONS.map((opt) => {
+          {casoOptions().map((opt) => {
             const selected = casoTipo === opt.value
             return (
               <button
@@ -413,14 +349,14 @@ function ContextForm({
           onClick={onBack}
           className="rounded-xl border border-border-color px-5 py-3 text-sm text-text-muted transition hover:bg-card"
         >
-          ← Atrás
+          {tr('cf.back')}
         </button>
         <button
           onClick={handleSubmit}
           disabled={!canContinue}
           className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Continuar →
+          {tr('cf.continue')}
         </button>
       </div>
     </div>
@@ -442,7 +378,7 @@ function QuestionsScreen({
   onComplete: () => void
   onBack: () => void
 }) {
-  const questions = casoTipo === 'rendimiento' ? QUESTIONS_RENDIMIENTO : QUESTIONS_CRECIMIENTO
+  const questions = questionsFor(casoTipo)
   const [idx, setIdx] = useState(0)
   const q = questions[idx]
   const isLast = idx === questions.length - 1
@@ -456,7 +392,7 @@ function QuestionsScreen({
       {/* Progress */}
       <div className="mb-8">
         <div className="mb-2 flex items-center justify-between text-xs">
-          <span className="text-text-muted">Pregunta {idx + 1} de {questions.length}</span>
+          <span className="text-text-muted">{tr('cf.q.progress', { n: idx + 1, total: questions.length })}</span>
           <span className="font-medium" style={{ color: inkOf(q.color) }}>{q.etiqueta}</span>
         </div>
         <div className="h-1 w-full overflow-hidden rounded-full bg-border-color">
@@ -495,7 +431,7 @@ function QuestionsScreen({
           onClick={idx === 0 ? onBack : () => setIdx((i) => i - 1)}
           className="rounded-xl border border-border-color px-5 py-3 text-sm text-text-muted transition hover:bg-card"
         >
-          ← Atrás
+          {tr('cf.back')}
         </button>
         <button
           onClick={handleNext}
@@ -505,7 +441,7 @@ function QuestionsScreen({
             background: canContinue ? `linear-gradient(135deg, ${q.color}, ${q.color}cc)` : '#9ca3af',
           }}
         >
-          {isLast ? 'Continuar a documentación →' : 'Siguiente →'}
+          {isLast ? tr('cf.toDocs') : tr('cf.next')}
         </button>
       </div>
     </div>
@@ -531,7 +467,7 @@ function DocUploadScreen({
     if (f.type === 'application/pdf' || f.name.endsWith('.pdf')) {
       setFile(f)
     } else {
-      alert('Solo aceptamos PDF. Exportá el documento como PDF e intentá de nuevo.')
+      alert(tr('cf.doc.alertType'))
     }
   }
 
@@ -540,15 +476,15 @@ function DocUploadScreen({
       <div className="mb-8 text-center">
         <div
           className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-card shadow-sm"
-          style={{ border: '1px solid #e5e7eb' }}
+          style={{ border: '1px solid var(--color-border-color)' }}
         >
           <span className="text-2xl">⬆</span>
         </div>
-        <h2 className="mb-3">Documentación del colaborador</h2>
+        <h2 className="mb-3">{tr('cf.doc.title')}</h2>
         <p className="leading-relaxed text-text-muted">
-          Subí la evaluación de desempeño, feedback 360 o cualquier documento relevante para un análisis más preciso.
+          {tr('cf.doc.lede')}
         </p>
-        <p className="mt-2 text-xs text-text-muted">Solo PDF · No se almacena · Solo para este análisis</p>
+        <p className="mt-2 text-xs text-text-muted">{tr('cf.doc.note')}</p>
       </div>
 
       {/* Drop zone */}
@@ -559,7 +495,7 @@ function DocUploadScreen({
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
         onClick={() => inputRef.current?.click()}
-        aria-label={file ? `Documento: ${file.name}. Activar para elegir otro PDF` : 'Elegir el documento del colaborador en PDF'}
+        aria-label={file ? tr('cf.doc.aria.file', { name: file.name }) : tr('cf.doc.aria.pick')}
         className="mb-6 block w-full cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all"
         style={{
           borderColor: dragOver ? '#c2410c' : file ? '#047857' : 'var(--color-border-color)',
@@ -570,13 +506,13 @@ function DocUploadScreen({
           <>
             <span className="mb-2 block text-3xl text-primary" aria-hidden="true">✓</span>
             <span className="block font-semibold text-primary">{file.name}</span>
-            <span className="mt-1 block text-xs text-text-muted">{(file.size / 1024).toFixed(0)} KB · Click para cambiar</span>
+            <span className="mt-1 block text-xs text-text-muted">{tr('cf.doc.change', { kb: (file.size / 1024).toFixed(0) })}</span>
           </>
         ) : (
           <>
             <span className="mb-3 block text-3xl text-text-muted" aria-hidden="true">↑</span>
-            <span className="block font-medium text-foreground">Arrastrá el documento acá o hacé click</span>
-            <span className="mt-1 block text-xs text-text-muted">Evaluación de desempeño, feedback 360, perfil — Solo PDF · Máx 10 MB</span>
+            <span className="block font-medium text-foreground">{tr('cf.doc.drop')}</span>
+            <span className="mt-1 block text-xs text-text-muted">{tr('cf.doc.hint')}</span>
           </>
         )}
       </button>
@@ -595,14 +531,14 @@ function DocUploadScreen({
           onClick={onBack}
           className="rounded-xl border border-border-color px-5 py-3 text-sm text-text-muted transition hover:bg-card"
         >
-          ← Atrás
+          {tr('cf.back')}
         </button>
         <button
           onClick={() => file && onAnalyze(file)}
           disabled={!file}
           className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Analizar con IA →
+          {tr('cf.doc.analyze')}
         </button>
       </div>
 
@@ -610,7 +546,7 @@ function DocUploadScreen({
         onClick={onSkip}
         className="mt-4 w-full text-xs text-text-muted underline underline-offset-2 transition hover:text-foreground"
       >
-        Continuar sin documento (el análisis se basa solo en tus respuestas)
+        {tr('cf.doc.skip')}
       </button>
     </div>
   )
@@ -625,22 +561,7 @@ function AnalyzingScreen({ casoTipo }: { casoTipo: CaseType }) {
     return () => clearInterval(t)
   }, [])
 
-  const messages =
-    casoTipo === 'rendimiento'
-      ? [
-          'Leyendo el contexto del colaborador…',
-          'Identificando el tipo de brecha…',
-          'Analizando la causa raíz posible…',
-          'Construyendo la guía de conversación…',
-          'Preparando el plan de acción…',
-        ]
-      : [
-          'Leyendo el perfil y la aspiración…',
-          'Evaluando fortalezas y brecha real…',
-          'Identificando oportunidades de desarrollo…',
-          'Construyendo la guía de conversación 1:1…',
-          'Diseñando el plan 70-20-10…',
-        ]
+  const messages = [1, 2, 3, 4, 5].map((n) => tr(`cf.run.${casoTipo === 'rendimiento' ? 'rend' : 'grow'}.${n}` as Key))
 
   return (
     <div className="mx-auto max-w-sm py-20 text-center">
@@ -654,48 +575,34 @@ function AnalyzingScreen({ casoTipo }: { casoTipo: CaseType }) {
         </div>
       </div>
 
-      <h2 className="mb-3 text-xl font-semibold tracking-tight">Analizando la situación</h2>
+      <h2 className="mb-3 text-xl font-semibold tracking-tight">{tr('cf.run.title')}</h2>
       <p key={tick} className="ai-result text-sm text-text-muted" style={{ minHeight: '1.25rem' }}>
         {messages[tick % messages.length]}
       </p>
-      <p className="mt-4 text-xs text-text-muted opacity-60">Esto puede tomar 15–30 segundos.</p>
+      <p className="mt-4 text-xs text-text-muted opacity-60">{tr('cf.run.wait')}</p>
     </div>
   )
 }
 
 // ── Step: Result ─────────────────────────────────────────────────────────────
 
-const BRECHA_CONFIG: Record<TipoDeBrecha, { label: string; color: string; bg: string; desc: string }> = {
-  Aptitud: {
-    label: 'Brecha de Aptitud',
-    color: '#4f46e5',
-      bg: 'color-mix(in srgb, #4f46e5 12%, var(--color-card))',
-    desc: 'El camino pasa por capacitación, nuevos proyectos con ownership real y mentoreo técnico.',
-  },
-  Actitud: {
-    label: 'Brecha de Actitud',
-    color: '#7c3aed',
-      bg: 'color-mix(in srgb, #7c3aed 12%, var(--color-card))',
-    desc: 'El camino pasa por conversación genuina, claridad de expectativas y rediseño de motivación.',
-  },
-  Mixto: {
-    label: 'Brecha Mixta',
-    color: '#b45309',
-      bg: 'color-mix(in srgb, #b45309 12%, var(--color-card))',
-    desc: 'Hay componentes de los dos. Empezar por la motivación antes de poner el foco en las habilidades.',
-  },
-  Crecimiento: {
-    label: 'Plan de Crecimiento',
-    color: '#059669',
-      bg: 'color-mix(in srgb, #059669 12%, var(--color-card))',
-    desc: 'La persona tiene el potencial. El trabajo es construir el camino y darle la exposición que necesita.',
-  },
-  Movilidad: {
-    label: 'Plan de Movilidad',
-    color: '#0284c7',
-      bg: 'color-mix(in srgb, #0284c7 12%, var(--color-card))',
-    desc: 'El movimiento es hacia otra área o rol. Requiere plan de transición y gestión del reemplazo.',
-  },
+const BRECHA_COLORS: Record<TipoDeBrecha, string> = {
+  Aptitud: '#4f46e5',
+  Actitud: '#7c3aed',
+  Mixto: '#b45309',
+  Crecimiento: '#059669',
+  Movilidad: '#0284c7'
+}
+
+const brechaConfig = (tipo: TipoDeBrecha) => {
+  const key = (tipo in BRECHA_COLORS ? tipo : 'Mixto') as TipoDeBrecha
+  const color = BRECHA_COLORS[key]
+  return {
+    label: tr(`cf.gap.${key}.label` as Key),
+    desc: tr(`cf.gap.${key}.desc` as Key),
+    color,
+    bg: `color-mix(in srgb, ${color} 12%, var(--color-card))`,
+  }
 }
 
 function ResultScreen({
@@ -709,20 +616,20 @@ function ResultScreen({
   ctx: CollaboratorContext
   onRestart: () => void
 }) {
-  const brecha = BRECHA_CONFIG[result.tipoDeBrecha] ?? BRECHA_CONFIG['Mixto']
+  const brecha = brechaConfig(result.tipoDeBrecha)
 
   return (
     <div className="ai-result mx-auto max-w-2xl">
       {/* Header */}
       <div className="mb-10 text-center">
         <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">
-          HR Coach IA · Análisis del Colaborador
+          {tr('cf.res.eyebrow')}
         </p>
         <h2 className="mb-1">
-          {casoTipo === 'rendimiento' ? 'Diagnóstico de Rendimiento' : 'Plan de Desarrollo'}
+          {casoTipo === 'rendimiento' ? tr('cf.res.titleRend') : tr('cf.res.titleGrow')}
         </h2>
         <p className="text-sm text-text-muted">
-          {ctx.rol} · {ctx.seniority} · {ctx.tiempo} en el equipo
+          {tr('cf.res.meta', { rol: ctx.rol, sen: ctx.seniority, ten: ctx.tiempo })}
         </p>
       </div>
 
@@ -730,7 +637,7 @@ function ResultScreen({
 
         {/* Mensaje para el líder — AI tint, prominente */}
         <div className="ai-tint rounded-2xl p-6" style={{ borderLeft: '3px solid #f97316' }}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Para vos como líder</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{tr('cf.res.leader')}</p>
           <p className="italic leading-relaxed text-foreground">"{result.mensajeParaElLider}"</p>
         </div>
 
@@ -748,11 +655,11 @@ function ResultScreen({
         {/* Perfil + Situación central */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="card">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">Perfil del Colaborador</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('cf.res.profile')}</p>
             <p className="text-sm leading-relaxed text-text-muted">{result.perfilDelColaborador}</p>
           </div>
           <div className="card">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">Situación Central</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('cf.res.central')}</p>
             <p className="text-sm leading-relaxed text-text-muted">{result.situacionCentral}</p>
           </div>
         </div>
@@ -760,7 +667,7 @@ function ResultScreen({
         {/* Fortalezas + Hipótesis */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="card">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">Fortalezas del Colaborador</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('cf.res.strengths')}</p>
             <ul className="space-y-2">
               {result.fortalezasDelColaborador.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm text-text-muted">
@@ -771,7 +678,7 @@ function ResultScreen({
             </ul>
           </div>
           <div className="card">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">Hipótesis Principales</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('cf.res.hyp')}</p>
             <ol className="space-y-3">
               {result.hipotesisPrincipales.map((h, i) => (
                 <li key={i} className="flex gap-2.5">
@@ -786,15 +693,15 @@ function ResultScreen({
         {/* Guía de conversación */}
         <div className="card">
           <p className="mb-5 text-xs font-semibold uppercase tracking-widest text-text-muted">
-            Guía de Conversación 1:1
+            {tr('cf.res.guide')}
           </p>
           <div className="space-y-4">
             <div className="rounded-xl border border-border-color bg-accent-soft p-4">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-accent-ink">Apertura</p>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-accent-ink">{tr('cf.res.open')}</p>
               <p className="text-sm leading-relaxed text-accent-ink">{result.guiaDeConversacion.apertura}</p>
             </div>
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">Preguntas Clave</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('cf.res.keyq')}</p>
               <ol className="space-y-2.5">
                 {result.guiaDeConversacion.preguntasClave.map((p, i) => (
                   <li
@@ -808,7 +715,7 @@ function ResultScreen({
               </ol>
             </div>
             <div className="rounded-xl border border-primary/20 bg-primary-soft p-4">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-primary">Cierre</p>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-primary">{tr('cf.res.close')}</p>
               <p className="text-sm leading-relaxed text-foreground">{result.guiaDeConversacion.cierre}</p>
             </div>
           </div>
@@ -817,13 +724,13 @@ function ResultScreen({
         {/* Plan de Acción 70-20-10 */}
         <div className="card">
           <p className="mb-5 text-xs font-semibold uppercase tracking-widest text-text-muted">
-            Plan de Acción 70-20-10
+            {tr('cf.res.plan')}
           </p>
           <div className="space-y-3">
             {/* 70% */}
             <div className="rounded-xl border border-border-color bg-secondary p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-accent-ink">
-                70% — En el trabajo
+                {tr('cf.res.b70')}
               </p>
               <ul className="space-y-2">
                 {result.planDeAccion.bloque70.map((item) => (
@@ -837,7 +744,7 @@ function ResultScreen({
             {/* 20% */}
             <div className="rounded-xl border border-border-color bg-secondary p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-                20% — De otros
+                {tr('cf.res.b20')}
               </p>
               <ul className="space-y-2">
                 {result.planDeAccion.bloque20.map((item) => (
@@ -851,7 +758,7 @@ function ResultScreen({
             {/* 10% */}
             <div className="rounded-xl border border-border-color bg-primary-soft p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-                10% — Formación
+                {tr('cf.res.b10')}
               </p>
               <ul className="space-y-2">
                 {result.planDeAccion.bloque10.map((item) => (
@@ -869,7 +776,7 @@ function ResultScreen({
         <div className="rounded-2xl border border-border-color bg-card p-5"
           style={{ boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)' }}>
           <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-text-muted">
-            Próximos Pasos — Para vos como líder
+            {tr('cf.res.next')}
           </p>
           <ol className="space-y-3">
             {result.proximosPasos.map((paso, i) => (
@@ -893,14 +800,14 @@ function ResultScreen({
           onClick={() => window.print()}
           className="rounded-xl border border-border-color px-6 py-4 text-sm text-text-muted transition hover:bg-card"
         >
-          Imprimir / Guardar PDF
+          {tr('cf.res.print')}
         </button>
         <button
           onClick={onRestart}
           className="btn-primary flex-1 py-4 text-base"
           style={{ minWidth: 200 }}
         >
-          Analizar otro colaborador →
+          {tr('cf.res.again')}
         </button>
       </div>
     </div>
@@ -927,7 +834,7 @@ export function CompanyFlow({ onBack }: { onBack: () => void }) {
       setResult(r)
       setStep('result')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error desconocido')
+      setError(e instanceof Error ? e.message : tr('cf.err.unknown'))
       setStep('upload')
     }
   }
@@ -941,11 +848,11 @@ export function CompanyFlow({ onBack }: { onBack: () => void }) {
   }
 
   const stepLabels: Partial<Record<CompanyStep, string>> = {
-    context: 'Contexto',
-    questions: 'Preguntas',
-    upload: 'Documentación',
-    analyzing: 'Analizando',
-    result: 'Resultados',
+    context: tr('cf.step.context'),
+    questions: tr('cf.step.questions'),
+    upload: tr('cf.step.upload'),
+    analyzing: tr('cf.step.analyzing'),
+    result: tr('cf.step.result'),
   }
 
   return (
@@ -957,16 +864,16 @@ export function CompanyFlow({ onBack }: { onBack: () => void }) {
             onClick={onBack}
             className="text-sm text-text-muted transition-colors hover:text-foreground"
           >
-            ← Inicio
+            {tr('common.home')}
           </button>
           <Logo />
           <span className="ml-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-            Empresas
+            {tr('cf.pill')}
           </span>
           <div className="ml-auto flex items-center gap-4">
             {stepLabels[step] && (
               <span className="hidden text-xs text-text-muted sm:inline">
-                Desarrollo de Equipo · {stepLabels[step]}
+                {tr('cf.head', { step: stepLabels[step] ?? '' })}
               </span>
             )}
             <ThemeToggle />

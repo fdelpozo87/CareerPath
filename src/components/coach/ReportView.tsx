@@ -1,19 +1,12 @@
 import { useState } from 'react'
+import { getLang, tr, trn, type Key } from '../../lib/i18n'
 import type { Report, ReportAction } from '../../lib/coach/types'
 
 // Cierre del Plan de Acción (§5): informe breve donde la persona selecciona
 // qué acciones asume. Ninguna viene marcada por default.
 
-const BLOQUE_LABEL: Record<ReportAction['bloque'], string> = {
-  '70': '70 · Práctica',
-  '20': '20 · Con otras personas',
-  '10': '10 · Formación',
-}
-
-const TIPO_LABEL: Partial<Record<ReportAction['tipo'], string>> = {
-  pedido: 'Pedido',
-  oferta: 'Oferta',
-}
+const bloqueLabel = (b: ReportAction['bloque']) => tr(`report.block.${b}` as Key)
+const tipoLabel = (t: ReportAction['tipo']) => (t === 'pedido' || t === 'oferta' ? tr(`report.type.${t}` as Key) : undefined)
 
 interface ReportViewProps {
   report: Report
@@ -32,24 +25,24 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
   return (
     <div className="ai-result mx-auto max-w-2xl">
       <div className="mb-8 text-center">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">Cierre del proceso</p>
-        <h2 className="mb-2">Lo que construiste</h2>
-        <p className="text-sm text-text-muted">No es un veredicto: es tu propia lectura, ordenada.</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('report.eyebrow')}</p>
+        <h2 className="mb-2">{tr('report.title')}</h2>
+        <p className="text-sm text-text-muted">{tr('report.lede')}</p>
       </div>
 
       <div className="flex flex-col gap-4">
         <div className="card">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Objetivo de la sesión</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{tr('report.objective')}</p>
           <p className="text-sm leading-relaxed text-foreground">{report.objetivoSesion}</p>
         </div>
 
         <div className="card">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">Hallazgos</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('report.findings')}</p>
           <ul className="space-y-3">
             {report.hallazgos.map((h, i) => (
               <li key={i} className="text-sm leading-relaxed text-foreground">
                 {h.texto}
-                {h.citaPersona && <span className="mt-1 block text-xs italic text-text-muted">Vos dijiste: “{h.citaPersona}”</span>}
+                {h.citaPersona && <span className="mt-1 block text-xs italic text-text-muted">{tr('report.saidQuote', { quote: h.citaPersona })}</span>}
               </li>
             ))}
           </ul>
@@ -57,14 +50,14 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
 
         <div className="card">
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">
-            {editing ? 'Acciones sugeridas' : 'Tus compromisos'}
+            {editing ? tr('report.suggested') : tr('report.commitments')}
           </p>
           <p className="mb-4 text-sm text-text-muted">
             {editing
-              ? 'Salieron de la conversación. Marcá las que asumís como compromiso — no hace falta tomarlas todas.'
+              ? tr('report.pick')
               : compromisosFecha
-                ? `Los elegiste el ${new Date(compromisosFecha).toLocaleDateString('es-AR')}.`
-                : 'Los elegiste vos.'}
+                ? tr('report.chosenOn', { date: new Date(compromisosFecha).toLocaleDateString(getLang() === 'en' ? 'en-US' : 'es') })
+                : tr('report.chosenBy')}
           </p>
           <ul className="space-y-3">
             {report.acciones.map((a, i) => {
@@ -78,9 +71,9 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
                     <div className="flex-1">
                       <p className="text-sm font-medium leading-relaxed text-foreground">{a.texto}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-text-muted">{BLOQUE_LABEL[a.bloque] ?? a.bloque}</span>
-                        {TIPO_LABEL[a.tipo] && (
-                          <span className="rounded-full bg-secondary px-2 py-0.5 font-semibold text-primary">{TIPO_LABEL[a.tipo]}</span>
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-text-muted">{bloqueLabel(a.bloque)}</span>
+                        {tipoLabel(a.tipo) && (
+                          <span className="rounded-full bg-secondary px-2 py-0.5 font-semibold text-primary">{tipoLabel(a.tipo)}</span>
                         )}
                         {a.cuatroC?.filter(Boolean).map((c) => (
                           <span key={c} className="rounded-full bg-secondary px-2 py-0.5 text-primary">
@@ -97,28 +90,28 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
           </ul>
           {editing && !hasPedido && (
             <p className="mt-3 text-xs text-accent-ink">
-              Ninguna acción quedó como un pedido concreto a alguien. Si querés, volvé a pensarlo: ¿a quién le podrías pedir algo esta semana?
+              {tr('report.noRequest')}
             </p>
           )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <InfoCard title="Horizonte" body={report.horizonte} />
-          <InfoCard title="Cómo vas a saber que avanzás" body={report.metrica} />
-          <InfoCard title="Check-in" body={report.checkIn} />
+          <InfoCard title={tr('report.horizon')} body={report.horizonte} />
+          <InfoCard title={tr('report.metric')} body={report.metrica} />
+          <InfoCard title={tr('report.checkin')} body={report.checkIn} />
         </div>
 
         {(report.presupuesto || report.respaldo) && (
           <div className="grid gap-4 md:grid-cols-2">
-            {report.presupuesto && <InfoCard title="Tu presupuesto" body={report.presupuesto} />}
-            {report.respaldo && <InfoCard title="Tu plan B" body={report.respaldo} />}
+            {report.presupuesto && <InfoCard title={tr('report.budget')} body={report.presupuesto} />}
+            {report.respaldo && <InfoCard title={tr('report.planB')} body={report.respaldo} />}
           </div>
         )}
 
         {report.comparativa && (report.comparativa.criterios.length > 0 || report.comparativa.opciones.length > 0) && (
           <div className="card">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">Tus criterios y tus opciones</p>
-            <p className="mb-4 text-sm text-text-muted">Es lo que dijiste vos, ordenado. No es un ranking: la decisión es tuya.</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('report.compare.title')}</p>
+            <p className="mb-4 text-sm text-text-muted">{tr('report.compare.lede')}</p>
             {report.comparativa.criterios.length > 0 && (
               <ol className="mb-4 list-decimal space-y-1 pl-5 text-sm text-foreground">
                 {report.comparativa.criterios.map((c, i) => (
@@ -130,21 +123,21 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
               {report.comparativa.opciones.map((o, i) => (
                 <li key={i} className="rounded-xl border border-border-color p-4 text-sm leading-relaxed">
                   <p className="font-semibold text-foreground">{o.nombre}</p>
-                  {o.aFavor && <p className="mt-1 text-foreground"><span className="font-semibold text-primary">A favor:</span> {o.aFavor}</p>}
-                  {o.enContra && <p className="mt-1 text-foreground"><span className="font-semibold text-accent-ink">En contra:</span> {o.enContra}</p>}
-                  {o.falta && <p className="mt-1 text-text-muted"><span className="font-semibold">Falta verificar:</span> {o.falta}</p>}
+                  {o.aFavor && <p className="mt-1 text-foreground"><span className="font-semibold text-primary">{tr('report.compare.pro')}</span> {o.aFavor}</p>}
+                  {o.enContra && <p className="mt-1 text-foreground"><span className="font-semibold text-accent-ink">{tr('report.compare.con')}</span> {o.enContra}</p>}
+                  {o.falta && <p className="mt-1 text-text-muted"><span className="font-semibold">{tr('report.compare.missing')}</span> {o.falta}</p>}
                 </li>
               ))}
             </ul>
             <p className="mt-3 text-xs text-text-muted">
-              Bivio no tiene datos de la oferta educativa: costos, requisitos y fechas conviene confirmarlos en la página oficial de cada institución.
+              {tr('report.compare.disclaimer')}
             </p>
           </div>
         )}
 
         {report.preguntaAbierta && (
           <div className="ai-tint rounded-2xl p-6" style={{ borderLeft: '3px solid var(--color-accent)' }}>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Para llevarte</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{tr('report.take')}</p>
             <p className="italic leading-relaxed text-foreground">{report.preguntaAbierta}</p>
           </div>
         )}
@@ -160,25 +153,25 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
             disabled={selected.length === 0}
             className="btn-primary flex-1 py-3.5 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Asumir {selected.length || ''} compromiso{selected.length === 1 ? '' : 's'} →
+            {selected.length ? trn('report.take.n', selected.length) : tr('report.take.zero')}
           </button>
         ) : (
           <>
             <button onClick={() => window.print()} className="btn-primary flex-1 py-3.5">
-              Imprimir / guardar PDF
+              {tr('report.print')}
             </button>
             <button onClick={() => setEditing(true)} className="btn-secondary py-3.5">
-              Cambiar compromisos
+              {tr('report.edit')}
             </button>
           </>
         )}
         <button onClick={onRestart} className="rounded-xl border border-border-color px-5 py-3.5 text-sm text-text-muted transition hover:bg-card">
-          Empezar de nuevo
+          {tr('report.restart')}
         </button>
       </div>
       {!editing && (
         <p className="mt-4 text-center text-xs text-text-muted print:hidden">
-          Tus compromisos quedan guardados en este navegador: podés volver y retomar desde acá.
+          {tr('report.saved')}
         </p>
       )}
     </div>

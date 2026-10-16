@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { isLang, type Lang } from '../shared/i18n.js'
 import { generateJson } from './gemini.js'
+import { languageSection } from './prompts.js'
 
-// Flujo de Empresas: el prompt se arma acá, del lado del servidor. Antes el
+// Flujo de Empresas: el prompt se arma aquí, del lado del servidor. Antes el
 // cliente mandaba el prompt completo, lo que convertía /api/analyze en un
 // proxy abierto a Gemini (cualquiera podía usar la key con cualquier prompt).
 
@@ -19,6 +21,8 @@ export interface CompanyRequest {
   contexto: CollaboratorContext
   respuestas: Answers
   pdfBase64?: string
+  /** Idioma de la respuesta (el de la interfaz). */
+  lang?: Lang
 }
 
 const ANSWER_IDS: Record<CaseType, string[]> = {
@@ -33,7 +37,7 @@ const isStr = (v: unknown, max: number): v is string => typeof v === 'string' &&
 
 export function validateCompany(body: unknown): CompanyRequest | null {
   if (typeof body !== 'object' || body === null) return null
-  const { contexto, respuestas, pdfBase64 } = body as Record<string, unknown>
+  const { contexto, respuestas, pdfBase64, lang } = body as Record<string, unknown>
   if (typeof contexto !== 'object' || contexto === null) return null
   const c = contexto as Record<string, unknown>
   if (c.casoTipo !== 'rendimiento' && c.casoTipo !== 'crecimiento') return null
@@ -43,19 +47,21 @@ export function validateCompany(body: unknown): CompanyRequest | null {
   const r = respuestas as Record<string, unknown>
   if (!Object.entries(r).every(([k, v]) => ids.includes(k) && isStr(v, MAX_ANSWER))) return null
   if (pdfBase64 !== undefined && !isStr(pdfBase64, MAX_PDF_BASE64)) return null
+  if (lang !== undefined && !isLang(lang)) return null
   return {
     contexto: { rol: c.rol, seniority: c.seniority, tiempo: c.tiempo, casoTipo: c.casoTipo },
     respuestas: r as Answers,
     pdfBase64: pdfBase64 as string | undefined,
+    lang: lang as Lang | undefined,
   }
 }
 
 // ── Prompts ─────────────────────────────────────────────────────────────────
 
-function buildRendimientoPrompt(ctx: CollaboratorContext, answers: Answers, hasDoc: boolean): string {
-  return `Sos un HR Coach y consultor de Desarrollo Organizacional con 20 años de experiencia en América Latina.
+function buildRendimientoPrompt(ctx: CollaboratorContext, answers: Answers, hasDoc: boolean, lang: Lang): string {
+  return `Eres un HR Coach y consultor de Desarrollo Organizacional con 20 años de experiencia en América Latina.
 
-Tu rol es ayudar a líderes y responsables de RRHH a preparar conversaciones de feedback y gestionar situaciones de rendimiento. Aplicás el modelo GROW y la distinción Aptitud/Actitud para diagnosticar.
+Tu rol es ayudar a líderes y responsables de RRHH a preparar conversaciones de feedback y gestionar situaciones de rendimiento. Aplicas el modelo GROW y la distinción Aptitud/Actitud para diagnosticar.
 
 Un líder o profesional de RRHH consulta sobre un colaborador que está mostrando bajo rendimiento o cambio de comportamiento.
 
@@ -72,15 +78,15 @@ RESPUESTAS DEL LÍDER:
 **Resultado que busca**: ${answers['objetivo'] || '(sin respuesta)'}
 
 ANÁLISIS REQUERIDO:
-- Clasificá la brecha: APTITUD (no sabe o no puede), ACTITUD (no quiere o no está motivado) o MIXTO
-- Identificá si los síntomas apuntan a causas de negocio, equipo, personales o de liderazgo
+- Clasifica la brecha: APTITUD (no sabe o no puede), ACTITUD (no quiere o no está motivado) o MIXTO
+- Identifica si los síntomas apuntan a causas de negocio, equipo, personales o de liderazgo
 - Las hipótesis deben ser preguntas abiertas, no veredictos sobre el colaborador
 - La guía de conversación: qué decir para abrir, preguntas potentes, cómo cerrar con un acuerdo concreto
 - El plan 70-20-10: 70% en el trabajo, 20% de otros, 10% formal
 - Los próximos pasos son para EL LÍDER, no para el colaborador
 - El mensaje al líder debe ser honesto — incluyendo su propio rol en la situación
 
-Respondé ÚNICAMENTE con JSON válido, sin texto adicional:
+Responde ÚNICAMENTE con JSON válido, sin texto adicional:
 {
   "perfilDelColaborador": "2-3 oraciones sobre cómo se ve el colaborador desde lo que describió el líder",
   "situacionCentral": "La tensión o paradoja central de esta situación en 1-2 oraciones",
@@ -101,13 +107,15 @@ Respondé ÚNICAMENTE con JSON válido, sin texto adicional:
   "mensajeParaElLider": "Un párrafo honesto y directo al líder. Con al menos una pregunta que lo invite a reflexionar sobre su propio rol en esta situación."
 }
 
-tipoDeBrecha debe ser exactamente "Aptitud", "Actitud" o "Mixto". Usá vos. Sin frases corporativas vacías. SOLO el JSON.`
+tipoDeBrecha debe ser exactamente "Aptitud", "Actitud" o "Mixto" (sin traducir). Sin frases corporativas vacías. SOLO el JSON.
+
+${languageSection(lang)}`
 }
 
-function buildCrecimientoPrompt(ctx: CollaboratorContext, answers: Answers, hasDoc: boolean): string {
-  return `Sos un HR Coach y consultor de Desarrollo Organizacional con 20 años de experiencia en América Latina.
+function buildCrecimientoPrompt(ctx: CollaboratorContext, answers: Answers, hasDoc: boolean, lang: Lang): string {
+  return `Eres un HR Coach y consultor de Desarrollo Organizacional con 20 años de experiencia en América Latina.
 
-Tu rol es ayudar a líderes y RRHH a diseñar planes de desarrollo y preparar conversaciones de crecimiento de carrera. Aplicás el modelo 70-20-10 y el marco GROW.
+Tu rol es ayudar a líderes y RRHH a diseñar planes de desarrollo y preparar conversaciones de crecimiento de carrera. Aplicas el modelo 70-20-10 y el marco GROW.
 
 Un líder o profesional de RRHH consulta sobre un colaborador que quiere crecer o cambiar de rol/área.
 
@@ -124,15 +132,15 @@ RESPUESTAS DEL LÍDER:
 **Alineación con el negocio**: ${answers['alineacion'] || '(sin respuesta)'}
 
 ANÁLISIS REQUERIDO:
-- Clasificá si el caso es principalmente CRECIMIENTO (dentro del área) o MOVILIDAD (cambio de área/rol)
-- Identificá fortalezas reales que el colaborador tiene pero no está valorando completamente
+- Clasifica si el caso es principalmente CRECIMIENTO (dentro del área) o MOVILIDAD (cambio de área/rol)
+- Identifica fortalezas reales que el colaborador tiene pero no está valorando completamente
 - Las hipótesis deben iluminar lo que el líder todavía no está viendo sobre la situación
 - La guía de conversación es para una 1:1 de carrera: apertura, preguntas de exploración, cierre con plan bilateral
 - El plan 70-20-10 debe ser concreto y ejecutable en los próximos 90 días
 - Los próximos pasos son para EL LÍDER: qué hacer esta semana para activar el desarrollo
 - El mensaje al líder debe reconocer la oportunidad y nombrar la complejidad real
 
-Respondé ÚNICAMENTE con JSON válido, sin texto adicional:
+Responde ÚNICAMENTE con JSON válido, sin texto adicional:
 {
   "perfilDelColaborador": "2-3 oraciones sobre el potencial y el momento de carrera de este colaborador",
   "situacionCentral": "La oportunidad central y la tensión si la hay, en 1-2 oraciones",
@@ -153,10 +161,12 @@ Respondé ÚNICAMENTE con JSON válido, sin texto adicional:
   "mensajeParaElLider": "Un párrafo honesto y motivador al líder. Con al menos una pregunta sobre qué puede hacer él/ella para acelerar este desarrollo."
 }
 
-tipoDeBrecha debe ser exactamente "Crecimiento" o "Movilidad". Usá vos. Sin frases corporativas vacías. SOLO el JSON.`
+tipoDeBrecha debe ser exactamente "Crecimiento" o "Movilidad" (sin traducir). Sin frases corporativas vacías. SOLO el JSON.
+
+${languageSection(lang)}`
 }
 
-export async function runCompanyAnalysis(apiKey: string, req: CompanyRequest): Promise<unknown> {
+export async function runCompanyAnalysis(apiKey: string, req: CompanyRequest, lang: Lang = 'es'): Promise<unknown> {
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel(
     { model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite', generationConfig: { responseMimeType: 'application/json', temperature: 0.5 } },
@@ -165,8 +175,8 @@ export async function runCompanyAnalysis(apiKey: string, req: CompanyRequest): P
   const hasDoc = !!req.pdfBase64
   const prompt =
     req.contexto.casoTipo === 'rendimiento'
-      ? buildRendimientoPrompt(req.contexto, req.respuestas, hasDoc)
-      : buildCrecimientoPrompt(req.contexto, req.respuestas, hasDoc)
+      ? buildRendimientoPrompt(req.contexto, req.respuestas, hasDoc, lang)
+      : buildCrecimientoPrompt(req.contexto, req.respuestas, hasDoc, lang)
   const parts = [
     ...(req.pdfBase64 ? [{ inlineData: { mimeType: 'application/pdf', data: req.pdfBase64 } }] : []),
     { text: prompt },

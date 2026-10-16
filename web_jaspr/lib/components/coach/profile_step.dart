@@ -2,6 +2,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:universal_web/web.dart' as web;
 
+import '../../i18n/i18n.dart';
 import '../../models/docs.dart';
 import '../../models/types.dart';
 import '../../services/coach_api.dart';
@@ -73,18 +74,18 @@ class _ProfileFormState extends State<_ProfileForm> {
       for (final tipo in listos) {
         final d = drafts[tipo]!;
         if (d.mode == DocMode.pdf && d.file != null) {
-          setState(() => status = tipo == DocTipo.cv ? 'Leyendo tu CV…' : 'Leyendo tu perfil de LinkedIn…');
+          setState(() => status = tipo == DocTipo.cv ? tl('flow.reading.cv') : tl('flow.reading.linkedin'));
           documentos.add(ProfileDoc(tipo: tipo, nombre: d.file!.name, texto: await extractPdfText(d.file!)));
         } else {
           documentos.add(ProfileDoc(tipo: tipo, nombre: 'Texto pegado', texto: d.texto.trim()));
         }
       }
-      setState(() => status = documentos.length > 1 ? 'Comparando tu CV y tu LinkedIn como lo haría un reclutador…' : 'Mirándolo como lo haría un reclutador…');
+      setState(() => status = documentos.length > 1 ? tl('profile.busy.both') : tl('profile.busy.one'));
       final lectura = await requestProfileReading(puesto.trim(), documentsToText(documentos) ?? '');
       trackEvent('profile_reading_completed', {'docs': listos.map((e) => e.id).join('+')});
       component.onReading(puesto.trim(), lectura, documentos);
     } catch (e) {
-      if (mounted) setState(() => error = e is ApiException ? e.message : 'Algo falló. Intentá de nuevo.');
+      if (mounted) setState(() => error = e is ApiException ? e.message : tl('flow.err.generic'));
     } finally {
       if (mounted) setState(() => status = null);
     }
@@ -99,7 +100,7 @@ class _ProfileFormState extends State<_ProfileForm> {
           el('div', 'absolute flex items-center justify-center rounded-full bg-background', [coachAvatar()], attrs: {'style': 'inset: 3px'}),
         ]),
         el('p', 'font-display text-xl text-foreground', [t(status!)], attrs: {'role': 'status'}),
-        el('p', 'mt-2 text-sm text-text-muted', [t('Puede tardar unos segundos.')]),
+        el('p', 'mt-2 text-sm text-text-muted', [t(tl('profile.busy.wait'))]),
       ]);
     }
 
@@ -107,25 +108,25 @@ class _ProfileFormState extends State<_ProfileForm> {
     final hasPuesto = puesto.trim().length >= 3;
     final ready = hasPuesto && listos.isNotEmpty;
     // Si el botón está apagado, se le dice a la persona qué falta (en vez de dejarla adivinar).
-    final missing = !hasPuesto ? 'Contame a qué puesto apuntás para poder seguir.' : listos.isEmpty ? 'Falta tu CV o tu LinkedIn: con uno alcanza.' : null;
+    final missing = !hasPuesto ? tl('profile.missing.role') : listos.isEmpty ? tl('profile.missing.doc') : null;
 
     final benefits = [
-      (_eyeIcon(), 'Cómo se lee tu perfil', 'La primera impresión: lo que se entiende en los primeros segundos.'),
-      (_quoteIcon(), 'Lo que funciona y lo que falta', 'Con frases textuales de tu propio perfil, para que veas de dónde sale cada cosa.'),
-      (_pickIcon(), 'Hasta 3 cambios posibles', 'Vos elegís cuáles tomar. Ninguno es obligatorio.'),
+      (_eyeIcon(), tl('profile.b1.title'), tl('profile.b1.body')),
+      (_quoteIcon(), tl('profile.b2.title'), tl('profile.b2.body')),
+      (_pickIcon(), tl('profile.b3.title'), tl('profile.b3.body')),
     ];
 
     return el('div', 'mx-auto max-w-2xl', [
       el('header', 'mb-8 text-center', [
-        el('p', 'mb-2 text-xs font-semibold uppercase tracking-widest text-primary', [t('Camino B · Tu perfil')]),
-        el('h2', 'mb-3', [t('Empecemos por cómo te ve el mercado')]),
+        el('p', 'mb-2 text-xs font-semibold uppercase tracking-widest text-primary', [t(tl('profile.eyebrow'))]),
+        el('h2', 'mb-3', [t(tl('profile.title'))]),
         el('p', 'mx-auto max-w-xl text-lg leading-relaxed text-text-muted', [
-          t('Voy a leer tu perfil como lo haría un reclutador y a contarte, con frases de tu propio perfil, qué comunica hoy. Después lo conversamos con calma.'),
+          t(tl('profile.lede')),
         ]),
       ]),
       when(error != null, () => el('div', 'mb-5 rounded-2xl border border-danger/20 bg-danger-soft p-3.5 text-sm text-danger', [t(error!)], attrs: {'role': 'alert'})),
       el('section', 'card mb-5', [
-        el('h3', 'mb-4', [t('Qué vas a recibir')], id: 'que-recibis'),
+        el('h3', 'mb-4', [t(tl('profile.receive'))], id: 'que-recibis'),
         el('ul', 'grid gap-4 sm:grid-cols-3', [
           for (final (icon, title, body) in benefits)
             el('li', 'flex gap-3 sm:block', [
@@ -137,31 +138,31 @@ class _ProfileFormState extends State<_ProfileForm> {
             ]),
         ], attrs: {'role': 'list'}),
         el('p', 'mt-5 rounded-2xl bg-secondary p-3.5 text-sm leading-relaxed text-text-muted', [
-          el('strong', 'font-semibold text-foreground', [t('Lo que no hago:')]),
-          t(' no reescribo tu CV, no invento logros que no tengas y la nota mide qué tan bien comunica tu perfil, no cuánto valés como profesional.'),
+          el('strong', 'font-semibold text-foreground', [t(tl('profile.wont.strong'))]),
+          t(tl('profile.wont.rest')),
         ]),
       ], attrs: {'aria-labelledby': 'que-recibis'}),
       el('section', 'card mb-5', [
-        _stepTitle(1, 'paso-puesto', '¿A qué tipo de puesto apuntás?'),
-        el('p', 'mb-3 text-sm text-text-muted', [t('La misma experiencia se lee distinto según el puesto al que apuntás. Por eso lo necesito.')]),
+        _stepTitle(1, 'paso-puesto', tl('profile.step1.title')),
+        el('p', 'mb-3 text-sm text-text-muted', [t(tl('profile.step1.hint'))]),
         el('input', 'w-full rounded-2xl border border-border-color bg-background p-3.5 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/15', [],
           id: 'puesto',
-          attrs: {'type': 'text', 'aria-labelledby': 'paso-puesto', 'maxlength': '200', 'placeholder': 'Ej: Product Manager en fintech, Analista de datos senior…'},
+          attrs: {'type': 'text', 'aria-labelledby': 'paso-puesto', 'maxlength': '200', 'placeholder': tl('profile.step1.placeholder')},
           on: events<String>(onInput: (v) => setState(() => puesto = v))),
       ], attrs: {'aria-labelledby': 'paso-puesto'}),
       el('section', 'card mb-5', [
-        _stepTitle(2, 'paso-perfil', 'Mostrame tu perfil'),
-        el('p', 'mb-4 text-sm text-text-muted', [t('Con uno alcanza. Si compartís los dos, además veo si tu CV y tu LinkedIn cuentan la misma historia.')]),
+        _stepTitle(2, 'paso-perfil', tl('profile.step2.title')),
+        el('p', 'mb-4 text-sm text-text-muted', [t(tl('profile.step2.hint'))]),
         el('div', 'space-y-3', [
           for (final tp in DocTipo.values)
             DocSlot(key: ValueKey(tp), tipo: tp, draft: drafts[tp]!, onChange: (d) => setState(() => drafts[tp] = d)),
         ]),
         el('p', 'mt-4 text-xs leading-relaxed text-text-muted', [
-          t('Se lee solo durante esta sesión y no se guarda en ningún servidor. '),
-          anchor('underline underline-offset-2', '#privacidad', [t('Cómo cuidamos tus datos')], external: true),
+          t('${tl('profile.step2.privacy')} '),
+          anchor('underline underline-offset-2', '#privacidad', [t(tl('chat.onb.3.link'))], external: true),
         ]),
       ], attrs: {'aria-labelledby': 'paso-perfil'}),
-      el('button', 'btn-primary w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-40', [t('Ver cómo me lee un reclutador →')],
+      el('button', 'btn-primary w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-40', [t(tl('profile.submit'))],
         attrs: {'type': 'button', if (!ready) 'disabled': '', if (missing != null) 'aria-describedby': 'falta'},
         on: events(onClick: _submit)),
       el('p', 'mt-3 min-h-5 text-center text-sm text-text-muted', [t(missing ?? '')], id: 'falta'),
@@ -214,31 +215,31 @@ class _ReadingViewState extends State<_ReadingView> {
 
     return el('div', 'ai-result mx-auto max-w-2xl', [
       el('div', 'mb-8 text-center', [
-        el('p', 'mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Lectura externa · $puesto')]),
-        el('h2', 'outline-none', [t('Cómo te lee un reclutador')], id: 'lectura-titulo', attrs: {'tabindex': '-1'}),
+        el('p', 'mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted', [t(tl('profile.read.eyebrow', {'role': puesto}))]),
+        el('h2', 'outline-none', [t(tl('flow.h1.profile'))], id: 'lectura-titulo', attrs: {'tabindex': '-1'}),
       ]),
       el('div', 'flex flex-col gap-4', [
         el('div', 'rounded-2xl border border-accent/30 bg-accent-soft p-5', [
           el('div', 'flex items-baseline gap-3', [
-            el('span', 'text-3xl font-semibold text-accent-ink', [t('${lectura.nota}/10')]),
+            el('span', 'text-3xl font-semibold text-accent-ink', [t(tl('profile.read.score', {'n': lectura.nota}))]),
             el('p', 'text-sm font-medium text-accent-ink', [t(lectura.notaComunica)]),
           ]),
           el('p', 'mt-2 text-xs leading-relaxed text-accent-ink', [
-            t('Esta nota mide qué tan bien tu perfil comunica hoy lo que buscan para “$puesto”. No mide cuánto valés como profesional, ni tu formación, ni tu experiencia real.'),
+            t(tl('profile.read.scoreNote', {'role': puesto})),
           ]),
         ]),
         el('div', 'card', [
-          el('p', 'mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Primera impresión')]),
+          el('p', 'mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted', [t(tl('profile.read.first'))]),
           el('p', 'text-sm leading-relaxed text-foreground', [t(lectura.primeraImpresion)]),
           el('p', 'mt-3 text-sm leading-relaxed text-text-muted', [t(lectura.consistenciaMarca)]),
         ]),
         el('div', 'grid gap-4 md:grid-cols-2', [
-          _observationList('Lo que ya comunica bien', lectura.fortalezas),
-          _observationList('Lo que no aparece', lectura.ausencias),
+          _observationList(tl('profile.read.good'), lectura.fortalezas),
+          _observationList(tl('profile.read.missing'), lectura.ausencias),
         ]),
         el('div', 'card', [
-          el('p', 'mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted', [t('Hasta 3 cambios posibles')]),
-          el('p', 'mb-4 text-sm text-text-muted', [t('Son sugerencias. Marcá las que querés tomar; las demás quedan afuera.')]),
+          el('p', 'mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted', [t(tl('profile.read.changes'))]),
+          el('p', 'mb-4 text-sm text-text-muted', [t(tl('profile.read.changesHint'))]),
           el('ul', 'space-y-3', [
             for (final (i, r) in recomendaciones.indexed)
               el('li', null, [
@@ -249,7 +250,7 @@ class _ReadingViewState extends State<_ReadingView> {
                     el('p', 'mt-1 text-sm text-text-muted', [t(r.porQue)]),
                     when(r.cita.isNotEmpty, () => el('p', 'mt-2 border-l-2 border-border-color pl-3', [_cita(r.cita, r.fuente)])),
                     when(r.tipo == 'decision_personal', () => el('p', 'mt-2 inline-block rounded-full bg-secondary px-2.5 py-0.5 text-xs text-text-muted', [
-                      t('Convención de mercado · la decisión es tuya'),
+                      t(tl('profile.read.convention')),
                     ])),
                   ]),
                 ]),
@@ -258,8 +259,8 @@ class _ReadingViewState extends State<_ReadingView> {
         ]),
       ]),
       el('div', 'mt-8 rounded-2xl bg-ink p-6 text-center text-white', [
-        el('p', 'mb-4 text-sm', [t('Ahora lo conversamos: qué te resonó, qué no y qué querés hacer con esto. Esa charla es el Diagnóstico.')], attrs: {'style': 'color: rgba(255,255,255,0.75)'}),
-        btn('rounded-xl bg-card px-7 py-3 font-semibold text-foreground transition hover:shadow-lg active:scale-95', [t('Empezar la conversación →')], onClick: () => component.onContinue(elegidas)),
+        el('p', 'mb-4 text-sm', [t(tl('profile.read.cta'))], attrs: {'style': 'color: rgba(255,255,255,0.75)'}),
+        btn('rounded-xl bg-card px-7 py-3 font-semibold text-foreground transition hover:shadow-lg active:scale-95', [t(tl('profile.read.start'))], onClick: () => component.onContinue(elegidas)),
       ]),
     ]);
   }

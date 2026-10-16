@@ -6,8 +6,10 @@ import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { initMonitoring } from './lib/monitoring'
+import { applyLang } from './lib/i18n'
 import { applyTheme, watchSystemTheme } from './lib/theme'
 
+applyLang()
 applyTheme()
 watchSystemTheme()
 void initMonitoring()

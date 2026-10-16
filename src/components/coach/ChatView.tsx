@@ -1,23 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { STAGE_LABEL, STAGE_ORDER, introFor, objectivesFor } from '../../../shared/stages'
-import { DOC_LABEL } from '../../lib/coach/docs'
+import { STAGE_ORDER, introFor, objectiveLabel, objectivesFor } from '../../../shared/stages'
+import { docLabel } from '../../lib/coach/docs'
+import { getLang, stageLabel, tr, type Key } from '../../lib/i18n'
 import type { DocTipo, Path, Session, Stage } from '../../lib/coach/types'
 import { CoachAvatar } from '../Logo'
 import { DocsPanel } from './DocInputs'
 import { StageMap } from './StageMap'
 
-const NEXT_LABEL: Record<Stage, string> = {
-  diagnostico: 'Seguir a Discovery →',
-  discovery: 'Seguir al Plan de Acción →',
-  plan: 'Ver mi informe y elegir compromisos →',
-}
+const nextLabel = (stage: Stage) => tr(`chat.next.${stage}` as Key)
 
 // Para vencer la hoja en blanco: frases para arrancar que la persona puede editar.
-const STARTERS: Record<Path, string[]> = {
-  quiebre: ['Siento que estoy estancado/a', 'No sé si quedarme o cambiar de trabajo', 'Quiero crecer pero no sé por dónde empezar'],
-  perfil: ['Algo de lo que dice mi perfil me sorprendió', 'Quiero saber qué cambiar primero', 'No me siento reflejado/a en mi perfil'],
-  formacion: ['No sé qué estudiar', 'Estoy entre dos opciones y no puedo decidir', 'Quiero cambiar de rumbo y formarme para eso'],
-}
+const starters = (path: Path) => [1, 2, 3].map((n) => tr(`chat.starters.${path}.${n}` as Key))
 
 interface ChatViewProps {
   session: Session
@@ -79,7 +72,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
 
   return (
     <div className="mx-auto h-full w-full max-w-3xl">
-      <section aria-label="Conversación con tu coach" className="card relative flex h-full min-h-0 flex-col overflow-hidden p-0">
+      <section aria-label={tr('chat.section')} className="card relative flex h-full min-h-0 flex-col overflow-hidden p-0">
         <CardHeader session={session} docStatus={docStatus} onAttachDoc={onAttachDoc} />
 
         {/* Región con scroll propio: enfocable con teclado (tabIndex) para poder leer el historial. */}
@@ -87,13 +80,13 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
           ref={logRef}
           role="log"
           aria-live="polite"
-          aria-label="Conversación"
+          aria-label={tr('chat.log')}
           tabIndex={0}
           className="relative flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6"
         >
           {demo && (
             <div className="rounded-xl border border-accent/30 bg-accent-soft px-4 py-2.5 text-xs text-accent-ink">
-              Modo demo: no hay GEMINI_API_KEY configurada, las respuestas son de guion.
+              {tr('chat.demo')}
             </div>
           )}
 
@@ -120,13 +113,13 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
                     path={session.path}
                     map={session.mapas?.[session.stage]}
                     fallbackText={session.sintesis[session.stage]}
-                    nextLabel={NEXT_LABEL[session.stage]}
+                    nextLabel={nextLabel(session.stage)}
                     onAdvance={onAdvance}
                     onAdjust={() => inputRef.current?.focus()}
                     onResume={(id) => {
                       onResumeTopic(id)
-                      const label = objectivesFor(session.stage, session.path).find((o) => o.id === id)?.label ?? ''
-                      setDraft(`Quiero retomar lo de "${label}".`)
+                      const label = objectiveLabel(id, getLang())
+                      setDraft(tr('chat.resumeDraft', { label }))
                       inputRef.current?.focus()
                     }}
                   />
@@ -141,7 +134,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
             <div role="alert" className="flex items-center justify-between gap-3 rounded-2xl border border-danger/20 bg-danger-soft p-3.5 text-sm text-danger">
               <span>{error}</span>
               <button onClick={onRetry} className="shrink-0 font-semibold underline underline-offset-2">
-                Reintentar
+                {tr('common.retry')}
               </button>
             </div>
           )}
@@ -151,9 +144,9 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
         {/* El cierre no se pierde: aunque la persona siga escribiendo, el botón para seguir queda a la vista. */}
         {session.stageReady && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-primary/20 bg-primary-soft px-4 py-2.5 sm:px-6">
-            <p className="text-sm font-medium text-primary">Tu mapa de {STAGE_LABEL[session.stage]} está listo.</p>
+            <p className="text-sm font-medium text-primary">{tr('chat.mapReady', { stage: stageLabel(session.stage) })}</p>
             <button onClick={onAdvance} className="btn-primary px-5 py-2 text-sm">
-              {NEXT_LABEL[session.stage]}
+              {nextLabel(session.stage)}
             </button>
           </div>
         )}
@@ -172,18 +165,18 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
               }}
               rows={1}
               maxLength={4000}
-              placeholder="Escribí con tus palabras. No hay respuestas correctas."
+              placeholder={tr('chat.placeholder')}
               className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-2 py-1.5 text-base leading-6 outline-none placeholder:text-text-muted/70"
-              aria-label="Tu respuesta"
+              aria-label={tr('chat.answerLabel')}
             />
             <button onClick={send} disabled={!draft.trim() || thinking} className="btn-primary h-11 shrink-0 px-5 text-sm disabled:cursor-not-allowed disabled:opacity-40">
-              Enviar
+              {tr('common.send')}
             </button>
           </div>
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] text-text-muted [@media(max-height:560px)]:hidden">
-            <span>{touch ? 'Tocá Enviar cuando termines' : 'Enter para enviar · Shift+Enter para un salto de línea'}</span>
+            <span>{touch ? tr('chat.hint.touch') : tr('chat.hint.keyboard')}</span>
             <span className="inline-flex items-center gap-1">
-              <LockIcon /> Lo que escribís queda en tu navegador
+              <LockIcon /> {tr('chat.privacy')}
             </span>
           </p>
         </footer>
@@ -201,16 +194,16 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
   const cubiertos = session.cubiertos[session.stage]
   const omitidos = session.omitidos?.[session.stage] ?? []
   const fraction = objetivos.length ? cubiertos.length / objetivos.length : 0
-  const intro = introFor(session.stage, session.path)
-  const docsLabel = session.documentos.length > 0 ? `Tu perfil: ${session.documentos.map((d) => DOC_LABEL[d.tipo]).join(' + ')}` : 'Sumar mi CV o LinkedIn'
+  const intro = introFor(session.stage, session.path, getLang())
+  const docsLabel = session.documentos.length > 0 ? tr('chat.docs.profile', { docs: session.documentos.map((d) => docLabel(d.tipo)).join(' + ') }) : tr('chat.docs.add')
 
   return (
     <header className="border-b border-border-color bg-card px-4 py-3 sm:px-6">
       <div className="flex items-center gap-3">
         <CoachAvatar />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-lg leading-tight text-foreground">Tu coach de carrera</p>
-          <p className="truncate text-xs text-text-muted [@media(max-height:560px)]:hidden">Te escucho, sin apuro.</p>
+          <p className="truncate font-display text-lg leading-tight text-foreground">{tr('chat.title')}</p>
+          <p className="truncate text-xs text-text-muted [@media(max-height:560px)]:hidden">{tr('chat.subtitle')}</p>
         </div>
         <button
           type="button"
@@ -235,9 +228,9 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
       <div className="mt-2.5">
         <div className="flex items-baseline justify-between gap-3 text-xs">
           <p className="font-semibold text-primary">
-            Etapa {idx + 1} de {STAGE_ORDER.length} · {STAGE_LABEL[session.stage]}
+            {tr('chat.stageOf', { n: idx + 1, total: STAGE_ORDER.length, stage: stageLabel(session.stage) })}
           </p>
-          <p className="hidden text-text-muted sm:block">Después: {intro.despues}</p>
+          <p className="hidden text-text-muted sm:block">{tr('chat.after', { next: intro.despues })}</p>
         </div>
         <div className="mt-2 flex gap-1.5" aria-hidden="true">
           {STAGE_ORDER.map((s, i) => (
@@ -249,10 +242,10 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
             </span>
           ))}
         </div>
-        <p className="mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden">Ahora: {intro.queHacemos}</p>
+        <p className="mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden">{tr('chat.now', { what: intro.queHacemos })}</p>
 
         {/* Con poca altura (teclado abierto, celular horizontal) se deja más lugar a la conversación. */}
-        <ul role="list" aria-label="Temas de esta etapa" className="mt-1.5 flex flex-wrap gap-1.5 [@media(max-height:560px)]:hidden">
+        <ul role="list" aria-label={tr('chat.topics')} className="mt-1.5 flex flex-wrap gap-1.5 [@media(max-height:560px)]:hidden">
           {objetivos.map((o) => {
             const done = cubiertos.includes(o.id)
             const dejado = !done && omitidos.includes(o.id)
@@ -269,11 +262,11 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
               <li key={o.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${style}`}>
                 {done && <CheckIcon />}
                 {enFoco && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />}
-                {o.label}
-                {dejado && <span aria-hidden="true">{' '}· para después</span>}
+                {objectiveLabel(o.id, getLang())}
+                {dejado && <span aria-hidden="true">{tr('chat.topic.laterTag')}</span>}
                 {/* El estado no puede depender solo del color o del ícono. */}
                 <span className="sr-only">
-                  {done ? ': ya lo hablamos' : dejado ? ': lo dejaste para más adelante' : enFoco ? ': es de lo que estamos hablando ahora y falta' : ': pendiente'}
+                  {done ? tr('chat.topic.done') : dejado ? tr('chat.topic.later') : enFoco ? tr('chat.topic.focus') : tr('chat.topic.pending')}
                 </span>
               </li>
             )
@@ -291,7 +284,7 @@ function CoachBubble({ text }: { text: string }) {
     <div className="flex items-start gap-3">
       <CoachAvatar size="sm" />
       <div className="max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base">
-        <span className="sr-only">Tu coach: </span>
+        <span className="sr-only">{tr('chat.coachSays')}</span>
         {text}
       </div>
     </div>
@@ -302,7 +295,7 @@ function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
       <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary-soft px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base">
-        <span className="sr-only">Vos: </span>
+        <span className="sr-only">{tr('chat.youSay')}</span>
         {text}
       </div>
     </div>
@@ -314,14 +307,14 @@ function Typing() {
     <div className="flex items-start gap-3">
       <CoachAvatar size="sm" />
       <div className="flex items-center gap-2.5 rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3.5">
-        <span className="sr-only">Tu coach está escribiendo…</span>
+        <span className="sr-only">{tr('chat.typing.sr')}</span>
         <span className="flex gap-1" aria-hidden="true">
           {[0, 1, 2].map((d) => (
             <span key={d} className="h-1.5 w-1.5 rounded-full bg-primary" style={{ animation: `ai-pulse-glow 1.2s ${d * 0.2}s infinite` }} />
           ))}
         </span>
         <span className="text-xs italic text-text-muted" aria-hidden="true">
-          pensando lo que me contás…
+          {tr('chat.typing')}
         </span>
       </div>
     </div>
@@ -332,26 +325,27 @@ function Typing() {
 function Onboarding({ path, onPick }: { path: Path; onPick: (text: string) => void }) {
   return (
     <div className="rounded-2xl border border-border-color bg-secondary/50 p-5 text-sm">
-      <p className="mb-3 font-display text-lg text-foreground">Antes de empezar</p>
+      <p className="mb-3 font-display text-lg text-foreground">{tr('chat.onb.title')}</p>
       <ul className="space-y-2 leading-relaxed text-text-muted">
         <li>
-          <strong className="font-semibold text-foreground">Te voy a escuchar y a hacerte preguntas.</strong> No hay respuestas
-          correctas, y las conclusiones son tuyas: no voy a decidir por vos.
+          <strong className="font-semibold text-foreground">{tr('chat.onb.1.strong')}</strong>
+          {tr('chat.onb.1.rest')}
         </li>
         <li>
-          <strong className="font-semibold text-foreground">Vamos en tres etapas</strong> (Diagnóstico, Discovery y Plan de Acción).
-          Arriba siempre ves dónde estás y qué falta.
+          <strong className="font-semibold text-foreground">{tr('chat.onb.2.strong')}</strong>
+          {tr('chat.onb.2.rest')}
         </li>
         <li>
-          <strong className="font-semibold text-foreground">Podés cerrar y volver.</strong> Tu conversación queda en este navegador.{' '}
+          <strong className="font-semibold text-foreground">{tr('chat.onb.3.strong')}</strong>
+          {tr('chat.onb.3.rest')}{' '}
           <a href="#privacidad" target="_blank" rel="noopener" className="underline underline-offset-2">
-            Cómo cuidamos tus datos
+            {tr('chat.onb.3.link')}
           </a>
         </li>
       </ul>
-      <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wider text-text-muted">¿Te cuesta arrancar? Podés empezar con alguna de estas:</p>
+      <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wider text-text-muted">{tr('chat.onb.stuck')}</p>
       <ul role="list" className="flex flex-wrap gap-2">
-        {STARTERS[path].map((text) => (
+        {starters(path).map((text) => (
           <li key={text}>
             <button type="button" onClick={() => onPick(text)} className="rounded-full border border-border-color bg-card px-3.5 py-2 text-left text-sm text-foreground transition hover:border-primary hover:bg-primary-soft">
               {text}
@@ -367,7 +361,7 @@ function StageDivider({ stage }: { stage: Stage }) {
   return (
     <div className="flex items-center gap-3 py-1">
       <span className="h-px flex-1 bg-border-color" />
-      <span className="text-xs font-semibold uppercase tracking-widest text-text-muted">{STAGE_LABEL[stage]}</span>
+      <span className="text-xs font-semibold uppercase tracking-widest text-text-muted">{stageLabel(stage)}</span>
       <span className="h-px flex-1 bg-border-color" />
     </div>
   )
@@ -378,14 +372,14 @@ function StageDivider({ stage }: { stage: Stage }) {
 function DerivationCard() {
   return (
     <div className="ml-11 max-w-[88%] rounded-2xl border border-primary/20 bg-primary-soft p-4 text-sm text-foreground">
-      <p className="mb-2 font-semibold text-primary">Para esto conviene otra ayuda, y no tenés que resolverlo sola/o</p>
+      <p className="mb-2 font-semibold text-primary">{tr('chat.deriv.title')}</p>
       <ul className="list-disc space-y-1 pl-5">
-        <li>Si hay riesgo inmediato para vos: 911 (emergencias) o 107 (emergencias médicas).</li>
-        <li>Violencia o acoso por motivos de género: Línea 144, gratuita y las 24 horas.</li>
-        <li>Maltrato o acoso laboral: un/a abogado/a laboralista, tu sindicato o la oficina de violencia laboral del Ministerio de Trabajo.</li>
-        <li>Si te está afectando la salud: un/a profesional de salud mental o tu médico/a de cabecera.</li>
+        <li>{tr('chat.deriv.1')}</li>
+        <li>{tr('chat.deriv.2')}</li>
+        <li>{tr('chat.deriv.3')}</li>
+        <li>{tr('chat.deriv.4')}</li>
       </ul>
-      <p className="mt-2 text-xs text-text-muted">Cuando quieras, seguimos acá con lo de tu carrera.</p>
+      <p className="mt-2 text-xs text-text-muted">{tr('chat.deriv.country')} {tr('chat.deriv.after')}</p>
     </div>
   )
 }

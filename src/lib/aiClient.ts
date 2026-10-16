@@ -2,6 +2,7 @@
 // servidor: acá nunca viajan prompts ni secretos, solo los datos del flujo.
 
 import { ACCESS_LOST_EVENT, clearAccessCode, getAccessCode } from './access'
+import { getLang, tr } from './i18n'
 
 const TIMEOUT_MS = 60_000
 
@@ -13,16 +14,16 @@ export async function postJson<T>(url: string, payload: unknown): Promise<T> {
     const code = getAccessCode()
     res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(code ? { 'x-access-code': code } : {}) },
+      headers: { 'Content-Type': 'application/json', 'x-lang': getLang(), ...(code ? { 'x-access-code': code } : {}) },
       body: JSON.stringify(payload),
       signal: controller.signal,
     })
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') {
-      throw new Error('La respuesta está tardando demasiado. Intentá de nuevo.', { cause: e })
+      throw new Error(tr('net.timeout'), { cause: e })
     }
     throw new Error(
-      navigator.onLine ? 'No pudimos conectar con el servidor. Intentá de nuevo.' : 'Parece que no tenés conexión a internet.',
+      navigator.onLine ? tr('net.server') : tr('net.offline'),
       { cause: e },
     )
   } finally {
@@ -35,7 +36,7 @@ export async function postJson<T>(url: string, payload: unknown): Promise<T> {
     window.dispatchEvent(new Event(ACCESS_LOST_EVENT))
   }
   if (!res.ok || json.error) {
-    throw new Error(json.error || 'Algo falló. Intentá de nuevo.')
+    throw new Error(json.error || tr('flow.err.generic'))
   }
   return json
 }
@@ -47,9 +48,9 @@ export interface CompanyPayload {
 }
 
 export async function callCompanyAnalysis(payload: CompanyPayload): Promise<{ data: unknown } | { demo: true }> {
-  const res = await postJson<{ data?: unknown; demo?: boolean }>('/api/analyze', payload)
+  const res = await postJson<{ data?: unknown; demo?: boolean }>('/api/analyze', { ...payload, lang: getLang() })
   if (res.demo) return { demo: true }
-  if (res.data === undefined) throw new Error('La IA no devolvió un análisis válido. Intentá de nuevo.')
+  if (res.data === undefined) throw new Error(tr('net.analysis'))
   return { data: res.data }
 }
 

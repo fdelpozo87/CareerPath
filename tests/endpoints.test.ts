@@ -13,14 +13,18 @@ vi.mock('@google/generative-ai', () => ({
 import { runEndpoint } from '../server/endpoints'
 import { resetRateLimits } from '../server/guard'
 import { askCounts } from '../server/coach'
-import { buildReportPrompt, buildTurnSystemPrompt } from '../server/prompts'
+import { wrongLanguage } from '../server/lang'
+import { buildProfilePrompt, buildReportPrompt, buildTurnSystemPrompt } from '../server/prompts'
+import { en, es } from '../shared/locales/dictionaries'
+import { readFileSync } from 'node:fs'
 
 const KEY = 'test-key'
 let ipCounter = 0
 
-function makeReq(body: unknown, opts: { method?: string; origin?: string | null; ip?: string; code?: string } = {}) {
+function makeReq(body: unknown, opts: { method?: string; origin?: string | null; ip?: string; code?: string; lang?: string } = {}) {
   const headers: Record<string, string> = { host: 'careerpath.test', 'x-forwarded-for': opts.ip ?? `10.0.0.${++ipCounter}` }
   if (opts.code !== undefined) headers['x-access-code'] = opts.code
+  if (opts.lang !== undefined) headers['x-lang'] = opts.lang
   if (opts.origin !== null) headers.origin = opts.origin ?? 'https://careerpath.test'
   return { method: opts.method ?? 'POST', headers, body, socket: {} } as unknown as Parameters<typeof runEndpoint>[1]
 }
@@ -518,7 +522,7 @@ describe('Camino C: decidir en qué formarse', () => {
     // El system prompt va en la configuración del modelo: se prueba directo sobre el constructor.
     const prompt = buildTurnSystemPrompt({ stage: 'diagnostico', path: 'formacion', sintesisPrevias: {} })
     expect(prompt).toContain('mayores de 18')
-    expect(prompt).toContain('No conocés la oferta educativa real')
+    expect(prompt).toContain('No conoces la oferta educativa real')
     expect(prompt).toContain('"proposito"')
     expect(prompt).not.toContain('"goal"')
   })
@@ -553,6 +557,111 @@ describe('Camino C: decidir en qué formarse', () => {
     expect(prompt).toContain('"comparativa"')
     expect(prompt).toContain('sin inventar datos de instituciones')
     expect(buildReportPrompt({ path: 'quiebre', sintesisPrevias: {} })).not.toContain('"comparativa"')
+  })
+})
+
+describe('idiomas: español neutro latinoamericano e inglés', () => {
+  const placeholders = (t: string) => [...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',')
+  // Formas de voseo que no deben quedar en ningún texto en español.
+  const VOSEO = /(?<!\p{L})(vos|sos|tenés|querés|podés|acá|contame|decime|elegí|escribí|mirá|pedí|retomá|volvé|dejá|hacé|usá|preguntá|completá|marcá|empezá|probá|intentá|revisá|ingresá|esperá|entrá|abrí|tocá|subilo|pegá|arrastrá|elegís|escribís|sabés|necesitás|llevás|hablás)(?!\p{L})/iu
+
+  it('los dos idiomas tienen las mismas claves y las mismas variables', () => {
+    expect(Object.keys(en).sort()).toEqual(Object.keys(es).sort())
+    for (const k of Object.keys(es)) expect(placeholders(en[k as keyof typeof en]), k).toBe(placeholders(es[k as keyof typeof es]))
+  })
+
+  it('los diccionarios generados coinciden con los JSON de origen (correr node scripts/gen-i18n.mjs)', () => {
+    const read = (n: string) => JSON.parse(readFileSync(new URL(`../shared/locales/${n}.json`, import.meta.url), 'utf8')) as Record<string, string>
+    expect(read('es')).toEqual(es)
+    expect(read('en')).toEqual(en)
+  })
+
+  it('ningún texto en español usa voseo', () => {
+    const found = Object.entries(es).filter(([, v]) => VOSEO.test(v)).map(([k, v]) => `${k}: ${v}`)
+    expect(found).toEqual([])
+  })
+
+  it('los prompts en español tampoco usan voseo', () => {
+    const base = { stage: 'diagnostico', path: 'quiebre', sintesisPrevias: {} } as const
+    for (const text of [
+      buildTurnSystemPrompt(base),
+      buildTurnSystemPrompt({ ...base, path: 'formacion' }),
+      buildReportPrompt({ path: 'quiebre', sintesisPrevias: {} }),
+      buildProfilePrompt('PM'),
+    ]) {
+      // La directiva de idioma nombra esas palabras justamente para prohibirlas: no cuenta.
+      const hits = text.replace(/.*nada de "vos".*/g, '').match(new RegExp(VOSEO.source, 'giu')) ?? []
+      expect(hits).toEqual([])
+      expect(text).toContain('español neutro latinoamericano')
+    }
+  })
+
+  it('el prompt en inglés pide responder en inglés', () => {
+    const p = buildTurnSystemPrompt({ stage: 'diagnostico', path: 'quiebre', sintesisPrevias: {}, lang: 'en' })
+    expect(p).toContain('Reply ALWAYS in English')
+    expect(p).not.toContain('español neutro latinoamericano')
+    expect(buildReportPrompt({ path: 'quiebre', sintesisPrevias: {}, lang: 'en' })).toContain('Reply ALWAYS in English')
+    expect(buildProfilePrompt('PM', 'en')).toContain('Reply ALWAYS in English')
+  })
+
+  it('el coach en inglés cierra con la pregunta de ajuste en inglés y sin promesas de mapa', async () => {
+    const history = [{ role: 'user', text: 'Hi' }, { role: 'model', text: JSON.stringify({ objetivosCubiertos: ['goal', 'reality', 'options'] }) }, { role: 'user', text: 'Two hours a week.' }]
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'Want to say more about your boss?', objetivosCubiertos: ALL_A, listoParaAvanzar: false }))
+    const r = await runEndpoint('coach', makeReq(turnBody({ history, cubiertos: ['goal', 'reality', 'options'], lang: 'en' })), KEY)
+    expect((r.body as { data: { mensaje: string } }).data.mensaje).toBe('Is there anything you’d like to adjust or add before I put your map together?')
+
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'I will leave your map ready for later.', objetivosCubiertos: ['goal'], listoParaAvanzar: false }))
+    const r2 = await runEndpoint('coach', makeReq(turnBody({ history: [{ role: 'user', text: 'x' }], cubiertos: ['goal'], lang: 'en' })), KEY)
+    const msg = (r2.body as { data: { mensaje: string } }).data.mensaje
+    expect(msg).toContain('Where you are today')
+    expect(msg.toLowerCase()).not.toContain('leave your map')
+  })
+
+  it('detecta si una respuesta salió en el idioma equivocado', () => {
+    expect(wrongLanguage('Hola, cuéntame qué es lo que te trae por aquí hoy y cómo te sientes con tu trabajo.', 'en')).toBe(true)
+    expect(wrongLanguage('Hello, tell me what brings you here today and how you feel about your work.', 'es')).toBe(true)
+    expect(wrongLanguage('Hello, tell me what brings you here today and how you feel about your work.', 'en')).toBe(false)
+    expect(wrongLanguage('Hola, cuéntame qué es lo que te trae por aquí hoy y cómo te sientes con tu trabajo.', 'es')).toBe(false)
+    expect(wrongLanguage('Sí.', 'en')).toBe(false) // demasiado corto para decidir
+    // Un par de palabras en otro idioma (feedback, coach) no cambia el veredicto.
+    expect(wrongLanguage('Me contaste que el feedback de tu jefe te cayó mal; ¿qué fue lo que más te pesó de eso?', 'es')).toBe(false)
+  })
+
+  it('si el coach contesta en el idioma equivocado, se reintenta una vez con más énfasis', async () => {
+    gemini.generateContent
+      .mockResolvedValueOnce(modelReply({ mensaje: 'Hola, cuéntame qué es lo que te trae por aquí hoy y cómo te sientes con tu trabajo.', objetivosCubiertos: [] }))
+      .mockResolvedValueOnce(modelReply({ mensaje: 'Hi, tell me what brings you here today and how you are feeling about your work.', objetivosCubiertos: [] }))
+    const r = await runEndpoint('coach', makeReq(turnBody({ lang: 'en' })), KEY)
+    expect(gemini.generateContent).toHaveBeenCalledTimes(2)
+    expect((r.body as { data: { mensaje: string } }).data.mensaje).toMatch(/^Hi, tell me/)
+    // el segundo intento lleva la nota de énfasis en el último mensaje
+    expect(JSON.stringify(gemini.generateContent.mock.calls[1][0])).toContain('IMPORTANT: your reply must be in English only')
+  })
+
+  it('si la persona escribe en el otro idioma, el coach le contesta en el suyo y no se reintenta', async () => {
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'Hola, cuéntame qué es lo que te trae por aquí hoy y cómo te sientes con tu trabajo.', objetivosCubiertos: [] }))
+    const history = [{ role: 'user', text: 'Me siento estancada en mi trabajo y no sé qué hacer con eso, hace años que lo pienso.' }]
+    await runEndpoint('coach', makeReq(turnBody({ lang: 'en', history })), KEY)
+    expect(gemini.generateContent).toHaveBeenCalledTimes(1)
+  })
+
+  it('si la respuesta ya está en el idioma pedido, no se reintenta', async () => {
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'Hi, tell me what brings you here today and how you are feeling about your work.', objetivosCubiertos: [] }))
+    await runEndpoint('coach', makeReq(turnBody({ lang: 'en' })), KEY)
+    expect(gemini.generateContent).toHaveBeenCalledTimes(1)
+    // la nota de idioma viaja siempre en el último mensaje del usuario
+    expect(JSON.stringify(gemini.generateContent.mock.calls[0][0])).toContain('(Reply in English.)')
+  })
+
+  it('el idioma del pedido se valida', async () => {
+    expect((await runEndpoint('coach', makeReq(turnBody({ lang: 'fr' })), KEY)).status).toBe(400)
+  })
+
+  it('los mensajes de error siguen el idioma del header x-lang (español por defecto)', async () => {
+    const es403 = await runEndpoint('coach', makeReq(turnBody(), { origin: 'https://evil.example' }), KEY)
+    const en403 = await runEndpoint('coach', makeReq(turnBody(), { origin: 'https://evil.example', lang: 'en' }), KEY)
+    expect((es403.body as { error: string }).error).toBe('Origen no permitido')
+    expect((en403.body as { error: string }).error).toBe('Origin not allowed')
   })
 })
 

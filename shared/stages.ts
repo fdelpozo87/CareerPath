@@ -1,6 +1,8 @@
 // Tipos y objetivos de indagación compartidos entre el servidor (prompts) y
 // el cliente (progreso visible de cada etapa).
 
+import { translate, type Key, type Lang } from './i18n.js'
+
 export type Stage = 'diagnostico' | 'discovery' | 'plan'
 // quiebre = Camino A (estancamiento), perfil = Camino B (cómo te lee un reclutador),
 // formacion = Camino C (decidir en qué formarme; solo para mayores de 18).
@@ -15,7 +17,7 @@ export interface StageObjective {
    * Decisión de producto a validar con quien mantiene el guardrail.
    */
   omitible: boolean
-  label: string
+  /** Instrucción para el modelo (no se muestra a la persona). El nombre visible vive en shared/locales (obj.<id>). */
   descripcion: string
 }
 
@@ -23,22 +25,22 @@ export interface StageObjective {
 // cubierto, nunca el texto literal de la pregunta).
 export const STAGE_OBJECTIVES: Record<Stage, StageObjective[]> = {
   diagnostico: [
-    { id: 'goal', omitible: false, label: 'Lo que buscás', descripcion: 'Goal: el objetivo explicitado por la persona con sus propias palabras.' },
-    { id: 'reality', omitible: false, label: 'Dónde estás hoy', descripcion: 'Reality: su situación y el freno que percibe, con datos concretos (hechos que pasaron), no solo juicios.' },
-    { id: 'options', omitible: true, label: 'Tus caminos', descripcion: 'Options: más de un camino visible nombrado por la persona, no uno solo.' },
-    { id: 'will', omitible: true, label: 'Tu compromiso', descripcion: 'Will: qué intentó hasta ahora y cuál es su nivel real de compromiso con moverse.' },
+    { id: 'goal', omitible: false, descripcion: 'Goal: el objetivo explicitado por la persona con sus propias palabras.' },
+    { id: 'reality', omitible: false, descripcion: 'Reality: su situación y el freno que percibe, con datos concretos (hechos que pasaron), no solo juicios.' },
+    { id: 'options', omitible: true, descripcion: 'Options: más de un camino visible nombrado por la persona, no uno solo.' },
+    { id: 'will', omitible: true, descripcion: 'Will: qué intentó hasta ahora y cuál es su nivel real de compromiso con moverse.' },
   ],
   discovery: [
-    { id: 'reencuadre', omitible: true, label: 'Tu obstáculo', descripcion: 'El obstáculo principal reencuadrado con datos propios de la persona, no con su primera lectura.' },
-    { id: 'escenarios', omitible: false, label: 'Tus escenarios', descripcion: 'Al menos 2 escenarios narrados por la persona como su propia historia de transición.' },
-    { id: 'cuatro_c', omitible: true, label: 'Qué te da fuerza', descripcion: 'Qué fortalece o debilita cada escenario en preocupación por el futuro (concern), control, curiosidad y confianza — según la persona.' },
+    { id: 'reencuadre', omitible: true, descripcion: 'El obstáculo principal reencuadrado con datos propios de la persona, no con su primera lectura.' },
+    { id: 'escenarios', omitible: false, descripcion: 'Al menos 2 escenarios narrados por la persona como su propia historia de transición.' },
+    { id: 'cuatro_c', omitible: true, descripcion: 'Qué fortalece o debilita cada escenario en preocupación por el futuro (concern), control, curiosidad y confianza — según la persona.' },
   ],
   plan: [
-    { id: 'objetivo_desarrollo', omitible: false, label: 'Tu objetivo', descripcion: 'Objetivo de desarrollo elegido por la persona (no asignado por vos).' },
-    { id: 'horizonte', omitible: false, label: 'Tu plazo', descripcion: 'Horizonte de tiempo elegido por la persona.' },
-    { id: 'accion_fortaleza', omitible: true, label: 'Desde tu fortaleza', descripcion: 'Al menos una acción anclada en una fortaleza que la persona nombró antes en la conversación (no una que infieras vos).' },
-    { id: 'pedido', omitible: false, label: 'A quién le pedís', descripcion: 'Al menos una acción formulada como pedido explícito (a quién, qué exactamente, para cuándo) y, si corresponde, una oferta (cómo y a quién pone a disposición su valor).' },
-    { id: 'metrica', omitible: true, label: 'Cómo lo seguís', descripcion: 'Métrica de avance y cadencia de check-in definidas por la persona.' },
+    { id: 'objetivo_desarrollo', omitible: false, descripcion: 'Objetivo de desarrollo elegido por la persona (no asignado por ti).' },
+    { id: 'horizonte', omitible: false, descripcion: 'Horizonte de tiempo elegido por la persona.' },
+    { id: 'accion_fortaleza', omitible: true, descripcion: 'Al menos una acción anclada en una fortaleza que la persona nombró antes en la conversación (no una que infieras tú).' },
+    { id: 'pedido', omitible: false, descripcion: 'Al menos una acción formulada como pedido explícito (a quién, qué exactamente, para cuándo) y, si corresponde, una oferta (cómo y a quién pone a disposición su valor).' },
+    { id: 'metrica', omitible: true, descripcion: 'Métrica de avance y cadencia de check-in definidas por la persona.' },
   ],
 }
 
@@ -47,22 +49,22 @@ export const STAGE_OBJECTIVES: Record<Stage, StageObjective[]> = {
 // estos objetivos indagan lo que la persona sabe, quiere y puede, no datos de instituciones.
 export const FORMACION_OBJECTIVES: Record<Stage, StageObjective[]> = {
   diagnostico: [
-    { id: 'proposito', omitible: false, label: 'Lo que querés lograr', descripcion: 'Qué quiere lograr con una formación (cambiar de rumbo, crecer en lo que hace, retomar estudios, especializarse), en sus propias palabras.' },
-    { id: 'situacion', omitible: false, label: 'Tu situación hoy', descripcion: 'Su situación real: si trabaja, qué estudió o intentó antes, dónde vive y qué condiciones tiene (horarios, responsabilidades), con hechos concretos.' },
-    { id: 'alternativas', omitible: true, label: 'Lo que ya evaluás', descripcion: 'Las opciones de formación que ya está considerando (curso, tecnicatura, carrera, posgrado, certificación), o lo que ya descartó y por qué. Puede no tener ninguna todavía.' },
-    { id: 'compromiso', omitible: true, label: 'Lo que podés invertir', descripcion: 'Cuánto tiempo por semana y cuánto dinero (aproximado) puede y quiere dedicar, y por cuánto tiempo.' },
+    { id: 'proposito', omitible: false, descripcion: 'Qué quiere lograr con una formación (cambiar de rumbo, crecer en lo que hace, retomar estudios, especializarse), en sus propias palabras.' },
+    { id: 'situacion', omitible: false, descripcion: 'Su situación real: si trabaja, qué estudió o intentó antes, dónde vive y qué condiciones tiene (horarios, responsabilidades), con hechos concretos.' },
+    { id: 'alternativas', omitible: true, descripcion: 'Las opciones de formación que ya está considerando (curso, tecnicatura, carrera, posgrado, certificación), o lo que ya descartó y por qué. Puede no tener ninguna todavía.' },
+    { id: 'compromiso', omitible: true, descripcion: 'Cuánto tiempo por semana y cuánto dinero (aproximado) puede y quiere dedicar, y por cuánto tiempo.' },
   ],
   discovery: [
-    { id: 'intereses', omitible: false, label: 'Lo que te interesa', descripcion: 'Qué temas o actividades le interesan o le dan energía, con ejemplos concretos de su vida (no etiquetas generales).' },
-    { id: 'aptitudes', omitible: true, label: 'Lo que se te da bien', descripcion: 'Qué hace bien o aprendió con facilidad según ella, y qué quisiera desarrollar. Con ejemplos, no con adjetivos.' },
-    { id: 'criterios', omitible: false, label: 'Tus criterios', descripcion: 'Entre 3 y 5 criterios propios con los que va a comparar opciones (por ejemplo: costo, duración, modalidad, salida laboral, interés por el tema), ordenados por importancia según ella.' },
+    { id: 'intereses', omitible: false, descripcion: 'Qué temas o actividades le interesan o le dan energía, con ejemplos concretos de su vida (no etiquetas generales).' },
+    { id: 'aptitudes', omitible: true, descripcion: 'Qué hace bien o aprendió con facilidad según ella, y qué quisiera desarrollar. Con ejemplos, no con adjetivos.' },
+    { id: 'criterios', omitible: false, descripcion: 'Entre 3 y 5 criterios propios con los que va a comparar opciones (por ejemplo: costo, duración, modalidad, salida laboral, interés por el tema), ordenados por importancia según ella.' },
   ],
   plan: [
-    { id: 'eleccion', omitible: false, label: 'Tu elección', descripcion: 'La opción que ELIGE explorar o encarar primero (la elige ella, no la propone el coach), o cuál sigue evaluando y qué le falta saber.' },
-    { id: 'horizonte', omitible: false, label: 'Tu plazo', descripcion: 'Horizonte de tiempo elegido por la persona para decidir o empezar.' },
-    { id: 'presupuesto', omitible: false, label: 'Tu presupuesto', descripcion: 'Cuánto tiempo y dinero asigna a esta formación (aproximado, definido por ella).' },
-    { id: 'primer_paso', omitible: false, label: 'Tu primer paso', descripcion: 'Una acción concreta para las próximas semanas, formulada con quién o dónde, qué exactamente y para cuándo (por ejemplo: pedir información a una institución, hablar con alguien que ya lo estudió, probar una clase introductoria, inscribirse).' },
-    { id: 'respaldo', omitible: true, label: 'Tu plan B', descripcion: 'Qué haría si la primera opción no funciona (no hay vacante, cambia el costo, no le gusta).' },
+    { id: 'eleccion', omitible: false, descripcion: 'La opción que ELIGE explorar o encarar primero (la elige ella, no la propone el coach), o cuál sigue evaluando y qué le falta saber.' },
+    { id: 'horizonte', omitible: false, descripcion: 'Horizonte de tiempo elegido por la persona para decidir o empezar.' },
+    { id: 'presupuesto', omitible: false, descripcion: 'Cuánto tiempo y dinero asigna a esta formación (aproximado, definido por ella).' },
+    { id: 'primer_paso', omitible: false, descripcion: 'Una acción concreta para las próximas semanas, formulada con quién o dónde, qué exactamente y para cuándo (por ejemplo: pedir información a una institución, hablar con alguien que ya lo estudió, probar una clase introductoria, inscribirse).' },
+    { id: 'respaldo', omitible: true, descripcion: 'Qué haría si la primera opción no funciona (no hay vacante, cambia el costo, no le gusta).' },
   ],
 }
 
@@ -73,11 +75,9 @@ export function objectivesFor(stage: Stage, path: Path = 'quiebre'): StageObject
 
 export const STAGE_ORDER: Stage[] = ['diagnostico', 'discovery', 'plan']
 
-export const STAGE_LABEL: Record<Stage, string> = {
-  diagnostico: 'Diagnóstico',
-  discovery: 'Discovery',
-  plan: 'Plan de Acción',
-}
+// Nombres de etapa, de tema y orientación de cada etapa: viven en shared/locales/{es,en}.json.
+export const stageName = (stage: Stage, lang: Lang = 'es'): string => translate(lang, `stage.${stage}` as Key)
+export const objectiveLabel = (id: string, lang: Lang = 'es'): string => translate(lang, `obj.${id}` as Key)
 
 export const STAGE_COLOR: Record<Stage, string> = {
   // El color primario del tema activo (burdeos en claro, rosa en oscuro). La etapa se distingue por el indicador de pasos, no por el color.
@@ -86,47 +86,11 @@ export const STAGE_COLOR: Record<Stage, string> = {
   plan: 'var(--color-primary)',
 }
 
-// Orientación: qué se hace en cada etapa y qué viene después (para que nadie
-// se pregunte "¿dónde estoy?").
-export const STAGE_INTRO: Record<Stage, { queHacemos: string; despues: string; titulo: string }> = {
-  diagnostico: {
-    titulo: 'Tu mapa del Diagnóstico',
-    queHacemos: 'Entender dónde estás y qué querés',
-    despues: 'Discovery: explorar caminos',
-  },
-  discovery: {
-    titulo: 'Tu mapa de Discovery',
-    queHacemos: 'Explorar caminos posibles',
-    despues: 'Plan de Acción: pasos concretos',
-  },
-  plan: {
-    titulo: 'Tu plan, en tus palabras',
-    queHacemos: 'Convertirlo en pasos concretos',
-    despues: 'Tu informe final',
-  },
-}
-
-export const FORMACION_INTRO: Record<Stage, { queHacemos: string; despues: string; titulo: string }> = {
-  diagnostico: {
-    titulo: 'Tu mapa del Diagnóstico',
-    queHacemos: 'Entender qué querés lograr y con qué condiciones contás',
-    despues: 'Discovery: tus intereses y tus criterios',
-  },
-  discovery: {
-    titulo: 'Tu mapa de Discovery',
-    queHacemos: 'Aclarar qué te interesa y con qué criterios vas a comparar',
-    despues: 'Plan de Acción: elegir y dar el primer paso',
-  },
-  plan: {
-    titulo: 'Tu plan de formación, en tus palabras',
-    queHacemos: 'Elegir por dónde empezar y darle forma',
-    despues: 'Tu informe final',
-  },
-}
-
-/** Orientación de cada etapa según el camino. */
-export function introFor(stage: Stage, path: Path = 'quiebre') {
-  return path === 'formacion' ? FORMACION_INTRO[stage] : STAGE_INTRO[stage]
+/** Orientación de cada etapa según el camino: qué se hace ahora y qué viene después. */
+export function introFor(stage: Stage, path: Path = 'quiebre', lang: Lang = 'es') {
+  const group = path === 'formacion' ? 'formacion' : 'default'
+  const at = (field: string) => translate(lang, `intro.${group}.${stage}.${field}` as Key)
+  return { titulo: at('titulo'), queHacemos: at('queHacemos'), despues: at('despues') }
 }
 
 /** Una pieza del "mapa" con el que cierra cada etapa: lo que la persona dijo, ordenado. */

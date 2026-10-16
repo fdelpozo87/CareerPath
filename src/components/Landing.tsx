@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Path, Session } from '../lib/coach/types'
-import { STAGE_LABEL } from '../../shared/stages'
+import { stageLabel, tr, trn } from '../lib/i18n'
 
 // Pantalla de inicio — Variante 1 del mockup de Lovable ("Dos caminos lado a
 // lado"). Los dos caminos del guardrail (§1 y §4) quedan visibles de entrada.
@@ -36,29 +36,10 @@ function CapIcon() {
   )
 }
 
-const PATHS: { id: Path; tag: string; icon: ReactNode; title: string; body: string; note?: string }[] = [
-  {
-    id: 'quiebre',
-    tag: 'Camino A',
-    icon: <RouteIcon />,
-    title: 'Me siento estancado/a y no sé qué hacer con eso',
-    body: 'Llevás un tiempo con la misma duda: ¿me quedo, intento crecer acá o toca cambiar de rumbo? Podemos ponerle palabras y orden de prioridad a esa pregunta.',
-  },
-  {
-    id: 'perfil',
-    tag: 'Camino B',
-    icon: <SearchIcon />,
-    title: 'Quiero explorar el mercado, empezando por mi perfil',
-    body: 'Te interesan nuevas oportunidades, pero antes de salir a buscar querés saber qué comunica tu perfil hoy para los puestos que te atraen.',
-  },
-  {
-    id: 'formacion',
-    tag: 'Camino C',
-    icon: <CapIcon />,
-    title: 'Quiero decidir qué estudiar o en qué formarme',
-    body: 'Un curso, una tecnicatura, una carrera, un posgrado o un cambio de rumbo. Ordenamos qué querés, qué podés y con qué criterios comparar tus opciones.',
-    note: 'Para mayores de 18 años.',
-  },
+const paths = (): { id: Path; tag: string; icon: ReactNode; title: string; body: string; note?: string }[] => [
+  { id: 'quiebre', tag: tr('landing.pathA.tag'), icon: <RouteIcon />, title: tr('landing.pathA.title'), body: tr('landing.pathA.body') },
+  { id: 'perfil', tag: tr('landing.pathB.tag'), icon: <SearchIcon />, title: tr('landing.pathB.title'), body: tr('landing.pathB.body') },
+  { id: 'formacion', tag: tr('landing.pathC.tag'), icon: <CapIcon />, title: tr('landing.pathC.title'), body: tr('landing.pathC.body'), note: tr('landing.pathC.note') },
 ]
 
 interface LandingProps {
@@ -74,32 +55,31 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
         {saved && (
           <div className="mx-auto mb-12 flex max-w-6xl flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-foreground">Tenés un proceso en curso</p>
+              <p className="text-sm font-semibold text-foreground">{tr('landing.resume.title')}</p>
               <p className="text-sm text-text-muted">
                 {saved.compromisos
-                  ? `Asumiste ${saved.compromisos.length} compromiso${saved.compromisos.length === 1 ? '' : 's'}. Retomá desde ahí.`
+                  ? trn('landing.resume.commitments', saved.compromisos.length)
                   : saved.phase === 'informe'
-                    ? 'Tu informe de cierre te espera para elegir tus compromisos.'
-                    : `Quedaste en ${STAGE_LABEL[saved.stage]}.`}
+                    ? tr('landing.resume.report')
+                    : tr('landing.resume.stage', { stage: stageLabel(saved.stage) })}
               </p>
             </div>
             <button onClick={onResume} className="btn-primary shrink-0 px-5 py-2.5 text-sm">
-              Retomar →
+              {tr('landing.resume.button')}
             </button>
           </div>
         )}
 
         <div className="mx-auto mb-12 max-w-3xl text-center">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">Un momento para decidir</p>
-          <h1 className="mb-5 leading-tight">Antes de empezar: ¿dónde estás parada o parado hoy?</h1>
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">{tr('landing.eyebrow')}</p>
+          <h1 className="mb-5 leading-tight">{tr('landing.title')}</h1>
           <p className="mx-auto max-w-xl text-lg leading-relaxed text-text-muted">
-            Elegí el punto de partida que más se parezca a tu situación. No es un test y no queda nada definido hoy: lo
-            afinamos conversando.
+            {tr('landing.lede')}
           </p>
         </div>
 
         <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {PATHS.map((p) => (
+          {paths().map((p) => (
             <div key={p.id} className="card flex flex-col p-7">
               <div className="mb-6 flex items-center justify-between">
                 <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
@@ -114,7 +94,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
               {p.note && <p className="mb-5 text-xs font-semibold text-text-muted">{p.note}</p>}
               {/* Mismo estilo en los dos: ningún camino se presenta como el recomendado. */}
               <button onClick={() => onChoosePath(p.id)} className="btn-primary w-full py-3">
-                Empezar por acá
+                {tr('landing.start')}
               </button>
             </div>
           ))}
@@ -123,7 +103,7 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
         <div className="mx-auto mt-14 max-w-4xl">
           <div className="glass-stage px-5 py-10 text-center sm:px-10 sm:py-12">
             <p className="glass-kicker mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted">
-              Los tres caminos llevan al mismo proceso acompañado
+              {tr('landing.steps.title')}
             </p>
             <ol className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-3">
               {(['diagnostico', 'discovery', 'plan'] as const).map((s, i) => (
@@ -132,14 +112,14 @@ export default function Landing({ onChoosePath, saved, onResume }: LandingProps)
                     <span className="glass-dot" aria-hidden="true">
                       {i + 1}
                     </span>
-                    <span className="text-sm font-medium">{s === 'discovery' ? 'Exploración de opciones' : STAGE_LABEL[s]}</span>
+                    <span className="text-sm font-medium">{s === 'discovery' ? tr('landing.steps.discovery') : stageLabel(s)}</span>
                   </span>
                   {i < 2 && <span aria-hidden="true" className="glass-link hidden h-px w-6 sm:block" />}
                 </li>
               ))}
             </ol>
             <p className="glass-pill glass-pill--quiet mt-8 text-sm">
-              Conversación guiada con preguntas — no veredictos, ni respuestas automáticas.
+              {tr('landing.steps.note')}
             </p>
           </div>
         </div>

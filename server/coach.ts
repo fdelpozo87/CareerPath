@@ -8,13 +8,15 @@ import {
   type Path,
   type Stage,
 } from './prompts.js'
-import { MAX_OMITIDOS_POR_ETAPA, type SynthesisItem } from '../shared/stages.js'
+import { DEFAULT_LANG, isLang, translate, type Lang } from '../shared/i18n.js'
+import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type SynthesisItem } from '../shared/stages.js'
 import { generateJson, responseText } from './gemini.js'
+import { wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
 
 // Lógica compartida del agente conversacional. La usan api/coach.ts (Vercel)
 // y el middleware de desarrollo en vite.config.ts. La API key y el system
-// prompt viven solo acá: el cliente manda el historial y recibe el turno.
+// prompt viven solo aquí: el cliente manda el historial y recibe el turno.
 
 export interface ChatMessage {
   role: 'user' | 'model'
@@ -51,6 +53,8 @@ type CoachRequest =
       sintesisPrevias: Partial<Record<Stage, string>>
       documentos?: string
       lecturaPerfil?: string
+      /** Idioma de la respuesta (el de la interfaz). */
+      lang?: Lang
     }
   | {
       mode: 'informe'
@@ -59,8 +63,9 @@ type CoachRequest =
       sintesisPrevias: Partial<Record<Stage, string>>
       documentos?: string
       lecturaPerfil?: string
+      lang?: Lang
     }
-  | { mode: 'perfil'; puesto: string; perfilTexto: string }
+  | { mode: 'perfil'; puesto: string; perfilTexto: string; lang?: Lang }
   | { mode: 'extraer'; pdfBase64: string }
 
 export type CoachResponse = { status: number; body: unknown }
@@ -112,7 +117,8 @@ function validate(body: unknown): CoachRequest | null {
         (b.omitidos === undefined || (Array.isArray(b.omitidos) && b.omitidos.length <= 12 && b.omitidos.every((c) => isStr(c, 40)))) &&
         isSintesis(b.sintesisPrevias) &&
         optStr(b.documentos, MAX_CONTEXT) &&
-        optStr(b.lecturaPerfil, MAX_CONTEXT)
+        optStr(b.lecturaPerfil, MAX_CONTEXT) &&
+        (b.lang === undefined || isLang(b.lang))
       )
         return b as CoachRequest
       return null
@@ -122,12 +128,13 @@ function validate(body: unknown): CoachRequest | null {
         isHistory(b.history) &&
         isSintesis(b.sintesisPrevias) &&
         optStr(b.documentos, MAX_CONTEXT) &&
-        optStr(b.lecturaPerfil, MAX_CONTEXT)
+        optStr(b.lecturaPerfil, MAX_CONTEXT) &&
+        (b.lang === undefined || isLang(b.lang))
       )
         return b as CoachRequest
       return null
     case 'perfil':
-      if (isStr(b.puesto, 200) && (b.puesto as string).trim() && isStr(b.perfilTexto, MAX_CONTEXT) && (b.perfilTexto as string).trim().length >= 80)
+      if (isStr(b.puesto, 200) && (b.puesto as string).trim() && isStr(b.perfilTexto, MAX_CONTEXT) && (b.perfilTexto as string).trim().length >= 80 && (b.lang === undefined || isLang(b.lang)))
         return b as CoachRequest
       return null
     case 'extraer':
@@ -138,8 +145,13 @@ function validate(body: unknown): CoachRequest | null {
   }
 }
 
-function toContents(history: ChatMessage[]): Content[] {
-  return history.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
+function toContents(history: ChatMessage[], lang: Lang, extra = ''): Content[] {
+  const contents: Content[] = history.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
+  // El historial puede estar en otro idioma (la persona cambió el idioma de la interfaz a mitad de la
+  // charla) y el modelo tiende a seguir al historial: una nota en el último mensaje fija el idioma.
+  const last = contents.at(-1)
+  if (last && last.role === 'user') last.parts = [{ text: `${last.parts[0].text}\n\n${translate(lang, 'srv.langNote')}${extra ? `\n${extra}` : ''}` }]
+  return contents
 }
 
 /**
@@ -163,8 +175,7 @@ export function askCounts(history: ChatMessage[], stage: Stage, cubiertos: strin
 }
 
 // La pregunta de cierre de cada etapa: corta y sin resumen (el resumen es el mapa de pantalla).
-const ADJUST_QUESTION = '¿Hay algo que quieras ajustar o sumar antes de que te arme el mapa?'
-const ASKS_TO_ADJUST = /ajust|sumar|agreg|modific|cambiar algo/i
+const ASKS_TO_ADJUST: Record<Lang, RegExp> = { es: /ajust|sumar|agreg|modific|cambiar algo/i, en: /adjust|add|change|edit|anything/i }
 
 /** ¿El último turno del coach ya tenía todos los temas cubiertos u omitidos? (o sea, ya hizo la pregunta de cierre) */
 function previousTurnWasComplete(history: ChatMessage[], valid: string[]): boolean {
@@ -182,20 +193,20 @@ function previousTurnWasComplete(history: ChatMessage[], valid: string[]): boole
   }
 }
 
-const MAP_WORD = /\bmapa\b/i
+const MAP_WORD: Record<Lang, RegExp> = { es: /\bmapa\b/i, en: /\bmap\b/i }
 
 /**
  * Mientras falte un tema obligatorio la etapa no puede cerrar: no hay mapa que prometer. Si el
  * modelo igual lo promete ("te dejo armado tu mapa"), se saca esa frase para que la persona no
  * espere algo que no va a aparecer; si no queda nada, se dice la verdad con calidez.
  */
-function withoutMapPromise(mensaje: string, pendingLabel: string): string {
+function withoutMapPromise(mensaje: string, pendingLabel: string, lang: Lang): string {
   const sentences = mensaje.split(/(?<=[.!?…])\s+/)
-  const kept = sentences.filter((sentence) => !MAP_WORD.test(sentence))
+  const kept = sentences.filter((sentence) => !MAP_WORD[lang].test(sentence))
   if (kept.length === sentences.length) return mensaje
   const rest = kept.join(' ').trim()
   if (rest.length >= 20) return rest
-  return `Para armarte el mapa me falta que me cuentes sobre "${pendingLabel}". Si hoy no tenés ganas, podemos frenar acá: tu conversación queda guardada y la retomás cuando quieras.`
+  return translate(lang, 'srv.noMapPromise', { topic: pendingLabel })
 }
 
 const MAX_ITEM_TEXT = 400
@@ -242,6 +253,7 @@ function normalizeTurn(
   etapaCerrada = false,
   prevOmitidos: string[] = [],
   path: Path = 'quiebre',
+  lang: Lang = DEFAULT_LANG,
 ): TurnResult {
   const objetivos = objectivesFor(stage, path)
   const valid = objetivos.map((o) => o.id)
@@ -277,7 +289,7 @@ function normalizeTurn(
   // trae un mapa nuevo: si no, el cliente conserva el anterior.
   const dejados: SynthesisItem[] =
     modelItems.length > 0
-      ? omitidos.map((id) => ({ id, texto: 'Lo dejaste para más adelante. Cuando quieras, lo retomamos.', cita: '', omitido: true }))
+      ? omitidos.map((id) => ({ id, texto: translate(lang, 'map.later'), cita: '', omitido: true }))
       : []
   const items = [...modelItems, ...dejados].sort((x, y) => valid.indexOf(x.id) - valid.indexOf(y.id))
 
@@ -286,8 +298,8 @@ function normalizeTurn(
   // las etapas siguientes lo usan como contexto.
   let sintesis = rawSintesis || modelItems.map((i) => i.texto).join(' ')
   if (listo && sintesis && omitidos.length > 0) {
-    const nombres = omitidos.map((id) => objetivos.find((o) => o.id === id)?.label.toLowerCase() ?? id).join(', ')
-    sintesis += ` Dejó para más adelante: ${nombres}.`
+    const nombres = omitidos.map((id) => objectiveLabel(id, lang).toLowerCase()).join(', ')
+    sintesis += ` ${translate(lang, 'srv.leftLater', { topics: nombres })}`
   }
 
   // El tema en foco solo vale si es de esta etapa y sigue pendiente; al cerrar no hay ninguno.
@@ -300,24 +312,24 @@ function normalizeTurn(
     typeof raw.mensaje === 'string' && raw.mensaje.trim()
       ? raw.mensaje.trim()
       : listo
-        ? 'Gracias por contármelo con tanta claridad. Armé un mapa con lo que fuimos hablando: fijate si te representa.'
-        : '¿Me contás un poco más?'
-  if (preguntaDeCierrePendiente && !(ASKS_TO_ADJUST.test(mensaje) && mensaje.includes('?'))) {
+        ? translate(lang, 'srv.fallback.closing')
+        : translate(lang, 'srv.fallback.more')
+  if (preguntaDeCierrePendiente && !(ASKS_TO_ADJUST[lang].test(mensaje) && mensaje.includes('?'))) {
     // Se conserva lo que haya dicho para reconocer a la persona, sin sus preguntas ni resúmenes, y se pregunta.
     const ack = mensaje
       .split(/(?<=[.!?…])\s+/)
-      .filter((sentence) => !sentence.trim().endsWith('?') && !MAP_WORD.test(sentence))
+      .filter((sentence) => !sentence.trim().endsWith('?') && !MAP_WORD[lang].test(sentence))
       .slice(0, 1)
       .join(' ')
       .trim()
-    mensaje = `${ack ? `${ack} ` : ''}${ADJUST_QUESTION}`
+    mensaje = `${ack ? `${ack} ` : ''}${translate(lang, 'srv.close.question')}`
   }
   if (!completos) {
     // Mientras falte un tema no hay mapa que prometer. Se nombra primero el tema por el que más veces se preguntó.
     const pendientes = valid.filter((id) => !cubiertos.includes(id) && !omitidos.includes(id))
     const masPreguntado = [...pendientes].sort((x, y) => (asked[y] ?? 0) - (asked[x] ?? 0))[0]
-    const label = objetivos.find((o) => o.id === masPreguntado)?.label ?? 'lo que falta'
-    mensaje = withoutMapPromise(mensaje, label)
+    const label = masPreguntado ? objectiveLabel(masPreguntado, lang) : translate(lang, 'srv.fallback.topic')
+    mensaje = withoutMapPromise(mensaje, label, lang)
   }
 
   return {
@@ -333,7 +345,7 @@ function normalizeTurn(
   }
 }
 
-async function runWithGemini(apiKey: string, req: CoachRequest): Promise<unknown> {
+async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Promise<unknown> {
   const genAI = new GoogleGenerativeAI(apiKey)
   const modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
   const generationConfig = { responseMimeType: 'application/json', temperature: 0.6 }
@@ -343,22 +355,31 @@ async function runWithGemini(apiKey: string, req: CoachRequest): Promise<unknown
     case 'turno': {
       const model = genAI.getGenerativeModel({
         model: modelName,
-        systemInstruction: buildTurnSystemPrompt({ ...req, intentos: askCounts(req.history, req.stage, req.cubiertos, req.omitidos, req.path) }),
+        systemInstruction: buildTurnSystemPrompt({ ...req, lang, intentos: askCounts(req.history, req.stage, req.cubiertos, req.omitidos, req.path) }),
         generationConfig,
       }, requestOptions)
-      const raw = await generateJson<Partial<TurnResult>>(async () =>
-        responseText((await model.generateContent({ contents: toContents(req.history) })).response, 'turno'),
-      )
-      return normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path)
+      const run = (extra = '') =>
+        generateJson<Partial<TurnResult>>(async () =>
+          responseText((await model.generateContent({ contents: toContents(req.history, lang, extra) })).response, 'turno'),
+        )
+      let raw = await run()
+      // Salió en el idioma equivocado (suele pasar si el historial está en el otro idioma): una segunda vez, con más énfasis.
+      // Si la persona misma está escribiendo en el otro idioma, el coach le contesta en el suyo y no se reintenta.
+      const lastUser = [...req.history].reverse().find((m) => m.role === 'user')?.text ?? ''
+      if (typeof raw.mensaje === 'string' && wrongLanguage(raw.mensaje, lang) && !wrongLanguage(lastUser, lang)) {
+        logEvent('warn', 'coach_idioma_equivocado', { lang })
+        raw = await run(translate(lang, 'srv.langRetry'))
+      }
+      return normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path, lang)
     }
     case 'informe': {
       const model = genAI.getGenerativeModel({
         model: modelName,
-        systemInstruction: buildReportPrompt(req),
+        systemInstruction: buildReportPrompt({ ...req, lang }),
         generationConfig: { ...generationConfig, temperature: 0.3 },
       }, requestOptions)
-      const contents = toContents(req.history)
-      contents.push({ role: 'user', parts: [{ text: '(Fin de la conversación. Generá el informe de cierre en JSON.)' }] })
+      const contents = toContents(req.history, lang)
+      contents.push({ role: 'user', parts: [{ text: `${translate(lang, 'srv.reportEnd')}\n${translate(lang, 'srv.langNote')}` }] })
       return generateJson(async () => responseText((await model.generateContent({ contents })).response, 'informe'))
     }
     case 'perfil': {
@@ -367,7 +388,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest): Promise<unknown
         (
           await model.generateContent([
             { text: `PERFIL:\n"""\n${req.perfilTexto}\n"""` },
-            { text: buildProfilePrompt(req.puesto) },
+            { text: buildProfilePrompt(req.puesto, lang) },
           ])
         ).response.text(),
       )
@@ -391,40 +412,40 @@ async function runWithGemini(apiKey: string, req: CoachRequest): Promise<unknown
 
 const DEMO_QUESTIONS: Record<Stage, string[]> = {
   diagnostico: [
-    '— MODO DEMO — Contame con tus palabras: ¿qué te gustaría que cambie a partir de esta conversación?',
+    '— MODO DEMO — Cuéntame con tus palabras: ¿qué te gustaría que cambie a partir de esta conversación?',
     'Gracias. ¿Qué pasó concretamente la última vez que sentiste ese freno? Me interesa el hecho, no tanto la conclusión.',
     'Si hoy te imaginaras más de un camino posible, ¿cuáles aparecerían?',
-    '¿Qué intentaste hasta ahora para moverte, y qué tan dispuesto/a te sentís a hacer algo distinto?',
+    '¿Qué intentaste hasta ahora para moverte, y qué tan dispuesto/a te sientes a hacer algo distinto?',
   ],
   discovery: [
-    '— MODO DEMO — Mirando lo que dijiste en el Diagnóstico, ¿cómo describirías hoy el obstáculo principal, con los datos que tenés?',
-    'Contame dos escenarios posibles para los próximos meses, como si fueran dos historias distintas.',
+    '— MODO DEMO — Mirando lo que dijiste en el Diagnóstico, ¿cómo describirías hoy el obstáculo principal, con los datos que tienes?',
+    'Cuéntame dos escenarios posibles para los próximos meses, como si fueran dos historias distintas.',
     'En cada escenario, ¿qué te da más control, curiosidad o confianza, y qué te preocupa?',
   ],
   plan: [
-    '— MODO DEMO — De todo lo que exploraste, ¿qué objetivo de desarrollo elegís trabajar?',
-    '¿En qué plazo querés verlo en movimiento?',
+    '— MODO DEMO — De todo lo que exploraste, ¿qué objetivo de desarrollo eliges trabajar?',
+    '¿En qué plazo quieres verlo en movimiento?',
     'Antes nombraste una fortaleza tuya. ¿Qué acción concreta podrías apoyar en ella?',
     '¿A quién le podrías pedir algo concreto para avanzar, qué le pedirías y para cuándo?',
-    '¿Cómo vas a saber que avanzás, y cada cuánto querés revisarlo?',
+    '¿Cómo vas a saber que avanzas, y cada cuánto quieres revisarlo?',
   ],
 }
 
 const DEMO_QUESTIONS_C: Record<Stage, string[]> = {
   diagnostico: [
-    '— MODO DEMO — Contame con tus palabras: ¿qué te gustaría lograr con una formación?',
-    '¿Cómo es tu situación hoy: trabajás, estudiaste antes, qué tiempo tenés?',
+    '— MODO DEMO — Cuéntame con tus palabras: ¿qué te gustaría lograr con una formación?',
+    '¿Cómo es tu situación hoy: trabajas, estudiaste antes, qué tiempo tienes?',
     '¿Qué opciones de formación ya estás mirando, si es que hay alguna?',
     '¿Cuánto tiempo por semana y cuánto dinero, aproximado, podrías dedicarle?',
   ],
   discovery: [
-    '— MODO DEMO — ¿Qué temas o actividades te dan energía? Contame un ejemplo concreto.',
+    '— MODO DEMO — ¿Qué temas o actividades te dan energía? Cuéntame un ejemplo concreto.',
     '¿Qué se te da bien, o qué aprendiste con facilidad?',
     'Si tuvieras que comparar opciones, ¿qué 3 criterios usarías, de más a menos importante?',
   ],
   plan: [
-    '— MODO DEMO — De todo lo que viste, ¿qué opción elegís explorar primero?',
-    '¿En qué plazo querés decidir o empezar?',
+    '— MODO DEMO — De todo lo que viste, ¿qué opción eliges explorar primero?',
+    '¿En qué plazo quieres decidir o empezar?',
     '¿Cuánto tiempo y dinero le vas a asignar?',
     '¿Cuál sería tu primer paso concreto, con quién o dónde y para cuándo?',
     'Si esa opción no funciona, ¿cuál sería tu plan B?',
@@ -447,10 +468,10 @@ function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
       objetivosCubiertos: cubiertos,
       listoParaAvanzar: true,
       derivacion: false,
-      sintesisEtapa: 'Síntesis de demo: acá aparece un resumen en segunda persona, con tus propias palabras entre comillas.',
+      sintesisEtapa: 'Síntesis de demo: aquí aparece un resumen en segunda persona, con tus propias palabras entre comillas.',
       sintesisItems: ids.map((id) => ({
         id,
-        texto: 'Acá aparece, en una o dos oraciones, lo que dijiste sobre este tema, con tus palabras.',
+        texto: 'Aquí aparece, en una o dos oraciones, lo que dijiste sobre este tema, con tus palabras.',
         cita: '',
       })),
       preguntaPuente: '— MODO DEMO — ¿Qué te gustaría descubrir en la próxima etapa?',
@@ -504,17 +525,17 @@ function runDemo(req: CoachRequest): unknown {
       return {
         primeraImpresion: '— MODO DEMO — El perfil comunica experiencia técnica sólida, pero no queda claro hacia qué rol apunta.',
         fortalezas: [{ observacion: 'Muestra continuidad y profundidad en el área.', cita: '(cita textual del perfil)', fuente: 'CV' }],
-        ausencias: [{ observacion: 'No aparecen resultados medibles de los proyectos que mencionás.', cita: '', fuente: '' }],
+        ausencias: [{ observacion: 'No aparecen resultados medibles de los proyectos que mencionas.', cita: '', fuente: '' }],
         consistenciaMarca: 'El titular y la experiencia apuntan a lugares distintos.',
         recomendaciones: [
-          { cambio: 'Alinear el titular con el puesto al que apuntás.', porQue: 'Es lo primero que lee quien filtra.', cita: '(cita textual)', fuente: 'LinkedIn', tipo: 'mercado' },
-          { cambio: 'Si querés, sumar una foto profesional.', porQue: 'Es convención de mercado, no un requisito: la decisión es tuya.', cita: '', tipo: 'decision_personal' },
+          { cambio: 'Alinear el titular con el puesto al que apuntas.', porQue: 'Es lo primero que lee quien filtra.', cita: '(cita textual)', fuente: 'LinkedIn', tipo: 'mercado' },
+          { cambio: 'Si quieres, sumar una foto profesional.', porQue: 'Es convención de mercado, no un requisito: la decisión es tuya.', cita: '', tipo: 'decision_personal' },
         ],
         nota: 6,
         notaComunica: 'Tu perfil hoy comunica más "especialista técnico" que "candidato a liderar".',
       }
     case 'extraer':
-      return { texto: '(Modo demo: el texto del CV aparecería acá.)' }
+      return { texto: '(Modo demo: el texto del CV aparecería aquí.)' }
   }
 }
 
@@ -524,9 +545,11 @@ export function coachMode(body: unknown): string | undefined {
   return typeof mode === 'string' ? mode : undefined
 }
 
-export async function handleCoachRequest(body: unknown, apiKey: string | undefined): Promise<CoachResponse> {
+export async function handleCoachRequest(body: unknown, apiKey: string | undefined, headerLang: Lang = DEFAULT_LANG): Promise<CoachResponse> {
   const req = validate(body)
-  if (!req) return { status: 400, body: { error: 'Payload inválido' } }
+  if (!req) return { status: 400, body: { error: translate(headerLang, 'srv.badPayload') } }
+  // El idioma del pedido manda; si no viene, el del header (el de la interfaz).
+  const lang: Lang = ('lang' in req && req.lang) || headerLang
 
   if (!apiKey) {
     if (req.mode === 'turno' || req.mode === 'informe') await new Promise((r) => setTimeout(r, 600))
@@ -534,9 +557,9 @@ export async function handleCoachRequest(body: unknown, apiKey: string | undefin
   }
 
   try {
-    return { status: 200, body: { data: await runWithGemini(apiKey, req) } }
+    return { status: 200, body: { data: await runWithGemini(apiKey, req, lang) } }
   } catch (e) {
-    const pub = publicError(e)
+    const pub = publicError(e, lang)
     logEvent('error', 'coach_upstream_error', { mode: req.mode, error: e instanceof Error ? e : String(e) })
     return { status: pub.status, body: { error: pub.message } }
   }

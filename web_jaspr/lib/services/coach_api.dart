@@ -4,6 +4,7 @@ import 'dart:js_interop';
 import 'package:universal_web/web.dart' as web;
 
 import '../models/types.dart';
+import '../i18n/i18n.dart';
 import 'http.dart';
 
 // Cliente de /api/coach (server/coach.ts). El system prompt y la API key viven del lado del
@@ -21,7 +22,7 @@ class CoachResponse<T> {
 Future<CoachResponse<Map<String, dynamic>>> _post(Map<String, Object?> payload) async {
   final json = await postJson('/api/coach', payload);
   final data = json['data'];
-  if (data is! Map<String, dynamic>) throw ApiException('No pudimos conectar con el coach. Intentá de nuevo.');
+  if (data is! Map<String, dynamic>) throw ApiException(tl('net.coach'));
   return CoachResponse(data, json['demo'] == true);
 }
 
@@ -54,6 +55,7 @@ String? documentsToText(List<ProfileDoc> docs) {
 }
 
 Map<String, Object?> _shared(Session s) => {
+  'lang': currentLang.code,
   'path': s.path.id,
   'history': _toHistory(s.messages),
   'sintesisPrevias': {for (final e in s.sintesis.entries) e.key.id: e.value},
@@ -77,7 +79,7 @@ Future<CoachResponse<TurnResult>> requestTurn(Session s) async {
 Future<Report> requestReport(Session s) async => Report.fromJson((await _post({'mode': 'informe', ..._shared(s)})).data);
 
 Future<ProfileReading> requestProfileReading(String puesto, String perfilTexto) async =>
-    ProfileReading.fromJson((await _post({'mode': 'perfil', 'puesto': puesto, 'perfilTexto': perfilTexto})).data);
+    ProfileReading.fromJson((await _post({'mode': 'perfil', 'lang': currentLang.code, 'puesto': puesto, 'perfilTexto': perfilTexto})).data);
 
 /// Lee el PDF en el navegador y le pide al servidor que extraiga el texto.
 Future<String> extractPdfText(web.File file) async {

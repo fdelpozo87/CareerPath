@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "access:code": "node scripts/gen-access-code.mjs"
+    "access:code": "node scripts/gen-access-code.mjs",
+    "i18n": "node scripts/gen-i18n.mjs",
+    "i18n:check": "node scripts/gen-i18n.mjs --check"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

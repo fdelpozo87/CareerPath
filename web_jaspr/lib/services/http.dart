@@ -4,6 +4,7 @@ import 'dart:js_interop';
 
 import 'package:universal_web/web.dart' as web;
 
+import '../i18n/i18n.dart';
 import 'access.dart';
 
 // Cliente HTTP compartido para /api/*. La API key de Gemini vive solo en el servidor: acá nunca
@@ -27,7 +28,7 @@ Future<Map<String, dynamic>> postJson(String path, Object? payload, {bool withCo
   final timer = Timer(_timeout, () => controller.abort());
   final web.Response res;
   try {
-    final headers = web.Headers()..append('Content-Type', 'application/json');
+    final headers = web.Headers()..append('Content-Type', 'application/json')..append('x-lang', currentLang.code);
     final code = getAccessCode();
     if (withCode && code != null) headers.append('x-access-code', code);
     res = await web.window
@@ -37,11 +38,11 @@ Future<Map<String, dynamic>> postJson(String path, Object? payload, {bool withCo
         )
         .toDart;
   } catch (e) {
-    if (controller.signal.aborted) throw ApiException('La respuesta está tardando demasiado. Intentá de nuevo.');
+    if (controller.signal.aborted) throw ApiException(tl('net.timeout'));
     throw ApiException(
       web.window.navigator.onLine
-          ? 'No pudimos conectar con el servidor. Intentá de nuevo.'
-          : 'Parece que no tenés conexión a internet.',
+          ? tl('net.server')
+          : tl('net.offline'),
     );
   } finally {
     timer.cancel();
@@ -61,7 +62,7 @@ Future<Map<String, dynamic>> postJson(String path, Object? payload, {bool withCo
     web.window.dispatchEvent(web.Event(accessLostEvent));
   }
   if (!res.ok || json['error'] != null) {
-    throw ApiException((json['error'] as String?) ?? 'Algo falló. Intentá de nuevo.');
+    throw ApiException((json['error'] as String?) ?? tl('flow.err.generic'));
   }
   return json;
 }

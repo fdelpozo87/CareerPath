@@ -1,5 +1,6 @@
 import 'package:universal_web/web.dart' as web;
 
+import '../i18n/i18n.dart';
 import '../services/coach_api.dart' show maxPdfBytes;
 
 // Borrador de un documento (CV o LinkedIn) mientras la persona lo carga.
@@ -20,7 +21,7 @@ class DocDraft {
 
 /// Valida un PDF; devuelve un mensaje de error o null.
 String? checkPdf(web.File f) {
-  if (!(f.type == 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) return 'Solo aceptamos PDF.';
-  if (f.size > maxPdfBytes) return 'El PDF supera los 3 MB. Probá exportarlo de nuevo o pegá el texto.';
+  if (!(f.type == 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) return tl('docs.err.type');
+  if (f.size > maxPdfBytes) return tl('docs.err.size');
   return null;
 }

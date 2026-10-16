@@ -1,14 +1,17 @@
+import '../i18n/i18n.dart';
+
 // Etapas y objetivos de indagación (espejo de shared/stages.ts). La lógica de qué cubre cada
 // etapa vive en el servidor; acá solo lo necesario para mostrar el progreso.
 
 enum Stage {
-  diagnostico('diagnostico', 'Diagnóstico'),
-  discovery('discovery', 'Discovery'),
-  plan('plan', 'Plan de Acción');
+  diagnostico('diagnostico'),
+  discovery('discovery'),
+  plan('plan');
 
-  const Stage(this.id, this.label);
+  const Stage(this.id);
   final String id;
-  final String label;
+  /// Nombre de la etapa en el idioma actual.
+  String get label => tl('stage.$id');
 
   static Stage parse(String? id) => Stage.values.firstWhere((s) => s.id == id, orElse: () => Stage.diagnostico);
 
@@ -29,9 +32,11 @@ enum CoachPath {
 }
 
 class StageObjective {
-  const StageObjective(this.id, this.label, {required this.omitible});
+  const StageObjective(this.id, {required this.omitible});
   final String id;
-  final String label;
+
+  /// Nombre del tema en el idioma actual.
+  String get label => tl('obj.$id');
 
   /// La persona puede dejarlo "para más adelante" y la etapa cierra igual.
   final bool omitible;
@@ -39,22 +44,22 @@ class StageObjective {
 
 const stageObjectives = <Stage, List<StageObjective>>{
   Stage.diagnostico: [
-    StageObjective('goal', 'Lo que buscás', omitible: false),
-    StageObjective('reality', 'Dónde estás hoy', omitible: false),
-    StageObjective('options', 'Tus caminos', omitible: true),
-    StageObjective('will', 'Tu compromiso', omitible: true),
+    StageObjective('goal', omitible: false),
+    StageObjective('reality', omitible: false),
+    StageObjective('options', omitible: true),
+    StageObjective('will', omitible: true),
   ],
   Stage.discovery: [
-    StageObjective('reencuadre', 'Tu obstáculo', omitible: true),
-    StageObjective('escenarios', 'Tus escenarios', omitible: false),
-    StageObjective('cuatro_c', 'Qué te da fuerza', omitible: true),
+    StageObjective('reencuadre', omitible: true),
+    StageObjective('escenarios', omitible: false),
+    StageObjective('cuatro_c', omitible: true),
   ],
   Stage.plan: [
-    StageObjective('objetivo_desarrollo', 'Tu objetivo', omitible: false),
-    StageObjective('horizonte', 'Tu plazo', omitible: false),
-    StageObjective('accion_fortaleza', 'Desde tu fortaleza', omitible: true),
-    StageObjective('pedido', 'A quién le pedís', omitible: false),
-    StageObjective('metrica', 'Cómo lo seguís', omitible: true),
+    StageObjective('objetivo_desarrollo', omitible: false),
+    StageObjective('horizonte', omitible: false),
+    StageObjective('accion_fortaleza', omitible: true),
+    StageObjective('pedido', omitible: false),
+    StageObjective('metrica', omitible: true),
   ],
 };
 
@@ -65,72 +70,39 @@ class StageIntro {
   final String despues;
 }
 
-const stageIntro = <Stage, StageIntro>{
-  Stage.diagnostico: StageIntro(
-    titulo: 'Tu mapa del Diagnóstico',
-    queHacemos: 'Entender dónde estás y qué querés',
-    despues: 'Discovery: explorar caminos',
-  ),
-  Stage.discovery: StageIntro(
-    titulo: 'Tu mapa de Discovery',
-    queHacemos: 'Explorar caminos posibles',
-    despues: 'Plan de Acción: pasos concretos',
-  ),
-  Stage.plan: StageIntro(
-    titulo: 'Tu plan, en tus palabras',
-    queHacemos: 'Convertirlo en pasos concretos',
-    despues: 'Tu informe final',
-  ),
-};
+/// Orientación de cada etapa según el camino (en el idioma actual): qué se hace ahora y qué viene después.
+StageIntro introFor(Stage stage, CoachPath path) {
+  final group = path == CoachPath.formacion ? 'formacion' : 'default';
+  String at(String field) => tl('intro.$group.${stage.id}.$field');
+  return StageIntro(titulo: at('titulo'), queHacemos: at('queHacemos'), despues: at('despues'));
+}
 
 // Camino C — decidir en qué formarse. Misma estructura de tres etapas; cambian los temas.
 // El servicio no conoce la oferta educativa vigente: indaga lo que la persona sabe, quiere y puede.
 const formacionObjectives = <Stage, List<StageObjective>>{
   Stage.diagnostico: [
-    StageObjective('proposito', 'Lo que querés lograr', omitible: false),
-    StageObjective('situacion', 'Tu situación hoy', omitible: false),
-    StageObjective('alternativas', 'Lo que ya evaluás', omitible: true),
-    StageObjective('compromiso', 'Lo que podés invertir', omitible: true),
+    StageObjective('proposito', omitible: false),
+    StageObjective('situacion', omitible: false),
+    StageObjective('alternativas', omitible: true),
+    StageObjective('compromiso', omitible: true),
   ],
   Stage.discovery: [
-    StageObjective('intereses', 'Lo que te interesa', omitible: false),
-    StageObjective('aptitudes', 'Lo que se te da bien', omitible: true),
-    StageObjective('criterios', 'Tus criterios', omitible: false),
+    StageObjective('intereses', omitible: false),
+    StageObjective('aptitudes', omitible: true),
+    StageObjective('criterios', omitible: false),
   ],
   Stage.plan: [
-    StageObjective('eleccion', 'Tu elección', omitible: false),
-    StageObjective('horizonte', 'Tu plazo', omitible: false),
-    StageObjective('presupuesto', 'Tu presupuesto', omitible: false),
-    StageObjective('primer_paso', 'Tu primer paso', omitible: false),
-    StageObjective('respaldo', 'Tu plan B', omitible: true),
+    StageObjective('eleccion', omitible: false),
+    StageObjective('horizonte', omitible: false),
+    StageObjective('presupuesto', omitible: false),
+    StageObjective('primer_paso', omitible: false),
+    StageObjective('respaldo', omitible: true),
   ],
-};
-
-const formacionIntro = <Stage, StageIntro>{
-  Stage.diagnostico: StageIntro(
-    titulo: 'Tu mapa del Diagnóstico',
-    queHacemos: 'Entender qué querés lograr y con qué condiciones contás',
-    despues: 'Discovery: tus intereses y tus criterios',
-  ),
-  Stage.discovery: StageIntro(
-    titulo: 'Tu mapa de Discovery',
-    queHacemos: 'Aclarar qué te interesa y con qué criterios vas a comparar',
-    despues: 'Plan de Acción: elegir y dar el primer paso',
-  ),
-  Stage.plan: StageIntro(
-    titulo: 'Tu plan de formación, en tus palabras',
-    queHacemos: 'Elegir por dónde empezar y darle forma',
-    despues: 'Tu informe final',
-  ),
 };
 
 /// Los temas de indagación de una etapa según el camino elegido.
 List<StageObjective> objectivesFor(Stage stage, CoachPath path) =>
     path == CoachPath.formacion ? formacionObjectives[stage]! : stageObjectives[stage]!;
-
-/// Orientación de cada etapa según el camino.
-StageIntro introFor(Stage stage, CoachPath path) =>
-    path == CoachPath.formacion ? formacionIntro[stage]! : stageIntro[stage]!;
 
 /// Cuántos temas puede dejar para después la persona en una misma etapa (decisión de producto).
 const maxOmitidosPorEtapa = 1;

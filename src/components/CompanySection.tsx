@@ -1,33 +1,29 @@
+import { tr, type Key } from '../lib/i18n'
+
 export default function CompanySection({ onStart }: { onStart?: () => void }) {
   const useCases = [
     {
       icon: '↘',
-      title: 'Bajo rendimiento',
-      desc: 'Diagnóstico Aptitud/Actitud y guía de conversación 1:1 para reencauzar a un colaborador.',
+      title: tr('company.uc1.title'),
+      desc: tr('company.uc1.desc'),
       color: '#ef4444',
       bg: 'color-mix(in srgb, #ef4444 12%, var(--color-card))',
     },
     {
       icon: '↗',
-      title: 'Crecimiento y movilidad',
-      desc: 'Plan de desarrollo 70-20-10 y conversación de carrera para el próximo nivel o el cambio de área.',
+      title: tr('company.uc2.title'),
+      desc: tr('company.uc2.desc'),
       color: '#10b981',
       bg: 'color-mix(in srgb, #10b981 12%, var(--color-card))',
     },
   ]
 
-  const outputs = [
-    'Diagnóstico del tipo de brecha (Aptitud / Actitud / Crecimiento)',
-    '3 hipótesis sobre la causa raíz real',
-    'Guía de conversación 1:1 con preguntas potentes listas para usar',
-    'Plan de Acción 70-20-10 personalizado',
-    'Próximos pasos concretos para vos como líder',
-  ]
+  const outputs = [1, 2, 3, 4, 5].map((n) => tr(`company.out.${n}` as Key))
 
   const comparisons = [
-    { aspecto: 'Coach externo', valor: '$100–300/sesión por colaborador', icon: '✕' },
-    { aspecto: 'Herramientas genéricas', valor: 'Sin contexto real del colaborador', icon: '✕' },
-    { aspecto: 'Bivio B2B', valor: 'Proceso equivalente, escalable, sin costo marginal', icon: '✓' },
+    { aspecto: tr('company.cmp.1.title'), valor: tr('company.cmp.1.body'), icon: '✕' },
+    { aspecto: tr('company.cmp.2.title'), valor: tr('company.cmp.2.body'), icon: '✕' },
+    { aspecto: tr('company.cmp.3.title'), valor: tr('company.cmp.3.body'), icon: '✓' },
   ]
 
   return (
@@ -36,13 +32,12 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
 
         {/* Header */}
         <div className="mb-14 text-center">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">Para Empresas</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">{tr('company.eyebrow')}</p>
           <h2 className="mb-4">
-            Escalá el desarrollo de tu equipo<br className="hidden md:block" /> sin escalar la estructura.
+            {tr('company.title')}
           </h2>
           <p className="mx-auto max-w-xl text-lg text-text-muted">
-            Una herramienta para líderes y RRHH que convierte contexto real del colaborador
-            en diagnóstico accionable y guía de conversación — en minutos.
+            {tr('company.lede')}
           </p>
         </div>
 
@@ -66,7 +61,7 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
         {/* Outputs */}
         <div className="card mb-10">
           <p className="mb-5 text-xs font-semibold uppercase tracking-widest text-text-muted">
-            Qué genera la IA en cada análisis
+            {tr('company.out.title')}
           </p>
           <ul className="space-y-3">
             {outputs.map((item) => (
@@ -110,18 +105,17 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
         >
           <div className="mx-auto max-w-xl text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              Fase 1 · Sin integración requerida
+              {tr('company.cta.eyebrow')}
             </p>
-            <h3 className="mb-3">Probalo ahora con un caso real</h3>
+            <h3 className="mb-3">{tr('company.cta.title')}</h3>
             <p className="mb-8 text-text-muted">
-              Describís la situación de un colaborador. Podés subir la evaluación de desempeño como contexto adicional.
-              En menos de 10 minutos tenés el diagnóstico y la guía lista para tu próxima 1:1.
+              {tr('company.cta.body')}
             </p>
             <button className="btn-primary px-8 py-3.5 text-base" onClick={onStart}>
-              Empezar análisis de equipo →
+              {tr('company.cta.button')}
             </button>
             <p className="mt-4 text-xs text-text-muted">
-              Sin registro · Evaluación de desempeño opcional (PDF) · Resultado inmediato
+              {tr('company.cta.note')}
             </p>
           </div>
         </div>

@@ -3,6 +3,7 @@ import 'dart:js_interop';
 
 import 'package:universal_web/web.dart' as web;
 
+import '../i18n/i18n.dart';
 import 'http.dart' show apiBase;
 import 'storage.dart';
 
@@ -41,7 +42,7 @@ class AccessStatus {
 }
 
 Future<AccessStatus> checkAccess([String? code]) async {
-  final headers = web.Headers()..append('Content-Type', 'application/json');
+  final headers = web.Headers()..append('Content-Type', 'application/json')..append('x-lang', currentLang.code);
   final res = await web.window
       .fetch(
         '$apiBase/api/access'.toJS,
@@ -55,5 +56,5 @@ Future<AccessStatus> checkAccess([String? code]) async {
   } catch (_) {}
   if (res.ok) return AccessStatus(required: json['required'] == true, ok: json['ok'] == true, label: json['label'] as String?);
   // 401 (código inválido), 429 (demasiados intentos) o 503 (sin configurar).
-  return AccessStatus(required: true, ok: false, error: (json['error'] as String?) ?? 'No pudimos verificar el código. Intentá de nuevo.');
+  return AccessStatus(required: true, ok: false, error: (json['error'] as String?) ?? tl('net.verify'));
 }

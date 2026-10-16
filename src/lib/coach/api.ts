@@ -1,4 +1,5 @@
 import { postJson } from '../aiClient'
+import { getLang, tr } from '../i18n'
 import type { ProfileDoc, ProfileReading, Report, Session, TurnResult, UiMessage } from './types'
 
 // Cliente de /api/coach (server/coach.ts). El system prompt y la API key viven
@@ -8,7 +9,7 @@ const MAX_HISTORY = 100
 
 async function post<T>(payload: Record<string, unknown>): Promise<{ data: T; demo: boolean }> {
   const json = await postJson<{ data?: T; demo?: boolean }>('/api/coach', payload)
-  if (json.data === undefined) throw new Error('No pudimos conectar con el coach. Intentá de nuevo.')
+  if (json.data === undefined) throw new Error(tr('net.coach'))
   return { data: json.data, demo: Boolean(json.demo) }
 }
 
@@ -42,6 +43,7 @@ export function documentsToText(docs: ProfileDoc[]): string | undefined {
 
 function sharedContext(session: Session) {
   return {
+    lang: getLang(),
     path: session.path,
     history: toHistory(session.messages),
     sintesisPrevias: session.sintesis,
@@ -66,7 +68,7 @@ export function requestReport(session: Session) {
 }
 
 export function requestProfileReading(puesto: string, perfilTexto: string) {
-  return post<ProfileReading>({ mode: 'perfil', puesto, perfilTexto })
+  return post<ProfileReading>({ mode: 'perfil', lang: getLang(), puesto, perfilTexto })
 }
 
 export async function extractPdfText(file: File): Promise<string> {

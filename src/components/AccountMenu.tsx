@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { tr } from '../lib/i18n'
 
 // Menú de la persona: quién está con la sesión abierta y qué puede hacer con ella. Es un menú
 // desplegable simple (botón + lista de botones): se cierra con Escape y al tocar afuera, y el foco
@@ -59,7 +60,7 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        aria-label={account.label ? `Mi cuenta (${account.label})` : 'Mi cuenta'}
+        aria-label={account.label ? tr('account.menuNamed', { label: account.label }) : tr('account.menu')}
         className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary transition hover:bg-primary-soft/70"
       >
         {initial ?? <PersonIcon />}
@@ -68,13 +69,13 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
       {open && (
         <div id={panelId} className="card absolute right-0 top-full z-50 mt-2 w-64 p-2">
           <div className="border-b border-border-color px-3 pb-3 pt-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-text-muted">Sesión de prueba</p>
-            <p className="mt-1 truncate text-sm font-medium text-foreground">{account.label ?? (account.canLogout ? 'Sesión iniciada' : 'Acceso abierto, sin código')}</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('account.testSession')}</p>
+            <p className="mt-1 truncate text-sm font-medium text-foreground">{account.label ?? (account.canLogout ? tr('account.unknown') : tr('account.open'))}</p>
           </div>
           <ul className="mt-2 space-y-0.5">
             <li>
               <a href="#privacidad" className={ITEM} onClick={() => setOpen(false)}>
-                Privacidad y términos
+                {tr('account.privacy')}
               </a>
             </li>
             <li>
@@ -86,7 +87,7 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
                   account.onDeleteData()
                 }}
               >
-                Borrar mi conversación
+                {tr('account.delete')}
               </button>
             </li>
             {account.canLogout && (
@@ -99,7 +100,7 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
                     account.onLogout()
                   }}
                 >
-                  Cerrar sesión
+                  {tr('account.logout')}
                 </button>
               </li>
             )}

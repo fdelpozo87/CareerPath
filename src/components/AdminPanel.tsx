@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { deleteUserAccount, listUsers, setUserEstado, type AdminUser, type Estado } from '../lib/admin'
+import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
+import { addUser, deleteUserAccount, listUsers, setUserEstado, type AdminUser, type Estado } from '../lib/admin'
 import { getLang, tr, type Key } from '../lib/i18n'
 import ConfirmDialog from './ConfirmDialog'
 import LanguageToggle from './LanguageToggle'
@@ -25,6 +25,11 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('todos')
   const [toDelete, setToDelete] = useState<AdminUser | null>(null)
+  const [newEmail, setNewEmail] = useState('')
+  const [notify, setNotify] = useState(true)
+  const [adding, setAdding] = useState(false)
+  const [addMsg, setAddMsg] = useState<string | null>(null)
+  const addId = useId()
 
   const load = useCallback(async () => {
     try {
@@ -52,6 +57,28 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
     }
   }
 
+  const add = async (e: FormEvent) => {
+    e.preventDefault()
+    const email = newEmail.trim()
+    if (!email || adding) return
+    setAdding(true)
+    setAddMsg(null)
+    setError(null)
+    try {
+      const r = await addUser(email, notify)
+      setAddMsg(
+        tr(r.created ? 'admin.add.created' : 'admin.add.existing', { email }) +
+          (notify ? ' ' + tr(r.notified ? 'admin.add.notified' : 'admin.add.notNotified') : ''),
+      )
+      setNewEmail('')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : tr('cloud.error'))
+    } finally {
+      setAdding(false)
+    }
+  }
+
   const pending = users?.filter((u) => u.estado === 'pendiente').length ?? 0
   const shown = (users ?? []).filter((u) => filter === 'todos' || u.estado === 'pendiente')
 
@@ -75,6 +102,38 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
         </button>
         <h1 className="mb-1 text-2xl md:text-3xl">{tr('admin.title')}</h1>
         <p className="mb-6 text-sm text-text-muted">{tr('admin.lede')}</p>
+
+        <form onSubmit={add} className="card mb-6">
+          <h2 className="mb-1 text-base">{tr('admin.add.title')}</h2>
+          <p className="mb-3 text-sm text-text-muted">{tr('admin.add.lede')}</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label htmlFor={addId} className="mb-1 block text-sm font-medium text-foreground">
+                {tr('cloud.email')}
+              </label>
+              <input
+                id={addId}
+                type="email"
+                required
+                autoComplete="off"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="persona@correo.com"
+                className="w-full rounded-xl border border-border-color bg-background px-3 py-2.5 text-sm text-foreground"
+              />
+            </div>
+            <button type="submit" disabled={adding || !newEmail.trim()} className="btn-primary px-5 py-2.5 text-sm disabled:opacity-50">
+              {tr('admin.add.button')}
+            </button>
+          </div>
+          <label className="mt-3 flex items-center gap-2 text-sm text-foreground">
+            <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="accent-primary" />
+            {tr('admin.add.notify')}
+          </label>
+          <p role="status" className="mt-2 min-h-5 text-sm text-text-muted">
+            {addMsg}
+          </p>
+        </form>
 
         <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label={tr('admin.filter')}>
           {(['todos', 'pendiente'] as const).map((f) => (

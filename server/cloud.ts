@@ -141,3 +141,33 @@ export async function listPerfiles(env: CloudEnv): Promise<Perfil[]> {
   if (!res.ok) throw new Error(`perfiles ${res.status}`)
   return (await res.json()) as Perfil[]
 }
+
+// ── Altas hechas por quien administra ─────────────────────────────────────────
+
+export type CreateUserResult = { ok: true; id: string } | { ok: false; reason: 'ya_existe' | 'error' }
+
+/** Crea la cuenta con el email ya confirmado (la persona entra después con un enlace o con su contraseña). */
+export async function createUser(env: CloudEnv, email: string): Promise<CreateUserResult> {
+  const res = await call(env, '/auth/v1/admin/users', { method: 'POST', body: JSON.stringify({ email, email_confirm: true }) })
+  if (res.ok) {
+    const u = (await res.json()) as { id?: string }
+    return u.id ? { ok: true, id: u.id } : { ok: false, reason: 'error' }
+  }
+  const err = (await res.json().catch(() => ({}))) as { error_code?: string }
+  return { ok: false, reason: err.error_code === 'email_exists' ? 'ya_existe' : 'error' }
+}
+
+export async function findPerfilByEmail(env: CloudEnv, email: string): Promise<Perfil | null> {
+  const res = await call(env, `/rest/v1/bivio_perfiles?select=${PERFIL_COLS}&email=eq.${encodeURIComponent(email.toLowerCase())}&limit=1`)
+  if (!res.ok) throw new Error(`perfil_email ${res.status}`)
+  return ((await res.json()) as Perfil[])[0] ?? null
+}
+
+/** Le manda a la persona su enlace de acceso (el mismo mail que pediría ella al entrar). */
+export async function sendAccessLink(env: CloudEnv, email: string, redirectTo: string): Promise<boolean> {
+  const res = await call(env, `/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
+    method: 'POST',
+    body: JSON.stringify({ email, create_user: false }),
+  })
+  return res.ok
+}

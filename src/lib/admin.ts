@@ -27,4 +27,5 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
 
 export const listUsers = async (): Promise<AdminUser[]> => (await call<{ users: AdminUser[] }>({ action: 'list' })).users
 export const setUserEstado = (id: string, estado: Estado) => call<{ ok: true }>({ action: 'setEstado', id, estado })
+export const addUser = (email: string, notify: boolean) => call<{ ok: true; created: boolean; notified: boolean }>({ action: 'add', email, notify })
 export const deleteUserAccount = (id: string) => call<{ ok: true }>({ action: 'delete', id })

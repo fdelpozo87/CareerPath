@@ -57,6 +57,28 @@ Con Supabase configurado, **el login con email reemplaza al código de invitaci�
 3. Entrar una vez con el email de administrador: queda activo y aparece el panel.
 4. Los códigos de `ACCESS_CODES` ya no abren nada mientras haya cuentas; se pueden borrar de Vercel cuando todo funcione.
 
+### Alta de cuentas por quien administra
+
+En el panel, “Agregar una cuenta”: se escribe el email y la cuenta queda **activa** de una vez (sin aprobación); la
+persona entra pidiendo su enlace con ese mismo email. Si se tilda “Enviarle ahora el enlace”, el servidor le manda el
+mismo mail de acceso (si el envío falla, el alta igual queda hecha). Si el email ya tenía cuenta (pendiente o
+desactivada), se la deja activa. El alta usa la API de administración de Supabase con la service role
+(`createUser` en `server/cloud.ts`) y no guarda ninguna contraseña.
+
+### Contraseña (opcional)
+
+Además del enlace por email, quien ya tiene cuenta puede elegir una contraseña:
+
+- **Dónde se guarda:** solo en Supabase Auth, con hash (bcrypt). Ni el navegador ni nuestro servidor la almacenan,
+  la reciben en un pedido propio ni la registran en logs: el navegador habla directo con Supabase.
+- **Crear o cambiar:** menú de la cuenta → “Crear o cambiar contraseña” (mínimo 10 caracteres).
+- **Entrar:** en la pantalla de acceso, “Entrar con contraseña”. “Olvidé mi contraseña” manda un email para elegir otra.
+- **No hay registro público con contraseña:** solo pueden tener contraseña las cuentas que ya existen (alta por el
+  administrador o por enlace). Las cuentas nuevas siguen quedando pendientes hasta que se aprueben, y el estado
+  (`pendiente` / `activo` / `desactivado`) manda igual con contraseña que con enlace.
+- **Recomendado en Supabase** (Authentication → Providers → Email): subir el largo mínimo de contraseña a 10 o más y,
+  si el plan lo permite, activar la protección contra contraseñas filtradas.
+
 ### Límites
 
 - La versión Jaspr (`web_jaspr/`) sigue con el acceso por código y no funciona con el acceso por cuenta.

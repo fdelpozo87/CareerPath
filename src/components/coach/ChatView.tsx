@@ -113,8 +113,6 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
                     path={session.path}
                     map={session.mapas?.[session.stage]}
                     fallbackText={session.sintesis[session.stage]}
-                    nextLabel={nextLabel(session.stage)}
-                    onAdvance={onAdvance}
                     onAdjust={() => inputRef.current?.focus()}
                     onResume={(id) => {
                       onResumeTopic(id)

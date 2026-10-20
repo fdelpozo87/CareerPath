@@ -12,14 +12,12 @@ interface StageMapProps {
   map?: StageMapData
   /** Resumen en prosa, para sesiones guardadas antes de que existiera el mapa. */
   fallbackText?: string
-  nextLabel: string
-  onAdvance: () => void
   onAdjust: () => void
   /** Retomar un tema que la persona había dejado para más adelante. */
   onResume: (id: string) => void
 }
 
-export function StageMap({ stage, path, map, fallbackText, nextLabel, onAdvance, onAdjust, onResume }: StageMapProps) {
+export function StageMap({ stage, path, map, fallbackText, onAdjust, onResume }: StageMapProps) {
   const labelOf = (id: string) => objectiveLabel(id, getLang())
   const titleId = `mapa-${stage}`
 
@@ -70,9 +68,6 @@ export function StageMap({ stage, path, map, fallbackText, nextLabel, onAdvance,
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <button onClick={onAdvance} className="btn-primary px-6 py-3 text-sm">
-          {nextLabel}
-        </button>
         <button onClick={onAdjust} className="btn-secondary px-5 py-3 text-sm">
           {tr('map.adjust')}
         </button>

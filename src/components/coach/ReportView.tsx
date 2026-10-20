@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ConfirmDialog from '../ConfirmDialog'
 import { getLang, tr, trn, type Key } from '../../lib/i18n'
 import type { Report, ReportAction } from '../../lib/coach/types'
 
@@ -19,6 +20,7 @@ interface ReportViewProps {
 export function ReportView({ report, compromisos, compromisosFecha, onSave, onRestart }: ReportViewProps) {
   const [selected, setSelected] = useState<number[]>(compromisos ?? [])
   const [editing, setEditing] = useState(!compromisos)
+  const [confirmRestart, setConfirmRestart] = useState(false)
   const toggle = (i: number) => setSelected((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]))
   const hasPedido = report.acciones.some((a) => a.tipo === 'pedido')
 
@@ -66,7 +68,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
                 <li key={i}>
                   <label className={`flex gap-3 rounded-xl border border-border-color p-4 ${editing ? 'cursor-pointer hover:bg-secondary' : ''}`}>
                     {editing && (
-                      <input type="checkbox" checked={selected.includes(i)} onChange={() => toggle(i)} className="mt-1 accent-primary print:hidden" />
+                      <input type="checkbox" aria-label={tr('report.pickAria', { text: a.texto })} checked={selected.includes(i)} onChange={() => toggle(i)} className="mt-1 accent-primary print:hidden" />
                     )}
                     <div className="flex-1">
                       <p className="text-sm font-medium leading-relaxed text-foreground">{a.texto}</p>
@@ -75,13 +77,8 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
                         {tipoLabel(a.tipo) && (
                           <span className="rounded-full bg-secondary px-2 py-0.5 font-semibold text-primary">{tipoLabel(a.tipo)}</span>
                         )}
-                        {a.cuatroC?.filter(Boolean).map((c) => (
-                          <span key={c} className="rounded-full bg-secondary px-2 py-0.5 text-primary">
-                            + {c}
-                          </span>
-                        ))}
                       </div>
-                      {a.fortalezaAncla && <p className="mt-2 text-xs text-text-muted">Se apoya en: {a.fortalezaAncla}</p>}
+                      {a.fortalezaAncla && <p className="mt-2 text-xs text-text-muted">{tr('report.basedOn', { what: a.fortalezaAncla })}</p>}
                     </div>
                   </label>
                 </li>
@@ -165,15 +162,29 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
             </button>
           </>
         )}
-        <button onClick={onRestart} className="rounded-xl border border-border-color px-5 py-3.5 text-sm text-text-muted transition hover:bg-card">
-          {tr('report.restart')}
-        </button>
       </div>
       {!editing && (
         <p className="mt-4 text-center text-xs text-text-muted print:hidden">
           {tr('report.saved')}
         </p>
       )}
+      {/* Acción destructiva: lejos de los botones principales y con confirmación. */}
+      <div className="mt-12 border-t border-border-color pt-6 text-center print:hidden">
+        <button onClick={() => setConfirmRestart(true)} className="text-sm text-text-muted underline underline-offset-2 transition hover:text-foreground">
+          {tr('report.restart')}
+        </button>
+      </div>
+      <ConfirmDialog
+        open={confirmRestart}
+        title={tr('report.restartTitle')}
+        body={tr('report.restartConfirm')}
+        confirmLabel={tr('report.restartAction')}
+        onCancel={() => setConfirmRestart(false)}
+        onConfirm={() => {
+          setConfirmRestart(false)
+          onRestart()
+        }}
+      />
     </div>
   )
 }

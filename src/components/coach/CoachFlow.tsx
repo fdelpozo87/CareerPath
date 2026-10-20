@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { STAGE_COLOR, STAGE_ORDER, stageName } from '../../../shared/stages'
 import { getLang, stageLabel, tr, type Key } from '../../lib/i18n'
 import { extractPdfText, requestReport, requestTurn } from '../../lib/coach/api'
@@ -73,9 +73,11 @@ interface CoachFlowProps {
   onExit: () => void
   onRestart: () => void
   account: AccountInfo
+  /** Diálogo de confirmación del nivel de App (borrar conversación). */
+  confirmDialog?: ReactNode
 }
 
-export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachFlowProps) {
+export function CoachFlow({ initialSession, onExit, onRestart, account, confirmDialog }: CoachFlowProps) {
   const [session, setSession] = useState<Session>(() => withOpening(initialSession))
   // true cuando el montaje agregó la apertura de etapa y hay que pedir el primer turno.
   const openingPending = useRef(session !== initialSession)
@@ -318,6 +320,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account }: CoachF
             </div>
           ))}
       </main>
+      {confirmDialog}
     </div>
   )
 }

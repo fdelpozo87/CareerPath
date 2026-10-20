@@ -48,5 +48,6 @@ export function clearSession() {
 }
 
 export function hasProgress(s: Session | null): s is Session {
-  return !!s && (s.messages.length > 0 || !!s.perfil || !!s.informe)
+  // La apertura del coach no cuenta: un proceso existe desde que la persona escribe o carga su perfil.
+  return !!s && (s.messages.some((m) => m.role === 'user') || !!s.perfil || !!s.informe)
 }

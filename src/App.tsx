@@ -5,6 +5,7 @@ import CompanySection from './components/CompanySection'
 import Footer from './components/Footer'
 import { CompanyFlow } from './components/CompanyFlow'
 import AccessGate from './components/AccessGate'
+import ConfirmDialog from './components/ConfirmDialog'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import { CoachFlow } from './components/coach/CoachFlow'
 import { clearSession, hasProgress, loadSession, newSession } from './lib/coach/session'
@@ -18,6 +19,8 @@ type View = 'landing' | 'coach' | 'company' | 'privacidad'
 
 const isPrivacyHash = () => window.location.hash === '#privacidad'
 
+type Pending = { kind: 'start'; path: Path } | { kind: 'delete' }
+
 type Access = { state: 'checking' } | { state: 'locked'; error?: string } | { state: 'open' }
 
 function App() {
@@ -27,6 +30,8 @@ function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [access, setAccess] = useState<Access>({ state: 'checking' })
   const [label, setLabel] = useState<string | null>(getAccessLabel)
+  // Confirmación pendiente (reemplaza a window.confirm, que algunos navegadores bloquean).
+  const [pending, setPending] = useState<Pending | null>(null)
   // Se relee al volver a la landing para reflejar el progreso guardado.
   const saved = view === 'landing' ? loadSession() : null
 
@@ -73,14 +78,24 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  const startPath = (path: Path) => {
-    if (hasProgress(saved) && !window.confirm(tr('app.resumeConfirm'))) {
-      return
-    }
+  const beginPath = (path: Path) => {
     trackEvent('path_selected', { path })
     clearSession()
     setSession(newSession(path))
     setView('coach')
+    window.scrollTo(0, 0)
+  }
+
+  const startPath = (path: Path) => {
+    if (hasProgress(saved)) setPending({ kind: 'start', path })
+    else beginPath(path)
+  }
+
+  const deleteData = () => {
+    trackEvent('data_deleted')
+    clearSession()
+    setSession(null)
+    setView('landing')
     window.scrollTo(0, 0)
   }
 
@@ -98,15 +113,24 @@ function App() {
       setAccess({ state: 'locked' })
       window.scrollTo(0, 0)
     },
-    onDeleteData: () => {
-      if (!window.confirm(tr('account.deleteConfirm'))) return
-      trackEvent('data_deleted')
-      clearSession()
-      setSession(null)
-      setView('landing')
-      window.scrollTo(0, 0)
-    },
+    onDeleteData: () => setPending({ kind: 'delete' }),
   }
+
+  const confirmDialog = (
+    <ConfirmDialog
+      open={pending !== null}
+      title={pending?.kind === 'delete' ? tr('account.deleteTitle') : tr('app.resumeTitle')}
+      body={pending?.kind === 'delete' ? tr('account.deleteConfirm') : tr('app.resumeConfirm')}
+      confirmLabel={pending?.kind === 'delete' ? tr('account.deleteAction') : tr('app.resumeAction')}
+      onCancel={() => setPending(null)}
+      onConfirm={() => {
+        const action = pending
+        setPending(null)
+        if (action?.kind === 'delete') deleteData()
+        else if (action) beginPath(action.path)
+      }}
+    />
+  )
 
   if (view === 'privacidad') {
     return (
@@ -152,6 +176,7 @@ function App() {
           setView('landing')
         }}
         account={account}
+        confirmDialog={confirmDialog}
       />
     )
   }
@@ -178,6 +203,7 @@ function App() {
         <CompanySection onStart={() => setView('company')} />
       </main>
       <Footer />
+      {confirmDialog}
     </div>
   )
 }

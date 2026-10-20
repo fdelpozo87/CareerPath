@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'stages.dart';
 
 // Modelos del coach. toJson/fromJson conservan la forma del JSON de la versión React
@@ -368,6 +369,7 @@ enum Phase { perfil, chat, informe }
 
 class Session {
   Session({
+    required this.id,
     required this.path,
     required this.phase,
     required this.stage,
@@ -387,6 +389,8 @@ class Session {
   }) : omitidos = omitidos ?? {},
        mapas = mapas ?? {};
 
+  /// Identifica al proceso: cada persona puede tener varios guardados a la vez.
+  final String id;
   CoachPath path;
   Phase phase;
   Stage stage;
@@ -409,6 +413,7 @@ class Session {
   String updatedAt;
 
   factory Session.nueva(CoachPath path) => Session(
+    id: newId(),
     path: path,
     phase: path == CoachPath.perfil ? Phase.perfil : Phase.chat,
     stage: Stage.diagnostico,
@@ -420,7 +425,8 @@ class Session {
     updatedAt: DateTime.now().toUtc().toIso8601String(),
   );
 
-  bool get hasProgress => messages.isNotEmpty || perfil != null || informe != null;
+  // La apertura del coach es un mensaje de control oculto: un proceso existe desde que la persona escribe o carga su perfil.
+  bool get hasProgress => messages.any((m) => m.isUser && !m.hidden) || perfil != null || informe != null;
 
   static Map<Stage, T> _byStage<T>(Object? raw, T Function(Object?) conv) => {
     for (final e in ((raw as Map?) ?? const {}).entries) Stage.parse(e.key as String): conv(e.value),
@@ -431,6 +437,7 @@ class Session {
     if (j['version'] != 2) return null;
     final cub = _byStage<List<String>>(j['cubiertos'], _strings);
     return Session(
+      id: (j['id'] as String?) ?? newId(),
       path: CoachPath.parse(j['path'] as String?),
       phase: Phase.values.firstWhere((p) => p.name == j['phase'], orElse: () => Phase.chat),
       stage: Stage.parse(j['stage'] as String?),
@@ -451,6 +458,7 @@ class Session {
   }
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'version': 2,
     'path': path.id,
     'phase': phase.name,
@@ -470,3 +478,6 @@ class Session {
     'updatedAt': updatedAt,
   };
 }
+
+/// Id corto para un proceso nuevo (no necesita ser un UUID: solo no repetirse en este navegador).
+String newId() => 'p${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}${(Random().nextDouble() * 1e9).floor().toRadixString(36)}';

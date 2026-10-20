@@ -1,3 +1,4 @@
+import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
 import '../i18n/i18n.dart';
@@ -52,19 +53,50 @@ List<_PathCard> _paths() => [
 String _resumeText(Session s) {
   if (s.compromisos != null) return tln('landing.resume.commitments', s.compromisos!.length);
   if (s.phase == Phase.informe) return tl('landing.resume.report');
+  if (s.phase == Phase.perfil) return tl('process.status.profile');
   return tl('landing.resume.stage', {'stage': s.stage.label});
 }
 
-Component landing({required void Function(CoachPath) onChoosePath, required Session? saved, required void Function() onResume}) {
+String _date(Session s) {
+  final d = DateTime.tryParse(s.updatedAt)?.toLocal();
+  if (d == null) return '';
+  return currentLang == Lang.en ? '${d.month}/${d.day}/${d.year}' : '${d.day}/${d.month}/${d.year}';
+}
+
+Component _processRow(Session p, void Function(String) onResume, void Function(String) onDelete) {
+  final name = tl('process.name.${p.path.id}');
+  return el('li', 'flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between', [
+    el('div', 'min-w-0', [
+      el('p', 'text-sm font-semibold text-foreground', [t(name)]),
+      el('p', 'text-sm text-text-muted', [t(_resumeText(p))]),
+      el('p', 'text-xs text-text-muted', [t(tl('process.updated', {'date': _date(p)}))]),
+    ]),
+    el('div', 'flex shrink-0 items-center gap-3', [
+      btn('btn-primary px-5 py-2.5 text-sm', [t(tl('landing.resume.button'))], onClick: () => onResume(p.id)),
+      el(
+        'button',
+        'text-sm text-text-muted underline underline-offset-2 transition hover:text-foreground',
+        [t(tl('process.delete'))],
+        attrs: {'type': 'button', 'aria-label': tl('process.deleteAria', {'name': name})},
+        on: events(onClick: () => onDelete(p.id)),
+      ),
+    ]),
+  ]);
+}
+
+Component landing({
+  required void Function(CoachPath) onChoosePath,
+  required List<Session> processes,
+  required void Function(String) onResume,
+  required void Function(String) onDelete,
+}) {
   return el('section', 'py-16 md:py-24', [
     el('div', 'section-container', [
-      when(saved != null, () => el('div', 'mx-auto mb-12 flex max-w-6xl flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between', [
-        el('div', null, [
-          el('p', 'text-sm font-semibold text-foreground', [t(tl('landing.resume.title'))]),
-          el('p', 'text-sm text-text-muted', [t(_resumeText(saved!))]),
-        ]),
-        btn('btn-primary shrink-0 px-5 py-2.5 text-sm', [t(tl('landing.resume.button'))], onClick: onResume),
-      ])),
+      when(processes.isNotEmpty, () => el('section', 'mx-auto mb-12 max-w-6xl rounded-2xl border border-primary/20 bg-card p-5', [
+        el('h2', 'mb-1 text-base font-semibold text-foreground', [t(tl('process.title'))], id: 'mis-procesos'),
+        el('p', 'mb-3 text-sm text-text-muted', [t(tl('process.lede'))]),
+        el('ul', 'divide-y divide-border-color', [for (final p in processes) _processRow(p, onResume, onDelete)]),
+      ], attrs: {'aria-labelledby': 'mis-procesos'})),
       el('div', 'mx-auto mb-12 max-w-3xl text-center', [
         el('p', 'mb-4 text-xs font-semibold uppercase tracking-widest text-primary', [t(tl('landing.eyebrow'))]),
         el('h1', 'mb-5 leading-tight', [t(tl('landing.title'))]),

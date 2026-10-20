@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Path, Session } from '../lib/coach/types'
-import { stageLabel, tr, trn } from '../lib/i18n'
+import { getLang, stageLabel, tr, trn, type Key } from '../lib/i18n'
 
 // Pantalla de inicio — Variante 1 del mockup de Lovable ("Dos caminos lado a
 // lado"). Los dos caminos del guardrail (§1 y §4) quedan visibles de entrada.
@@ -44,30 +44,60 @@ const paths = (): { id: Path; tag: string; icon: ReactNode; title: string; body:
 
 interface LandingProps {
   onChoosePath: (path: Path) => void
-  saved: Session | null
-  onResume: () => void
+  /** Procesos guardados en este navegador, el más reciente primero. */
+  processes: Session[]
+  onResume: (id: string) => void
+  onDelete: (id: string) => void
 }
 
-export default function Landing({ onChoosePath, saved, onResume }: LandingProps) {
+const statusOf = (s: Session) =>
+  s.compromisos
+    ? trn('landing.resume.commitments', s.compromisos.length)
+    : s.phase === 'informe'
+      ? tr('landing.resume.report')
+      : s.phase === 'perfil'
+        ? tr('process.status.profile')
+        : tr('landing.resume.stage', { stage: stageLabel(s.stage) })
+
+export default function Landing({ onChoosePath, processes, onResume, onDelete }: LandingProps) {
   return (
     <section id="profesional" className="py-16 md:py-24">
       <div className="section-container">
-        {saved && (
-          <div className="mx-auto mb-12 flex max-w-6xl flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-foreground">{tr('landing.resume.title')}</p>
-              <p className="text-sm text-text-muted">
-                {saved.compromisos
-                  ? trn('landing.resume.commitments', saved.compromisos.length)
-                  : saved.phase === 'informe'
-                    ? tr('landing.resume.report')
-                    : tr('landing.resume.stage', { stage: stageLabel(saved.stage) })}
-              </p>
-            </div>
-            <button onClick={onResume} className="btn-primary shrink-0 px-5 py-2.5 text-sm">
-              {tr('landing.resume.button')}
-            </button>
-          </div>
+        {processes.length > 0 && (
+          <section aria-labelledby="mis-procesos" className="mx-auto mb-12 max-w-6xl rounded-2xl border border-primary/20 bg-card p-5">
+            <h2 id="mis-procesos" className="mb-1 text-base font-semibold text-foreground">
+              {tr('process.title')}
+            </h2>
+            <p className="mb-3 text-sm text-text-muted">{tr('process.lede')}</p>
+            <ul className="divide-y divide-border-color">
+              {processes.map((p) => {
+                const name = tr(`process.name.${p.path}` as Key)
+                return (
+                  <li key={p.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{name}</p>
+                      <p className="text-sm text-text-muted">{statusOf(p)}</p>
+                      <p className="text-xs text-text-muted">
+                        {tr('process.updated', { date: new Date(p.updatedAt).toLocaleDateString(getLang() === 'en' ? 'en-US' : 'es') })}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <button onClick={() => onResume(p.id)} className="btn-primary px-5 py-2.5 text-sm">
+                        {tr('landing.resume.button')}
+                      </button>
+                      <button
+                        onClick={() => onDelete(p.id)}
+                        aria-label={tr('process.deleteAria', { name })}
+                        className="text-sm text-text-muted underline underline-offset-2 transition hover:text-foreground"
+                      >
+                        {tr('process.delete')}
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
         )}
 
         <div className="mx-auto mb-12 max-w-3xl text-center">

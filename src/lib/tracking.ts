@@ -30,6 +30,7 @@ export type FunnelEvent =
   | 'privacy_viewed'
   | 'logged_out'
   | 'data_deleted'
+  | 'process_deleted'
 
 export function trackEvent(event: FunnelEvent, props?: Record<string, string | number | boolean>) {
   track(event, { sessionId: getSessionId(), ...props })

@@ -109,6 +109,8 @@ export interface Report {
 export type Phase = 'perfil' | 'chat' | 'informe'
 
 export interface Session {
+  /** Identifica al proceso: cada persona puede tener varios guardados a la vez. */
+  id: string
   version: 2
   path: Path
   phase: Phase

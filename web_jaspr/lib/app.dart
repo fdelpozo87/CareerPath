@@ -103,13 +103,22 @@ class _AppState extends State<App> {
     super.dispose();
   }
 
-  void _startPath(CoachPath path, Session? saved) {
-    if (saved != null && !web.window.confirm(tl('app.resumeConfirm'))) return;
+  // Empezar un camino nunca borra los otros procesos: se suma a la lista.
+  void _startPath(CoachPath path) {
     trackEvent('path_selected', {'path': path.id});
-    clearSession();
     setState(() {
       session = Session.nueva(path);
       view = _View.coach;
+    });
+    _scrollTop();
+  }
+
+  void _deleteOne(String id) {
+    trackEvent('process_deleted');
+    deleteSession(id);
+    setState(() {
+      if (session?.id == id) session = null;
+      view = _View.landing;
     });
     _scrollTop();
   }
@@ -133,7 +142,7 @@ class _AppState extends State<App> {
     onDeleteData: () {
       if (!web.window.confirm(tl('account.deleteConfirm'))) return;
       trackEvent('data_deleted');
-      clearSession();
+      clearAllSessions();
       setState(() {
         session = null;
         view = _View.landing;
@@ -172,28 +181,22 @@ class _AppState extends State<App> {
       return CoachFlow(
         initialSession: session!,
         onExit: () => setState(() => view = _View.landing),
-        onRestart: () {
-          clearSession();
-          setState(() {
-            session = null;
-            view = _View.landing;
-          });
-        },
+        onRestart: () => _deleteOne(session!.id),
         account: account,
       );
     }
 
-    // Se relee al volver a la landing para reflejar el progreso guardado.
-    final stored = loadSession();
-    final saved = stored != null && stored.hasProgress ? stored : null;
+    // Se relee al volver a la landing para reflejar lo guardado.
+    final processes = listSessions();
 
     return el('div', 'flex min-h-screen flex-col bg-background font-sans', [
       siteHeader(account),
       el('main', 'flex-1', [
         landing(
-          onChoosePath: (p) => _startPath(p, saved),
-          saved: saved,
-          onResume: () {
+          onChoosePath: _startPath,
+          processes: processes,
+          onResume: (id) {
+            final saved = processes.where((p) => p.id == id).firstOrNull;
             if (saved == null) return;
             trackEvent('session_resumed', {'phase': saved.phase.name, 'stage': saved.stage.id});
             setState(() {
@@ -201,6 +204,9 @@ class _AppState extends State<App> {
               view = _View.coach;
             });
             _scrollTop();
+          },
+          onDelete: (id) {
+            if (web.window.confirm(tl('process.deleteConfirm'))) _deleteOne(id);
           },
         ),
       ]),

@@ -12,7 +12,7 @@ vi.mock('@google/generative-ai', () => ({
 
 import { runEndpoint } from '../server/endpoints'
 import { resetRateLimits } from '../server/guard'
-import { askCounts } from '../server/coach'
+import { askCounts, normalizeReading } from '../server/coach'
 import { wrongLanguage } from '../server/lang'
 import { buildProfilePrompt, buildReportPrompt, buildTurnSystemPrompt } from '../server/prompts'
 import { en, es } from '../shared/locales/dictionaries'
@@ -815,5 +815,37 @@ describe('profundidad del coach (análisis de UX)', () => {
     const p = buildTurnSystemPrompt({ ...base, stage: 'diagnostico', path: 'quiebre' })
     expect(p).toMatch(/lenguaje sin género por defecto/)
     expect(p).not.toMatch(/\bella\b/i)
+  })
+})
+
+describe('Camino B: lectura sin nota', () => {
+  it('el prompt de lectura no pide nota y sí señales con estado', () => {
+    const p = buildProfilePrompt('Product Manager')
+    expect(p).not.toMatch(/"nota"/)
+    expect(p).toMatch(/"senales"/)
+    expect(p).toMatch(/NO das una nota/)
+    expect(p).toMatch(/no deduzcas el género/i)
+  })
+
+  it('normalizeReading quita la nota, descarta señales inválidas y conserva el resumen', () => {
+    const out = normalizeReading({
+      primeraImpresion: 'x',
+      nota: 6,
+      notaComunica: 'Tu perfil hoy comunica algo.',
+      senales: [
+        { tema: 'Resultados', estado: 'ausente', comentario: 'No aparecen cifras.' },
+        { tema: 'Raro', estado: 'excelente', comentario: 'no vale' },
+        { tema: '', estado: 'entiende', comentario: 'sin tema' },
+      ],
+    })
+    expect(out).not.toHaveProperty('nota')
+    expect(out).not.toHaveProperty('notaComunica')
+    expect(out.comunicaHoy).toBe('Tu perfil hoy comunica algo.')
+    expect(out.senales).toEqual([{ tema: 'Resultados', estado: 'ausente', comentario: 'No aparecen cifras.', cita: '' }])
+  })
+
+  it('el aviso de apertura retoma la lectura y no repregunta el puesto', () => {
+    expect(es['srv.open.perfil']).toMatch(/No le preguntes de nuevo/)
+    expect(en['srv.open.perfil']).toMatch(/Don’t ask again/)
   })
 })

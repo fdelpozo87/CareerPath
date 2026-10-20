@@ -58,8 +58,22 @@ export interface ProfileReading {
   ausencias: Observation[]
   consistenciaMarca: string
   recomendaciones: { cambio: string; porQue: string; cita: string; fuente?: string; tipo: 'mercado' | 'decision_personal' }[]
-  nota: number
-  notaComunica: string
+  /** Qué busca quien filtra perfiles para ese puesto y en qué estado está en el perfil. Reemplaza a la nota. */
+  senales?: ProfileSignal[]
+  /** "Tu perfil hoy comunica…" */
+  comunicaHoy?: string
+  /** Lecturas guardadas antes de que se quitara la nota. */
+  nota?: number
+  notaComunica?: string
+}
+
+export type SignalState = 'entiende' | 'insinua' | 'ausente'
+
+export interface ProfileSignal {
+  tema: string
+  estado: SignalState
+  comentario: string
+  cita: string
 }
 
 export interface ReportAction {

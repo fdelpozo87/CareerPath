@@ -22,13 +22,15 @@ function toHistory(messages: UiMessage[]) {
 function perfilContext(session: Session): string | undefined {
   if (!session.perfil) return undefined
   const { puesto, lectura, elegidas } = session.perfil
-  const recs = lectura.recomendaciones
+  const recs = lectura.recomendaciones.slice(0, 3)
     .map((r, i) => `- ${r.cambio}${elegidas.includes(i) ? ' [la persona eligió tomarla]' : ' [la persona no la eligió]'}`)
     .join('\n')
   return `Puesto al que apunta: ${puesto}
 Primera impresión: ${lectura.primeraImpresion}
 Consistencia de marca: ${lectura.consistenciaMarca}
-Nota ${lectura.nota}/10 — ${lectura.notaComunica} (mide qué comunica el perfil, no cuánto vale la persona)
+Qué comunica hoy: ${lectura.comunicaHoy ?? lectura.notaComunica ?? ''}
+Señales (qué comunica el perfil, no cuánto vale la persona):
+${(lectura.senales ?? []).map((s) => `- ${s.tema}: ${s.estado} — ${s.comentario}`).join('\n')}
 Recomendaciones:
 ${recs}`
 }

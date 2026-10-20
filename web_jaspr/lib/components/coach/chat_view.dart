@@ -10,6 +10,7 @@ import '../../models/types.dart';
 import '../../ui.dart';
 import '../logo.dart';
 import 'doc_inputs.dart';
+import 'profile_step.dart' show signalList;
 import 'stage_map.dart';
 
 String _nextLabel(Stage stage) => tl('chat.next.${stage.id}');
@@ -60,6 +61,7 @@ class ChatView extends StatefulComponent {
 class _ChatViewState extends State<ChatView> {
   String draft = '';
   bool docsOpen = false;
+  bool recapOpen = false;
   // En pantallas táctiles Enter da un salto de línea (se envía con el botón): ahí se escriben textos largos.
   late final bool touch = web.window.matchMedia('(pointer: coarse)').matches;
   String _scrollKey = '';
@@ -197,6 +199,47 @@ class _ChatViewState extends State<ChatView> {
     ]);
   }
 
+  // Camino B: la lectura del perfil y los cambios elegidos quedan a mano arriba del chat (cerrados,
+  // para no quitar lugar a la conversación) en vez de desaparecer al pasar al Diagnóstico.
+  Component _profileRecap() {
+    final perfil = session.perfil!;
+    final lectura = perfil.lectura;
+    final recs = lectura.recomendaciones.take(3).toList();
+    final chosen = [for (final (i, r) in recs.indexed) if (perfil.elegidas.contains(i)) r];
+    final skipped = [for (final (i, r) in recs.indexed) if (!perfil.elegidas.contains(i)) r];
+    const label = 'text-xs font-semibold uppercase tracking-widest text-text-muted';
+
+    return el('div', 'mt-2.5', [
+      el(
+        'button',
+        'flex w-full items-center justify-between gap-3 rounded-xl bg-secondary px-3.5 py-2 text-left text-xs transition hover:bg-primary-soft',
+        [
+          el('span', 'min-w-0', [
+            el('span', 'block font-semibold text-foreground', [t(tl('chat.profile.title'))]),
+            el('span', 'block truncate text-text-muted', [t(tln('chat.profile.sub', chosen.length, {'role': perfil.puesto}))]),
+          ]),
+          el('span', 'text-text-muted', [t(recapOpen ? '−' : '+')], attrs: {'aria-hidden': 'true'}),
+        ],
+        attrs: {'type': 'button', 'aria-expanded': '$recapOpen', 'aria-controls': 'panel-lectura'},
+        on: events(onClick: () => setState(() => recapOpen = !recapOpen)),
+      ),
+      when(recapOpen, () => el('div', 'mt-2 max-h-64 space-y-4 overflow-y-auto rounded-xl bg-secondary p-4 text-sm leading-relaxed text-foreground', [
+        el('p', null, [t(lectura.resumen)]),
+        when(lectura.senales.isNotEmpty, () => signalList(lectura.senales)),
+        el('div', null, [
+          el('p', 'mb-1.5 $label', [t(tl('chat.profile.changes'))]),
+          chosen.isNotEmpty
+              ? el('ul', 'list-disc space-y-1 pl-5', [for (final r in chosen) el('li', null, [t(r.cambio)])])
+              : el('p', 'text-text-muted', [t(tl('chat.profile.none'))]),
+        ]),
+        when(skipped.isNotEmpty, () => el('div', null, [
+          el('p', 'mb-1.5 $label', [t(tl('chat.profile.skipped'))]),
+          el('ul', 'list-disc space-y-1 pl-5 text-text-muted', [for (final r in skipped) el('li', null, [t(r.cambio)])]),
+        ])),
+      ], id: 'panel-lectura')),
+    ]);
+  }
+
   // ── Encabezado: quién es el coach y dónde estás ─────────────────────────────
 
   Component _header() {
@@ -230,6 +273,8 @@ class _ChatViewState extends State<ChatView> {
       when(docsOpen, () => el('div', 'mt-3 rounded-2xl bg-secondary p-4', [
         DocsPanel(docs: session.documentos, status: component.docStatus, onAttach: component.onAttachDoc),
       ], id: 'panel-documentos')),
+
+      when(session.perfil != null, _profileRecap),
 
       // Dónde estás: etapa, qué se hace ahora y qué viene después.
       el('div', 'mt-2.5', [

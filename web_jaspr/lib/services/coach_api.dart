@@ -44,7 +44,9 @@ String? _perfilContext(Session s) {
   return 'Puesto al que apunta: ${p.puesto}\n'
       'Primera impresión: ${p.lectura.primeraImpresion}\n'
       'Consistencia de marca: ${p.lectura.consistenciaMarca}\n'
-      'Nota ${p.lectura.nota}/10 — ${p.lectura.notaComunica} (mide qué comunica el perfil, no cuánto vale la persona)\n'
+      'Qué comunica hoy: ${p.lectura.resumen}\n'
+      'Señales (qué comunica el perfil, no cuánto vale la persona):\n'
+      '${[for (final s in p.lectura.senales) '- ${s.tema}: ${s.estado} — ${s.comentario}'].join('\n')}\n'
       'Recomendaciones:\n$recs';
 }
 

@@ -384,7 +384,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
     }
     case 'perfil': {
       const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { ...generationConfig, temperature: 0.3 } }, requestOptions)
-      return generateJson(async () =>
+      const reading = await generateJson<Record<string, unknown>>(async () =>
         (
           await model.generateContent([
             { text: `PERFIL:\n"""\n${req.perfilTexto}\n"""` },
@@ -392,6 +392,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
           ])
         ).response.text(),
       )
+      return normalizeReading(reading)
     }
     case 'extraer': {
       const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { ...generationConfig, temperature: 0 } }, requestOptions)
@@ -503,6 +504,29 @@ function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
   }
 }
 
+const SIGNAL_STATES = ['entiende', 'insinua', 'ausente']
+
+/**
+ * Deja la lectura de perfil con la forma que espera la pantalla: sin nota ni puntaje (el producto
+ * promete "no es un test"), con entre 0 y 5 señales de estado válido.
+ */
+export function normalizeReading(raw: Record<string, unknown>): Record<string, unknown> {
+  const { notaComunica, ...rest } = raw
+  delete (rest as Record<string, unknown>).nota
+  const senales = (Array.isArray(raw.senales) ? raw.senales : [])
+    .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object' && SIGNAL_STATES.includes(String((s as Record<string, unknown>).estado)))
+    .slice(0, 5)
+    .map((s) => ({
+      tema: String(s.tema ?? '').slice(0, 80),
+      estado: String(s.estado),
+      comentario: String(s.comentario ?? '').slice(0, 300),
+      cita: String(s.cita ?? '').slice(0, 300),
+    }))
+    .filter((s) => s.tema)
+  const comunicaHoy = typeof raw.comunicaHoy === 'string' && raw.comunicaHoy ? raw.comunicaHoy : typeof notaComunica === 'string' ? notaComunica : ''
+  return { ...rest, senales, comunicaHoy }
+}
+
 function runDemo(req: CoachRequest): unknown {
   switch (req.mode) {
     case 'turno':
@@ -531,8 +555,11 @@ function runDemo(req: CoachRequest): unknown {
           { cambio: 'Alinear el titular con el puesto al que apuntas.', porQue: 'Es lo primero que lee quien filtra.', cita: '(cita textual)', fuente: 'LinkedIn', tipo: 'mercado' },
           { cambio: 'Si quieres, sumar una foto profesional.', porQue: 'Es convención de mercado, no un requisito: la decisión es tuya.', cita: '', tipo: 'decision_personal' },
         ],
-        nota: 6,
-        notaComunica: 'Tu perfil hoy comunica más "especialista técnico" que "candidato a liderar".',
+        senales: [
+          { tema: 'Rol al que apuntas', estado: 'insinua', comentario: 'Se intuye, pero el titular no lo dice.', cita: '' },
+          { tema: 'Resultados medibles', estado: 'ausente', comentario: 'No aparecen cifras ni impacto.', cita: '' },
+        ],
+        comunicaHoy: 'Tu perfil hoy comunica más "especialista técnico" que "líder de equipo".',
       }
     case 'extraer':
       return { texto: '(Modo demo: el texto del CV aparecería aquí.)' }

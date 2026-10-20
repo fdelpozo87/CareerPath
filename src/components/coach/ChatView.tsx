@@ -5,6 +5,7 @@ import { getLang, stageLabel, tr, type Key } from '../../lib/i18n'
 import type { DocTipo, Path, Session, Stage } from '../../lib/coach/types'
 import { CoachAvatar } from '../Logo'
 import { DocsPanel } from './DocInputs'
+import { ProfileRecap } from './ProfileRecap'
 import { StageMap } from './StageMap'
 
 const nextLabel = (stage: Stage) => tr(`chat.next.${stage}` as Key)
@@ -221,6 +222,8 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
           <DocsPanel docs={session.documentos} status={docStatus} onAttach={onAttachDoc} />
         </div>
       )}
+
+      {session.perfil && <ProfileRecap perfil={session.perfil} />}
 
       {/* Dónde estás: etapa, qué se hace ahora y qué viene después. */}
       <div className="mt-2.5">

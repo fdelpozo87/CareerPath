@@ -173,6 +173,20 @@ class Recommendation {
 
 List<Observation> _obs(Object? v) => [for (final o in (v as List? ?? const [])) Observation.fromJson(o as Map<String, dynamic>)];
 
+/// Qué busca quien filtra perfiles y en qué estado está en el perfil: 'entiende' | 'insinua' | 'ausente'.
+class ProfileSignal {
+  const ProfileSignal({required this.tema, required this.estado, required this.comentario, required this.cita});
+  final String tema;
+  final String estado;
+  final String comentario;
+  final String cita;
+
+  factory ProfileSignal.fromJson(Map<String, dynamic> j) =>
+      ProfileSignal(tema: _str(j['tema']), estado: _str(j['estado']), comentario: _str(j['comentario']), cita: _str(j['cita']));
+
+  Map<String, dynamic> toJson() => {'tema': tema, 'estado': estado, 'comentario': comentario, 'cita': cita};
+}
+
 class ProfileReading {
   const ProfileReading({
     required this.primeraImpresion,
@@ -180,16 +194,24 @@ class ProfileReading {
     required this.ausencias,
     required this.consistenciaMarca,
     required this.recomendaciones,
-    required this.nota,
-    required this.notaComunica,
+    this.senales = const [],
+    this.comunicaHoy = '',
+    this.notaComunica = '',
   });
   final String primeraImpresion;
   final List<Observation> fortalezas;
   final List<Observation> ausencias;
   final String consistenciaMarca;
   final List<Recommendation> recomendaciones;
-  final num nota;
+  final List<ProfileSignal> senales;
+
+  /// "Tu perfil hoy comunica…"
+  final String comunicaHoy;
+
+  /// Lecturas guardadas antes de que se quitara la nota.
   final String notaComunica;
+
+  String get resumen => comunicaHoy.isNotEmpty ? comunicaHoy : notaComunica;
 
   factory ProfileReading.fromJson(Map<String, dynamic> j) => ProfileReading(
     primeraImpresion: _str(j['primeraImpresion']),
@@ -197,7 +219,8 @@ class ProfileReading {
     ausencias: _obs(j['ausencias']),
     consistenciaMarca: _str(j['consistenciaMarca']),
     recomendaciones: [for (final r in (j['recomendaciones'] as List? ?? const [])) Recommendation.fromJson(r as Map<String, dynamic>)],
-    nota: j['nota'] is num ? j['nota'] as num : 0,
+    senales: [for (final s in (j['senales'] as List? ?? const [])) ProfileSignal.fromJson(s as Map<String, dynamic>)],
+    comunicaHoy: _str(j['comunicaHoy']),
     notaComunica: _str(j['notaComunica']),
   );
 
@@ -207,8 +230,8 @@ class ProfileReading {
     'ausencias': [for (final o in ausencias) o.toJson()],
     'consistenciaMarca': consistenciaMarca,
     'recomendaciones': [for (final r in recomendaciones) r.toJson()],
-    'nota': nota,
-    'notaComunica': notaComunica,
+    'senales': [for (final s in senales) s.toJson()],
+    'comunicaHoy': comunicaHoy,
   };
 }
 

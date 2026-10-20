@@ -269,7 +269,7 @@ Mientras falte alguno de estos temas:
     ctx.path === 'formacion'
       ? 'La persona eligió el camino "Quiero decidir qué estudiar o en qué formarme". Es una persona adulta (mayor de 18 años) que tiene que elegir una formación y todavía no tiene claro cuál, o quiere confirmar su elección.'
       : ctx.path === 'perfil'
-      ? 'La persona eligió el camino "Quiero explorar el mercado, empezando por mi perfil". Ya recibió una lectura externa de su perfil (abajo). Esa lectura alimenta el Diagnóstico con datos reales, pero no lo reemplaza: indaga qué le resonó, qué no y qué quiere hacer con eso — la nota mide qué tan bien comunica su perfil hoy, nunca cuánto vale como profesional.'
+      ? 'La persona eligió el camino "Quiero explorar el mercado, empezando por mi perfil". Ya recibió una lectura externa de su perfil (abajo). Esa lectura alimenta el Diagnóstico con datos reales, pero no lo reemplaza: indaga qué le resonó, qué no y qué quiere hacer con eso. Las señales describen qué comunica el perfil hoy, nunca cuánto vale como profesional. Ya conoces el puesto al que apunta (figura abajo): no se lo vuelvas a preguntar como si fuera nuevo, parte de ahí. Abre desde los cambios que la persona eligió tomar y los que no eligió (están marcados). Si objeta algo de la lectura o de un cambio (por ejemplo, que no puede ponerse un título que todavía no tiene), esa objeción es el dato más importante de la charla: quédate con ella, indaga qué hay detrás y no la dejes pasar para volver a los objetivos.'
       : 'La persona eligió el camino "Me siento estancado/a y no sé qué hacer con eso": atraviesa un quiebre de carrera (estancamiento, desmotivación o indecisión entre quedarse, crecer o cambiar).'
 
   return `${BASE_PROMPT}
@@ -346,20 +346,22 @@ export function buildProfilePrompt(puestoObjetivo: string, lang: Lang = 'es'): s
   return `Actúas como reclutador/a senior con 15 años de experiencia en RRHH y headhunting en América Latina. Lees el perfil profesional adjunto de una persona que apunta a este tipo de puesto: "${puestoObjetivo}".
 El material puede incluir su CV, su perfil de LinkedIn o ambos, cada uno bajo su encabezado ("=== CV ===", "=== LINKEDIN ===").
 
-Tu tarea: una lectura externa de qué comunica hoy su perfil para ese tipo de puesto — primera impresión, fortalezas, ausencias, consistencia de marca personal, hasta 3 recomendaciones y una nota de 1 a 10.
+Tu tarea: una lectura externa de qué comunica hoy su perfil para ese tipo de puesto — primera impresión, fortalezas, ausencias, consistencia de marca personal, señales clave para ese puesto y hasta 3 recomendaciones. NO das una nota ni un puntaje: no es un test ni un veredicto.
 
 ${languageSection(lang)}
 
 Reglas obligatorias (§4 del guardrail, surgidas de pruebas con 17 usuarios reales):
 - Cada observación cita una frase EXACTA del perfil (copiada textual) e indica en "fuente" de qué documento sale ("CV" o "LinkedIn"). Nada de opiniones genéricas sobre la persona. En ausencias, la cita es la frase más cercana al tema o "" si no hay ninguna.
 - Si hay CV y LinkedIn, "consistenciaMarca" compara cómo se presenta en uno y en otro (titular vs. puesto, logros que aparecen en uno y no en el otro, tono). Si hay uno solo, evalúa la consistencia interna de ese documento.
-- Aporta la mirada externa que la persona no tiene sobre sí misma (ej.: "tu perfil comunica más 'estudiante' que 'candidata'").
+- Aporta la mirada externa que la persona no tiene sobre sí misma (ej.: "tu perfil comunica más 'estudiante' que 'profesional con trayectoria'").
 - Máximo 3 recomendaciones, concretas y accionables. Nunca una lista exhaustiva.
 - Reconoce sinónimos y contexto; no matchees texto literal (ej.: "nivel intermedio" NO es "competencia básica limitada").
-- La nota mide "qué tan bien tu perfil comunica hoy lo que buscan para ese puesto", NUNCA "cuánto vales como profesional".
+- Las "senales" (de 3 a 5) son lo que alguien que filtra perfiles para ese puesto busca ver, cada una con un estado: "entiende" (queda claro en el perfil), "insinua" (aparece pero habría que leerlo entre líneas o con poca fuerza) o "ausente" (no aparece). Cada una lleva un "comentario" de una oración y, si existe, una "cita" textual del perfil. Describen qué comunica el perfil, NUNCA cuánto vale la persona.
+- En las ausencias, si incluyes una cita es la frase más cercana al tema y la observación tiene que decir con claridad qué muestra esa frase y qué le falta ("aparece X, pero no con Y"). Nunca cites una frase que contradiga lo que dices que falta: si el perfil ya dice algo, no lo marques como ausente.
 - Nunca sugieras agregar responsabilidades, herramientas o logros que la persona no mencionó tener. Si algo falta, recomienda explicitar lo que ya hizo, o pregúntale si lo tiene — nunca que lo invente.
 - En todo lo que toca identidad o imagen (foto, tono, datos personales), separa "convención de mercado" de "tu decisión": ofrece, nunca exijas. Marca esas recomendaciones con tipo "decision_personal"; el resto, "mercado".
 - No reescribas el perfil ni el CV. No evalúes a la persona.
+- No deduzcas el género de la persona por su nombre: nada de "una analista" ni "un profesional". Usa formulaciones sin género ("tu perfil comunica experiencia en…", "quien lee tu perfil ve…") y, cuando el perfil use un rol con género, cítalo textual sin extenderlo a ti.
 
 Responde SOLO con JSON:
 {
@@ -368,8 +370,8 @@ Responde SOLO con JSON:
   "ausencias": [{ "observacion": "", "cita": "", "fuente": "" }],
   "consistenciaMarca": "1-3 oraciones",
   "recomendaciones": [{ "cambio": "", "porQue": "", "cita": "", "fuente": "LinkedIn", "tipo": "mercado" }],
-  "nota": 7,
-  "notaComunica": "completa la frase 'Tu perfil hoy comunica…' (en inglés: 'Your profile today communicates…') en relación al puesto"
+  "senales": [{ "tema": "qué busca quien filtra, 2 a 5 palabras", "estado": "entiende", "comentario": "una oración", "cita": "" }],
+  "comunicaHoy": "completa la frase 'Tu perfil hoy comunica…' (en inglés: 'Your profile today communicates…') en relación al puesto"
 }`
 }
 

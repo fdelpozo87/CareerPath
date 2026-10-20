@@ -63,6 +63,18 @@ export async function sendLoginLink(email: string): Promise<void> {
   if (error) throw error
 }
 
+/** Header con el token de la sesión de la cuenta, para los pedidos a /api (vacío si no hay sesión). */
+export async function authHeader(): Promise<Record<string, string>> {
+  const c = sb()
+  if (!c) return {}
+  try {
+    const token = (await c.auth.getSession()).data.session?.access_token
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  } catch {
+    return {}
+  }
+}
+
 export async function signOut(): Promise<void> {
   await sb()?.auth.signOut()
 }

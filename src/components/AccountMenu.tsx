@@ -13,6 +13,8 @@ export interface AccountInfo {
   onLogout: () => void
   /** Borra la conversación guardada en este navegador. */
   onDeleteData: () => void
+  /** Solo para quien administra: abre el panel de usuarios. */
+  onAdmin?: () => void
   /** Cuenta opcional (guardar el informe con email). Solo si hay una sesión iniciada. */
   cloud?: { email: string; onSignOut: () => void; onDeleteAccount: () => void }
 }
@@ -101,6 +103,20 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
             </div>
           )}
           <ul className="mt-2 space-y-0.5">
+            {account.onAdmin && (
+              <li>
+                <button
+                  type="button"
+                  className={`${ITEM} font-semibold`}
+                  onClick={() => {
+                    setOpen(false)
+                    account.onAdmin?.()
+                  }}
+                >
+                  {tr('admin.link')}
+                </button>
+              </li>
+            )}
             <li>
               <a href="#privacidad" className={ITEM} onClick={() => setOpen(false)}>
                 {tr('account.privacy')}

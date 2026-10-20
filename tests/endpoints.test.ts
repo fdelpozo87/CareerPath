@@ -53,6 +53,9 @@ beforeEach(() => {
   // necesite la puerta de acceso configura su propio entorno.
   vi.stubEnv('VERCEL', '')
   vi.stubEnv('ACCESS_CODES', '')
+  // Sin Supabase: estos tests cubren el acceso por código (el acceso por cuenta se prueba en tests/login.test.ts).
+  vi.stubEnv('SUPABASE_URL', '')
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '')
   resetRateLimits()
   gemini.generateContent.mockReset()
   vi.spyOn(console, 'log').mockImplementation(() => {})

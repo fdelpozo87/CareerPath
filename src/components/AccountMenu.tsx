@@ -13,6 +13,10 @@ export interface AccountInfo {
   onLogout: () => void
   /** Borra la conversación guardada en este navegador. */
   onDeleteData: () => void
+  /** Solo para quien administra: abre el panel de usuarios. */
+  onAdmin?: () => void
+  /** Cuenta opcional (guardar el informe con email). Solo si hay una sesión iniciada. */
+  cloud?: { email: string; onSignOut: () => void; onDeleteAccount: () => void }
 }
 
 function PersonIcon() {
@@ -72,7 +76,47 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
             <p className="text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('account.testSession')}</p>
             <p className="mt-1 truncate text-sm font-medium text-foreground">{account.label ?? (account.canLogout ? tr('account.unknown') : tr('account.open'))}</p>
           </div>
+          {account.cloud && (
+            <div className="border-b border-border-color px-3 pb-3 pt-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('cloud.account')}</p>
+              <p className="mt-1 truncate text-sm font-medium text-foreground">{account.cloud.email}</p>
+              <button
+                type="button"
+                className={`${ITEM} -mx-3 mt-1`}
+                onClick={() => {
+                  setOpen(false)
+                  account.cloud?.onSignOut()
+                }}
+              >
+                {tr('cloud.signOut')}
+              </button>
+              <button
+                type="button"
+                className={`${ITEM} -mx-3`}
+                onClick={() => {
+                  setOpen(false)
+                  account.cloud?.onDeleteAccount()
+                }}
+              >
+                {tr('cloud.deleteAccount')}
+              </button>
+            </div>
+          )}
           <ul className="mt-2 space-y-0.5">
+            {account.onAdmin && (
+              <li>
+                <button
+                  type="button"
+                  className={`${ITEM} font-semibold`}
+                  onClick={() => {
+                    setOpen(false)
+                    account.onAdmin?.()
+                  }}
+                >
+                  {tr('admin.link')}
+                </button>
+              </li>
+            )}
             <li>
               <a href="#privacidad" className={ITEM} onClick={() => setOpen(false)}>
                 {tr('account.privacy')}

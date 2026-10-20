@@ -1,5 +1,6 @@
 import type { IncomingMessage } from 'node:http'
 import { accessState } from './access.js'
+import { accountsMode, authorize } from './auth.js'
 import { coachMode, handleCoachRequest } from './coach.js'
 import { runCompanyAnalysis, validateCompany } from './company.js'
 import { translate, type Lang } from '../shared/i18n.js'
@@ -64,6 +65,37 @@ export async function runEndpoint(endpoint: EndpointName, req: Req, apiKey: stri
   if (!isAllowedOrigin(req)) return finish({ status: 403, body: { error: msg('srv.origin') } })
 
   const access = accessState()
+
+  // Acceso por cuenta (Supabase): reemplaza al código. Cada persona entra con su email y solo las
+  // cuentas aprobadas usan el coach (ver server/auth.ts).
+  let accountWho: string | undefined
+  if (accountsMode()) {
+    const gate = await authorize(req)
+    if (endpoint === 'access') {
+      return finish({
+        status: 200,
+        body: gate.ok
+          ? { required: true, mode: 'accounts', ok: true, isAdmin: gate.isAdmin }
+          : { required: true, mode: 'accounts', ok: false, reason: gate.reason },
+      })
+    }
+    if (!gate.ok) {
+      const denied = {
+        sin_sesion: { status: 401, key: 'srv.accessLost' },
+        pendiente: { status: 403, key: 'srv.pending' },
+        desactivado: { status: 403, key: 'srv.disabled' },
+        no_disponible: { status: 503, key: 'srv.authDown' },
+      } as const
+      const d = denied[gate.reason]
+      return finish({ status: d.status, body: { error: msg(d.key), reason: gate.reason } }, { rule: 'cuenta', reason: gate.reason })
+    }
+    accountWho = `u:${gate.user.id.slice(0, 8)}`
+    const perUser = rateLimit(`usuario:${gate.user.id}`, RATE_RULES.porCodigo)
+    if (!perUser.ok) {
+      return finish({ status: 429, body: { error: msg('srv.dailyCap') }, headers: { 'Retry-After': String(perUser.retryAfterS) } }, { rule: 'porUsuario', who: accountWho })
+    }
+  }
+
   const tooManyFails = () => rateLimit(`acceso:${ip}`, RATE_RULES.intentosFallidos, Date.now(), false)
   const lockedOut = (retryAfterS: number) =>
     finish(
@@ -98,9 +130,11 @@ export async function runEndpoint(endpoint: EndpointName, req: Req, apiKey: stri
   }
 
   // /api/coach y /api/analyze: el código viaja en un header en cada pedido.
-  let who: string | undefined
-  if (access.mode === 'unconfigured') return unconfigured()
-  if (access.mode === 'gated') {
+  let who: string | undefined = accountWho
+  if (accountWho) {
+    // Ya se validó la cuenta arriba: no hay código que revisar.
+  } else if (access.mode === 'unconfigured') return unconfigured()
+  else if (access.mode === 'gated') {
     const lim = tooManyFails()
     if (!lim.ok) return lockedOut(lim.retryAfterS)
     const header = req.headers['x-access-code']

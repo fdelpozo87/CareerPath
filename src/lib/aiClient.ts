@@ -2,6 +2,7 @@
 // servidor: acá nunca viajan prompts ni secretos, solo los datos del flujo.
 
 import { ACCESS_LOST_EVENT, clearAccessCode, getAccessCode } from './access'
+import { authHeader } from './cloud'
 import { getLang, tr } from './i18n'
 
 const TIMEOUT_MS = 60_000
@@ -14,7 +15,7 @@ export async function postJson<T>(url: string, payload: unknown): Promise<T> {
     const code = getAccessCode()
     res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-lang': getLang(), ...(code ? { 'x-access-code': code } : {}) },
+      headers: { 'Content-Type': 'application/json', 'x-lang': getLang(), ...(code ? { 'x-access-code': code } : {}), ...(await authHeader()) },
       body: JSON.stringify(payload),
       signal: controller.signal,
     })
@@ -30,9 +31,10 @@ export async function postJson<T>(url: string, payload: unknown): Promise<T> {
     clearTimeout(timer)
   }
   const json = (await res.json().catch(() => ({}))) as T & { error?: string }
-  if (res.status === 401) {
-    // El código guardado ya no sirve (por ejemplo, fue revocado): vuelve a la pantalla de acceso.
-    clearAccessCode()
+  const denied = (json as { reason?: string }).reason
+  if (res.status === 401 || (res.status === 403 && denied)) {
+    // El código guardado o la cuenta ya no sirven (revocado, desactivado, pendiente): se vuelve a revisar el acceso.
+    if (res.status === 401) clearAccessCode()
     window.dispatchEvent(new Event(ACCESS_LOST_EVENT))
   }
   if (!res.ok || json.error) {

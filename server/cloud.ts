@@ -1,0 +1,143 @@
+// Acceso del servidor a Supabase (cuenta opcional de la persona). Usa la service role, que se salta
+// la seguridad por filas: por eso vive solo acá y nunca viaja al navegador. Sin dependencias: habla
+// con la API REST de Supabase directamente.
+
+export interface CloudEnv {
+  url: string
+  serviceKey: string
+}
+
+export function cloudEnv(): CloudEnv | null {
+  const url = process.env.SUPABASE_URL?.replace(/\/+$/, '')
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  return url && serviceKey ? { url, serviceKey } : null
+}
+
+const headers = (env: CloudEnv, extra: Record<string, string> = {}) => ({
+  apikey: env.serviceKey,
+  Authorization: `Bearer ${env.serviceKey}`,
+  'Content-Type': 'application/json',
+  ...extra,
+})
+
+async function call(env: CloudEnv, path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${env.url}${path}`, { ...init, headers: { ...headers(env), ...(init.headers as Record<string, string> | undefined) }, signal: AbortSignal.timeout(15_000) })
+}
+
+export interface CloudUser {
+  id: string
+  email: string
+  /** El email se confirmó (entró con el enlace que se le mandó). */
+  confirmed: boolean
+}
+
+/** Quién es la persona que presenta este token de sesión (null si no es válido). */
+export async function verifyUser(env: CloudEnv, token: string): Promise<CloudUser | null> {
+  const res = await fetch(`${env.url}/auth/v1/user`, {
+    headers: { apikey: env.serviceKey, Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(15_000),
+  })
+  if (!res.ok) return null
+  const u = (await res.json()) as { id?: string; email?: string; email_confirmed_at?: string | null }
+  return u.id ? { id: u.id, email: u.email ?? '', confirmed: Boolean(u.email_confirmed_at) } : null
+}
+
+/** Borra la cuenta; los informes y recordatorios se van en cascada. */
+export async function deleteUser(env: CloudEnv, id: string): Promise<boolean> {
+  const res = await call(env, `/auth/v1/admin/users/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  return res.ok
+}
+
+export interface DueReminder {
+  id: string
+  user_id: string
+  due_at: string
+  lang: 'es' | 'en'
+  bivio_informes: { path: string; informe: { objetivoSesion?: string; acciones?: { texto: string }[]; checkIn?: string }; compromisos: number[] }
+}
+
+export async function dueReminders(env: CloudEnv, now: Date, limit = 50): Promise<DueReminder[]> {
+  const q = new URLSearchParams({
+    select: 'id,user_id,due_at,lang,bivio_informes(path,informe,compromisos)',
+    sent_at: 'is.null',
+    due_at: `lte.${now.toISOString()}`,
+    order: 'due_at.asc',
+    limit: String(limit),
+  })
+  const res = await call(env, `/rest/v1/bivio_recordatorios?${q}`)
+  if (!res.ok) throw new Error(`recordatorios ${res.status}`)
+  return (await res.json()) as DueReminder[]
+}
+
+export async function emailOf(env: CloudEnv, userId: string): Promise<string | null> {
+  const res = await call(env, `/auth/v1/admin/users/${encodeURIComponent(userId)}`)
+  if (!res.ok) return null
+  return ((await res.json()) as { email?: string }).email ?? null
+}
+
+export async function markReminderSent(env: CloudEnv, id: string, at: Date): Promise<void> {
+  await call(env, `/rest/v1/bivio_recordatorios?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ sent_at: at.toISOString() }),
+  })
+}
+
+// ── Perfiles: quién puede usar el servicio ────────────────────────────────────
+
+export type Estado = 'pendiente' | 'activo' | 'desactivado'
+export const ESTADOS: Estado[] = ['pendiente', 'activo', 'desactivado']
+
+export interface Perfil {
+  user_id: string
+  email: string
+  estado: Estado
+  created_at: string
+  last_seen_at: string | null
+}
+
+const PERFIL_COLS = 'user_id,email,estado,created_at,last_seen_at'
+
+export async function getPerfil(env: CloudEnv, userId: string): Promise<Perfil | null> {
+  const res = await call(env, `/rest/v1/bivio_perfiles?select=${PERFIL_COLS}&user_id=eq.${encodeURIComponent(userId)}&limit=1`)
+  if (!res.ok) throw new Error(`perfil ${res.status}`)
+  return ((await res.json()) as Perfil[])[0] ?? null
+}
+
+/** Devuelve el perfil; si todavía no existe (usuario anterior a la tabla), lo crea como pendiente. */
+export async function ensurePerfil(env: CloudEnv, user: CloudUser): Promise<Perfil> {
+  const found = await getPerfil(env, user.id)
+  if (found) return found
+  const res = await call(env, `/rest/v1/bivio_perfiles?on_conflict=user_id`, {
+    method: 'POST',
+    headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+    body: JSON.stringify({ user_id: user.id, email: user.email }),
+  })
+  if (!res.ok) throw new Error(`perfil_crear ${res.status}`)
+  const created = await getPerfil(env, user.id)
+  if (!created) throw new Error('perfil_crear')
+  return created
+}
+
+export async function setEstado(env: CloudEnv, userId: string, estado: Estado): Promise<boolean> {
+  const res = await call(env, `/rest/v1/bivio_perfiles?user_id=eq.${encodeURIComponent(userId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ estado }),
+  })
+  return res.ok
+}
+
+export async function touchSeen(env: CloudEnv, userId: string, at: Date): Promise<void> {
+  await call(env, `/rest/v1/bivio_perfiles?user_id=eq.${encodeURIComponent(userId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ last_seen_at: at.toISOString() }),
+  })
+}
+
+export async function listPerfiles(env: CloudEnv): Promise<Perfil[]> {
+  const res = await call(env, `/rest/v1/bivio_perfiles?select=${PERFIL_COLS}&order=created_at.desc&limit=500`)
+  if (!res.ok) throw new Error(`perfiles ${res.status}`)
+  return (await res.json()) as Perfil[]
+}

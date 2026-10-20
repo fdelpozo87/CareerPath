@@ -62,7 +62,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
           <section>
             <h2>{t('s3.title')}</h2>
             <ul className="space-y-2">
-              {['a', 'b', 'c', 'd'].map((x) => (
+              {['a', 'b', 'c', 'd', 'e'].map((x) => (
                 <Item key={x} base={`s3.${x}`} />
               ))}
             </ul>
@@ -72,7 +72,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
             <h2>{t('s4.title')}</h2>
             <p>{t('s4.intro')}</p>
             <ul className="mt-2 space-y-1">
-              {['g', 'v', 's'].map((x) => (
+              {['g', 'v', 's', 'sb', 'r'].map((x) => (
                 <Item key={x} base={`s4.${x}`} />
               ))}
             </ul>

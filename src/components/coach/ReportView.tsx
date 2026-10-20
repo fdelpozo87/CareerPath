@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import ConfirmDialog from '../ConfirmDialog'
+import { SaveCard } from './SaveCard'
 import { getLang, tr, trn, type Key } from '../../lib/i18n'
-import type { Report, ReportAction } from '../../lib/coach/types'
+import type { Report, ReportAction, Session } from '../../lib/coach/types'
 
 // Cierre del Plan de Acción (§5): informe breve donde la persona selecciona
 // qué acciones asume. Ninguna viene marcada por default.
@@ -15,9 +16,11 @@ interface ReportViewProps {
   compromisosFecha?: string
   onSave: (indices: number[]) => void
   onRestart: () => void
+  /** El proceso al que pertenece el informe (para guardarlo en la cuenta). */
+  session?: Session
 }
 
-export function ReportView({ report, compromisos, compromisosFecha, onSave, onRestart }: ReportViewProps) {
+export function ReportView({ report, compromisos, compromisosFecha, onSave, onRestart, session }: ReportViewProps) {
   const [selected, setSelected] = useState<number[]>(compromisos ?? [])
   const [editing, setEditing] = useState(!compromisos)
   const [confirmRestart, setConfirmRestart] = useState(false)
@@ -168,6 +171,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
           {tr('report.saved')}
         </p>
       )}
+      {!editing && session && <SaveCard session={session} />}
       {/* Acción destructiva: lejos de los botones principales y con confirmación. */}
       <div className="mt-12 border-t border-border-color pt-6 text-center print:hidden">
         <button onClick={() => setConfirmRestart(true)} className="text-sm text-text-muted underline underline-offset-2 transition hover:text-foreground">

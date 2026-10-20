@@ -302,6 +302,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
                 trackEvent('commitments_saved', { elegidos: indices.length, total: session.informe?.acciones.length ?? 0 })
               }}
               onRestart={onRestart}
+              session={session}
             />
           ) : error ? (
             <div className="mx-auto max-w-md rounded-xl border border-danger/20 bg-danger-soft p-4 text-sm text-danger">

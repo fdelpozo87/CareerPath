@@ -8,18 +8,19 @@ import AccessGate from './components/AccessGate'
 import ConfirmDialog from './components/ConfirmDialog'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import { CoachFlow } from './components/coach/CoachFlow'
-import { clearAllSessions, deleteSession, listSessions, newSession } from './lib/coach/session'
+import { clearAllSessions, deleteSession, listSessions, loadSessionById, newSession, saveSession } from './lib/coach/session'
+import { cloudEnabled, currentUser, deleteAccount, listSavedReports, onAuthChange, saveReport, sessionFromSaved, signOut, takePendingSave, type CloudUser } from './lib/cloud'
 import type { Path, Session } from './lib/coach/types'
 import { ACCESS_LOST_EVENT, checkAccess, clearAccessCode, getAccessCode, getAccessLabel, saveAccessCode } from './lib/access'
 import type { AccountInfo } from './components/AccountMenu'
 import { trackEvent } from './lib/tracking'
-import { tr, useLang } from './lib/i18n'
+import { tr, trn, useLang } from './lib/i18n'
 
 type View = 'landing' | 'coach' | 'company' | 'privacidad'
 
 const isPrivacyHash = () => window.location.hash === '#privacidad'
 
-type Pending = { kind: 'deleteAll' } | { kind: 'deleteOne'; id: string }
+type Pending = { kind: 'deleteAll' } | { kind: 'deleteOne'; id: string } | { kind: 'deleteAccount' }
 
 type Access = { state: 'checking' } | { state: 'locked'; error?: string } | { state: 'open' }
 
@@ -32,10 +33,48 @@ function App() {
   const [label, setLabel] = useState<string | null>(getAccessLabel)
   // Confirmación pendiente (reemplaza a window.confirm, que algunos navegadores bloquean).
   const [pending, setPending] = useState<Pending | null>(null)
+  // Cuenta opcional: quién tiene la sesión iniciada y un aviso breve (guardado, recuperado).
+  const [cloudUser, setCloudUser] = useState<CloudUser | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   // Se relee al volver a la landing (o al borrar un proceso) para reflejar lo guardado.
   const [listVersion, setListVersion] = useState(0)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const processes = useMemo(() => (view === 'landing' ? listSessions() : []), [view, listVersion])
+
+  // Cuenta opcional. Al entrar (por ejemplo, al volver del enlace del mail): se guarda lo que la persona
+  // había elegido antes de pedir el enlace y se recuperan en este navegador los informes de su cuenta.
+  useEffect(() => {
+    if (!cloudEnabled()) return
+    let alive = true
+    const onUser = async (user: CloudUser | null) => {
+      if (!alive) return
+      setCloudUser(user)
+      if (!user) return
+      try {
+        const pending = takePendingSave()
+        const local = pending ? loadSessionById(pending.processId) : null
+        if (pending && local?.informe) {
+          await saveReport(local, pending.remindDays)
+          if (alive) setNotice(tr('cloud.autoSaved', { email: user.email }))
+        }
+        const known = new Set(listSessions().map((s) => s.id))
+        const missing = (await listSavedReports()).filter((r) => !known.has(r.processId))
+        for (const r of missing) saveSession(sessionFromSaved(r))
+        if (missing.length > 0 && alive) {
+          setNotice(trn('cloud.imported', missing.length))
+          setListVersion((v) => v + 1)
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    void currentUser().then(onUser)
+    const off = onAuthChange((u) => void onUser(u))
+    return () => {
+      alive = false
+      off()
+    }
+  }, [])
 
   // Acceso de prueba: pregunta al servidor si hace falta código y si el guardado sirve.
   // En local (sin ACCESS_CODES) el servidor responde "no requerido" y no se muestra nada.
@@ -121,20 +160,37 @@ function App() {
       window.scrollTo(0, 0)
     },
     onDeleteData: () => setPending({ kind: 'deleteAll' }),
+    cloud: cloudUser
+      ? {
+          email: cloudUser.email,
+          onSignOut: () => {
+            void signOut()
+            setNotice(null)
+          },
+          onDeleteAccount: () => setPending({ kind: 'deleteAccount' }),
+        }
+      : undefined,
   }
 
   const confirmDialog = (
     <ConfirmDialog
       open={pending !== null}
-      title={pending?.kind === 'deleteOne' ? tr('process.deleteTitle') : tr('account.deleteTitle')}
-      body={pending?.kind === 'deleteOne' ? tr('process.deleteConfirm') : tr('account.deleteConfirm')}
-      confirmLabel={pending?.kind === 'deleteOne' ? tr('process.deleteAction') : tr('account.deleteAction')}
+      title={pending?.kind === 'deleteOne' ? tr('process.deleteTitle') : pending?.kind === 'deleteAccount' ? tr('cloud.deleteTitle') : tr('account.deleteTitle')}
+      body={pending?.kind === 'deleteOne' ? tr('process.deleteConfirm') : pending?.kind === 'deleteAccount' ? tr('cloud.deleteConfirm') : tr('account.deleteConfirm')}
+      confirmLabel={pending?.kind === 'deleteOne' ? tr('process.deleteAction') : pending?.kind === 'deleteAccount' ? tr('cloud.deleteAction') : tr('account.deleteAction')}
       onCancel={() => setPending(null)}
       onConfirm={() => {
         const action = pending
         setPending(null)
         if (action?.kind === 'deleteAll') deleteAll()
-        else if (action) deleteOne(action.id)
+        else if (action?.kind === 'deleteAccount') {
+          deleteAccount()
+            .then(() => setNotice(null))
+            .catch((e) => {
+              console.error(e)
+              setNotice(tr('cloud.error'))
+            })
+        } else if (action) deleteOne(action.id)
       }}
     />
   )
@@ -192,6 +248,14 @@ function App() {
     <div className="flex min-h-screen flex-col bg-background font-sans">
       <Header account={account} />
       <main className="flex-1">
+        {notice && (
+          <div role="status" className="mx-auto mt-6 flex max-w-6xl items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-sm text-foreground">
+            <p>{notice}</p>
+            <button onClick={() => setNotice(null)} className="shrink-0 font-semibold underline underline-offset-2">
+              {tr('cloud.dismiss')}
+            </button>
+          </div>
+        )}
         <Landing
           onChoosePath={startPath}
           processes={processes}

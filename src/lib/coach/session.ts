@@ -65,6 +65,11 @@ export function listSessions(): Session[] {
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 
+/** Un proceso guardado, aunque todavía no tenga progreso (para el chequeo de quien lo busca por id). */
+export function loadSessionById(id: string): Session | null {
+  return readAll().find((s) => s.id === id) ?? null
+}
+
 export function saveSession(session: Session) {
   const all = readAll()
   const exists = all.some((s) => s.id === session.id)

@@ -13,6 +13,7 @@ import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type SynthesisItem } from '../s
 import { generateJson, responseText } from './gemini.js'
 import { wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
+import { MAX_MARKET_PER_CONVERSATION, fetchMarketData, type MarketData, type MarketSource } from './market.js'
 
 // Lógica compartida del agente conversacional. La usan api/coach.ts (Vercel)
 // y el middleware de desarrollo en vite.config.ts. La API key y el system
@@ -37,6 +38,9 @@ export interface TurnResult {
   sintesisItems: SynthesisItem[]
   /** Pregunta abierta que la persona se lleva a la próxima etapa. */
   preguntaPuente: string
+  /** Si este turno usó datos de mercado: de dónde salieron y cuándo se consultaron. */
+  fuentes?: MarketSource[]
+  fechaDatos?: string
 }
 
 type CoachRequest =
@@ -345,6 +349,21 @@ function normalizeTurn(
   }
 }
 
+/** Cuántos turnos del coach de esta conversación ya usaron datos de mercado (los marca el campo "fuentes"). */
+export function marketSearches(history: ChatMessage[]): number {
+  let n = 0
+  for (const m of history) {
+    if (m.role !== 'model') continue
+    try {
+      const fuentes = (JSON.parse(m.text) as { fuentes?: unknown }).fuentes
+      if (Array.isArray(fuentes) && fuentes.length > 0) n++
+    } catch {
+      // Turno sin JSON (sesiones viejas): no cuenta.
+    }
+  }
+  return n
+}
+
 async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Promise<unknown> {
   const genAI = new GoogleGenerativeAI(apiKey)
   const modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
@@ -359,7 +378,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
         generationConfig,
       }, requestOptions)
       const run = (extra = '') =>
-        generateJson<Partial<TurnResult>>(async () =>
+        generateJson<Partial<TurnResult> & { consultaMercado?: unknown }>(async () =>
           responseText((await model.generateContent({ contents: toContents(req.history, lang, extra) })).response, 'turno'),
         )
       let raw = await run()
@@ -370,7 +389,35 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
         logEvent('warn', 'coach_idioma_equivocado', { lang })
         raw = await run(translate(lang, 'srv.langRetry'))
       }
-      return normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path, lang)
+      // El coach pidió datos de mercado: se busca con fuente y se le vuelve a pedir el turno con el resultado.
+      const consulta = typeof raw.consultaMercado === 'string' ? raw.consultaMercado.trim() : ''
+      let market: MarketData | null = null
+      if (consulta) {
+        let note: string
+        if (marketSearches(req.history) >= MAX_MARKET_PER_CONVERSATION) {
+          note = translate(lang, 'srv.market.limit')
+        } else {
+          market = await fetchMarketData(genAI, modelName, consulta, lang).catch((e) => {
+            logEvent('warn', 'coach_mercado_error', { error: e instanceof Error ? e : String(e) })
+            return null
+          })
+          note = market
+            ? translate(lang, 'srv.market.ok', { date: market.fecha, text: market.texto, sources: market.fuentes.map((f) => f.titulo).join(', ') })
+            : translate(lang, 'srv.market.none')
+        }
+        logEvent('info', 'coach_mercado', { ok: Boolean(market) })
+        try {
+          raw = await run(note)
+        } catch (e) {
+          // Si el modelo no logra responder con los datos, se responde sin ellos antes que fallar el turno.
+          if (!market) throw e
+          logEvent('warn', 'coach_mercado_reintento', { error: e instanceof Error ? e : String(e) })
+          market = null
+          raw = await run(translate(lang, 'srv.market.none'))
+        }
+      }
+      const turn = normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path, lang)
+      return market ? { ...turn, fuentes: market.fuentes, fechaDatos: market.fecha } : turn
     }
     case 'informe': {
       const model = genAI.getGenerativeModel({
@@ -384,7 +431,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
     }
     case 'perfil': {
       const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { ...generationConfig, temperature: 0.3 } }, requestOptions)
-      return generateJson(async () =>
+      const reading = await generateJson<Record<string, unknown>>(async () =>
         (
           await model.generateContent([
             { text: `PERFIL:\n"""\n${req.perfilTexto}\n"""` },
@@ -392,6 +439,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
           ])
         ).response.text(),
       )
+      return normalizeReading(reading)
     }
     case 'extraer': {
       const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { ...generationConfig, temperature: 0 } }, requestOptions)
@@ -503,6 +551,29 @@ function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
   }
 }
 
+const SIGNAL_STATES = ['entiende', 'insinua', 'ausente']
+
+/**
+ * Deja la lectura de perfil con la forma que espera la pantalla: sin nota ni puntaje (el producto
+ * promete "no es un test"), con entre 0 y 5 señales de estado válido.
+ */
+export function normalizeReading(raw: Record<string, unknown>): Record<string, unknown> {
+  const { notaComunica, ...rest } = raw
+  delete (rest as Record<string, unknown>).nota
+  const senales = (Array.isArray(raw.senales) ? raw.senales : [])
+    .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object' && SIGNAL_STATES.includes(String((s as Record<string, unknown>).estado)))
+    .slice(0, 5)
+    .map((s) => ({
+      tema: String(s.tema ?? '').slice(0, 80),
+      estado: String(s.estado),
+      comentario: String(s.comentario ?? '').slice(0, 300),
+      cita: String(s.cita ?? '').slice(0, 300),
+    }))
+    .filter((s) => s.tema)
+  const comunicaHoy = typeof raw.comunicaHoy === 'string' && raw.comunicaHoy ? raw.comunicaHoy : typeof notaComunica === 'string' ? notaComunica : ''
+  return { ...rest, senales, comunicaHoy }
+}
+
 function runDemo(req: CoachRequest): unknown {
   switch (req.mode) {
     case 'turno':
@@ -531,8 +602,11 @@ function runDemo(req: CoachRequest): unknown {
           { cambio: 'Alinear el titular con el puesto al que apuntas.', porQue: 'Es lo primero que lee quien filtra.', cita: '(cita textual)', fuente: 'LinkedIn', tipo: 'mercado' },
           { cambio: 'Si quieres, sumar una foto profesional.', porQue: 'Es convención de mercado, no un requisito: la decisión es tuya.', cita: '', tipo: 'decision_personal' },
         ],
-        nota: 6,
-        notaComunica: 'Tu perfil hoy comunica más "especialista técnico" que "candidato a liderar".',
+        senales: [
+          { tema: 'Rol al que apuntas', estado: 'insinua', comentario: 'Se intuye, pero el titular no lo dice.', cita: '' },
+          { tema: 'Resultados medibles', estado: 'ausente', comentario: 'No aparecen cifras ni impacto.', cita: '' },
+        ],
+        comunicaHoy: 'Tu perfil hoy comunica más "especialista técnico" que "líder de equipo".',
       }
     case 'extraer':
       return { texto: '(Modo demo: el texto del CV aparecería aquí.)' }

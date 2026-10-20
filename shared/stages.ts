@@ -31,8 +31,8 @@ export const STAGE_OBJECTIVES: Record<Stage, StageObjective[]> = {
     { id: 'will', omitible: true, descripcion: 'Will: qué intentó hasta ahora y cuál es su nivel real de compromiso con moverse.' },
   ],
   discovery: [
-    { id: 'reencuadre', omitible: true, descripcion: 'El obstáculo principal reencuadrado con datos propios de la persona, no con su primera lectura.' },
-    { id: 'escenarios', omitible: false, descripcion: 'Al menos 2 escenarios narrados por la persona como su propia historia de transición.' },
+    { id: 'reencuadre', omitible: true, descripcion: 'El obstáculo principal TAL COMO LO NOMBRÓ la persona (el suyo, no uno que supongas tú), trabajado: qué lo hace pesado, qué ya probó o qué lo volvería más manejable, y reencuadrado con datos propios, no con su primera lectura.' },
+    { id: 'escenarios', omitible: false, descripcion: 'Al menos 2 escenarios narrados por la persona como su propia historia de transición, incluyendo cada camino que nombró antes (también el que mencionó de pasada: si quedó afuera, pregúntale si lo descarta o lo quiere explorar). Antes de cerrar, cuál le gustaría llevar al Plan o si sigue entre más de uno: lo elige ella.' },
     { id: 'cuatro_c', omitible: true, descripcion: 'Qué fortalece o debilita cada escenario en preocupación por el futuro (concern), control, curiosidad y confianza — según la persona.' },
   ],
   plan: [
@@ -57,7 +57,8 @@ export const FORMACION_OBJECTIVES: Record<Stage, StageObjective[]> = {
   discovery: [
     { id: 'intereses', omitible: false, descripcion: 'Qué temas o actividades le interesan o le dan energía, con ejemplos concretos de su vida (no etiquetas generales).' },
     { id: 'aptitudes', omitible: true, descripcion: 'Qué hace bien o aprendió con facilidad según ella, y qué quisiera desarrollar. Con ejemplos, no con adjetivos.' },
-    { id: 'criterios', omitible: false, descripcion: 'Entre 3 y 5 criterios propios con los que va a comparar opciones (por ejemplo: costo, duración, modalidad, salida laboral, interés por el tema), ordenados por importancia según ella.' },
+    { id: 'criterios', omitible: false, descripcion: 'Entre 3 y 5 criterios propios con los que va a comparar opciones (por ejemplo: costo, duración, modalidad, salida laboral, interés por el tema), ordenados por importancia según ella. Se arman de a uno por turno, con ella: no pidas la lista completa y ordenada en una sola pregunta.' },
+    { id: 'comparacion', omitible: false, descripcion: 'Compara, con SUS criterios, las opciones que nombró (si todavía no tiene ninguna, las que surjan de lo que le interesa): para cada una, qué cumple y qué no según ella, y qué le falta averiguar. Es una comparación que arma ella con tu ayuda, no un ranking tuyo.' },
   ],
   plan: [
     { id: 'eleccion', omitible: false, descripcion: 'La opción que ELIGE explorar o encarar primero (la elige ella, no la propone el coach), o cuál sigue evaluando y qué le falta saber.' },

@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Header from './components/Header'
 import Landing from './components/Landing'
 import CompanySection from './components/CompanySection'
 import Footer from './components/Footer'
 import { CompanyFlow } from './components/CompanyFlow'
 import AccessGate from './components/AccessGate'
+import ConfirmDialog from './components/ConfirmDialog'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import { CoachFlow } from './components/coach/CoachFlow'
-import { clearSession, hasProgress, loadSession, newSession } from './lib/coach/session'
+import { clearAllSessions, deleteSession, listSessions, newSession } from './lib/coach/session'
 import type { Path, Session } from './lib/coach/types'
 import { ACCESS_LOST_EVENT, checkAccess, clearAccessCode, getAccessCode, getAccessLabel, saveAccessCode } from './lib/access'
 import type { AccountInfo } from './components/AccountMenu'
@@ -18,6 +19,8 @@ type View = 'landing' | 'coach' | 'company' | 'privacidad'
 
 const isPrivacyHash = () => window.location.hash === '#privacidad'
 
+type Pending = { kind: 'deleteAll' } | { kind: 'deleteOne'; id: string }
+
 type Access = { state: 'checking' } | { state: 'locked'; error?: string } | { state: 'open' }
 
 function App() {
@@ -27,8 +30,12 @@ function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [access, setAccess] = useState<Access>({ state: 'checking' })
   const [label, setLabel] = useState<string | null>(getAccessLabel)
-  // Se relee al volver a la landing para reflejar el progreso guardado.
-  const saved = view === 'landing' ? loadSession() : null
+  // Confirmación pendiente (reemplaza a window.confirm, que algunos navegadores bloquean).
+  const [pending, setPending] = useState<Pending | null>(null)
+  // Se relee al volver a la landing (o al borrar un proceso) para reflejar lo guardado.
+  const [listVersion, setListVersion] = useState(0)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const processes = useMemo(() => (view === 'landing' ? listSessions() : []), [view, listVersion])
 
   // Acceso de prueba: pregunta al servidor si hace falta código y si el guardado sirve.
   // En local (sin ACCESS_CODES) el servidor responde "no requerido" y no se muestra nada.
@@ -73,14 +80,29 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
+  // Empezar un camino nunca borra los otros procesos: se suma a la lista.
   const startPath = (path: Path) => {
-    if (hasProgress(saved) && !window.confirm(tr('app.resumeConfirm'))) {
-      return
-    }
     trackEvent('path_selected', { path })
-    clearSession()
     setSession(newSession(path))
     setView('coach')
+    window.scrollTo(0, 0)
+  }
+
+  const deleteAll = () => {
+    trackEvent('data_deleted')
+    clearAllSessions()
+    setSession(null)
+    setView('landing')
+    setListVersion((v) => v + 1)
+    window.scrollTo(0, 0)
+  }
+
+  const deleteOne = (id: string) => {
+    trackEvent('process_deleted')
+    deleteSession(id)
+    if (session?.id === id) setSession(null)
+    setView('landing')
+    setListVersion((v) => v + 1)
     window.scrollTo(0, 0)
   }
 
@@ -98,15 +120,24 @@ function App() {
       setAccess({ state: 'locked' })
       window.scrollTo(0, 0)
     },
-    onDeleteData: () => {
-      if (!window.confirm(tr('account.deleteConfirm'))) return
-      trackEvent('data_deleted')
-      clearSession()
-      setSession(null)
-      setView('landing')
-      window.scrollTo(0, 0)
-    },
+    onDeleteData: () => setPending({ kind: 'deleteAll' }),
   }
+
+  const confirmDialog = (
+    <ConfirmDialog
+      open={pending !== null}
+      title={pending?.kind === 'deleteOne' ? tr('process.deleteTitle') : tr('account.deleteTitle')}
+      body={pending?.kind === 'deleteOne' ? tr('process.deleteConfirm') : tr('account.deleteConfirm')}
+      confirmLabel={pending?.kind === 'deleteOne' ? tr('process.deleteAction') : tr('account.deleteAction')}
+      onCancel={() => setPending(null)}
+      onConfirm={() => {
+        const action = pending
+        setPending(null)
+        if (action?.kind === 'deleteAll') deleteAll()
+        else if (action) deleteOne(action.id)
+      }}
+    />
+  )
 
   if (view === 'privacidad') {
     return (
@@ -146,12 +177,9 @@ function App() {
       <CoachFlow
         initialSession={session}
         onExit={() => setView('landing')}
-        onRestart={() => {
-          clearSession()
-          setSession(null)
-          setView('landing')
-        }}
+        onRestart={() => deleteOne(session.id)}
         account={account}
+        confirmDialog={confirmDialog}
       />
     )
   }
@@ -166,18 +194,21 @@ function App() {
       <main className="flex-1">
         <Landing
           onChoosePath={startPath}
-          saved={hasProgress(saved) ? saved : null}
-          onResume={() => {
+          processes={processes}
+          onResume={(id) => {
+            const saved = processes.find((p) => p.id === id)
             if (!saved) return
             trackEvent('session_resumed', { phase: saved.phase, stage: saved.stage })
             setSession(saved)
             setView('coach')
             window.scrollTo(0, 0)
           }}
+          onDelete={(id) => setPending({ kind: 'deleteOne', id })}
         />
         <CompanySection onStart={() => setView('company')} />
       </main>
       <Footer />
+      {confirmDialog}
     </div>
   )
 }

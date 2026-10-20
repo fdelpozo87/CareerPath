@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'stages.dart';
 
 // Modelos del coach. toJson/fromJson conservan la forma del JSON de la versión React
@@ -33,6 +34,25 @@ class StageMap {
   Map<String, dynamic> toJson() => {'items': [for (final i in items) i.toJson()], 'pregunta': pregunta};
 }
 
+/// Una fuente de los datos de mercado que usó el coach (solo enlaces https).
+class MarketSource {
+  const MarketSource({required this.titulo, required this.url});
+  final String titulo;
+  final String url;
+
+  static MarketSource? fromJson(Object? j) {
+    if (j is! Map) return null;
+    final url = j['url'];
+    final titulo = j['titulo'];
+    if (url is! String || titulo is! String || !url.startsWith('https://')) return null;
+    return MarketSource(titulo: titulo, url: url);
+  }
+
+  Map<String, dynamic> toJson() => {'titulo': titulo, 'url': url};
+}
+
+List<MarketSource> _sources(Object? v) => [for (final s in (v as List? ?? const [])) ?MarketSource.fromJson(s)];
+
 class TurnResult {
   const TurnResult({
     required this.mensaje,
@@ -44,6 +64,8 @@ class TurnResult {
     required this.sintesisEtapa,
     required this.sintesisItems,
     required this.preguntaPuente,
+    this.fuentes = const [],
+    this.fechaDatos,
   });
   final String mensaje;
   final String temaEnFoco;
@@ -55,6 +77,10 @@ class TurnResult {
   final List<SynthesisItem> sintesisItems;
   final String preguntaPuente;
 
+  /// Si este turno usó datos de mercado: de dónde salieron y cuándo se consultaron (AAAA-MM-DD).
+  final List<MarketSource> fuentes;
+  final String? fechaDatos;
+
   factory TurnResult.fromJson(Map<String, dynamic> j) => TurnResult(
     mensaje: _str(j['mensaje']),
     temaEnFoco: _str(j['temaEnFoco']),
@@ -65,6 +91,8 @@ class TurnResult {
     sintesisEtapa: _str(j['sintesisEtapa']),
     sintesisItems: [for (final i in (j['sintesisItems'] as List? ?? const [])) SynthesisItem.fromJson(i as Map<String, dynamic>)],
     preguntaPuente: _str(j['preguntaPuente']),
+    fuentes: _sources(j['fuentes']),
+    fechaDatos: j['fechaDatos'] as String?,
   );
 }
 
@@ -77,6 +105,8 @@ class UiMessage {
     this.hidden = false,
     this.derivacion = false,
     this.cierraEtapa = false,
+    this.fuentes = const [],
+    this.fechaDatos,
   });
 
   /// 'user' | 'model'
@@ -92,6 +122,10 @@ class UiMessage {
   final bool derivacion;
   final bool cierraEtapa;
 
+  /// Fuentes de los datos de mercado que usó este mensaje (AAAA-MM-DD en `fechaDatos`).
+  final List<MarketSource> fuentes;
+  final String? fechaDatos;
+
   bool get isUser => role == 'user';
 
   factory UiMessage.fromJson(Map<String, dynamic> j) => UiMessage(
@@ -102,6 +136,8 @@ class UiMessage {
     stage: Stage.parse(j['stage'] as String?),
     derivacion: j['derivacion'] == true,
     cierraEtapa: j['cierraEtapa'] == true,
+    fuentes: _sources(j['fuentes']),
+    fechaDatos: j['fechaDatos'] as String?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -112,6 +148,8 @@ class UiMessage {
     'stage': stage.id,
     if (derivacion) 'derivacion': true,
     if (cierraEtapa) 'cierraEtapa': true,
+    if (fuentes.isNotEmpty) 'fuentes': [for (final f in fuentes) f.toJson()],
+    if (fuentes.isNotEmpty && fechaDatos != null) 'fechaDatos': fechaDatos,
   };
 }
 
@@ -173,6 +211,20 @@ class Recommendation {
 
 List<Observation> _obs(Object? v) => [for (final o in (v as List? ?? const [])) Observation.fromJson(o as Map<String, dynamic>)];
 
+/// Qué busca quien filtra perfiles y en qué estado está en el perfil: 'entiende' | 'insinua' | 'ausente'.
+class ProfileSignal {
+  const ProfileSignal({required this.tema, required this.estado, required this.comentario, required this.cita});
+  final String tema;
+  final String estado;
+  final String comentario;
+  final String cita;
+
+  factory ProfileSignal.fromJson(Map<String, dynamic> j) =>
+      ProfileSignal(tema: _str(j['tema']), estado: _str(j['estado']), comentario: _str(j['comentario']), cita: _str(j['cita']));
+
+  Map<String, dynamic> toJson() => {'tema': tema, 'estado': estado, 'comentario': comentario, 'cita': cita};
+}
+
 class ProfileReading {
   const ProfileReading({
     required this.primeraImpresion,
@@ -180,16 +232,24 @@ class ProfileReading {
     required this.ausencias,
     required this.consistenciaMarca,
     required this.recomendaciones,
-    required this.nota,
-    required this.notaComunica,
+    this.senales = const [],
+    this.comunicaHoy = '',
+    this.notaComunica = '',
   });
   final String primeraImpresion;
   final List<Observation> fortalezas;
   final List<Observation> ausencias;
   final String consistenciaMarca;
   final List<Recommendation> recomendaciones;
-  final num nota;
+  final List<ProfileSignal> senales;
+
+  /// "Tu perfil hoy comunica…"
+  final String comunicaHoy;
+
+  /// Lecturas guardadas antes de que se quitara la nota.
   final String notaComunica;
+
+  String get resumen => comunicaHoy.isNotEmpty ? comunicaHoy : notaComunica;
 
   factory ProfileReading.fromJson(Map<String, dynamic> j) => ProfileReading(
     primeraImpresion: _str(j['primeraImpresion']),
@@ -197,7 +257,8 @@ class ProfileReading {
     ausencias: _obs(j['ausencias']),
     consistenciaMarca: _str(j['consistenciaMarca']),
     recomendaciones: [for (final r in (j['recomendaciones'] as List? ?? const [])) Recommendation.fromJson(r as Map<String, dynamic>)],
-    nota: j['nota'] is num ? j['nota'] as num : 0,
+    senales: [for (final s in (j['senales'] as List? ?? const [])) ProfileSignal.fromJson(s as Map<String, dynamic>)],
+    comunicaHoy: _str(j['comunicaHoy']),
     notaComunica: _str(j['notaComunica']),
   );
 
@@ -207,8 +268,8 @@ class ProfileReading {
     'ausencias': [for (final o in ausencias) o.toJson()],
     'consistenciaMarca': consistenciaMarca,
     'recomendaciones': [for (final r in recomendaciones) r.toJson()],
-    'nota': nota,
-    'notaComunica': notaComunica,
+    'senales': [for (final s in senales) s.toJson()],
+    'comunicaHoy': comunicaHoy,
   };
 }
 
@@ -345,6 +406,7 @@ enum Phase { perfil, chat, informe }
 
 class Session {
   Session({
+    required this.id,
     required this.path,
     required this.phase,
     required this.stage,
@@ -364,6 +426,8 @@ class Session {
   }) : omitidos = omitidos ?? {},
        mapas = mapas ?? {};
 
+  /// Identifica al proceso: cada persona puede tener varios guardados a la vez.
+  final String id;
   CoachPath path;
   Phase phase;
   Stage stage;
@@ -386,6 +450,7 @@ class Session {
   String updatedAt;
 
   factory Session.nueva(CoachPath path) => Session(
+    id: newId(),
     path: path,
     phase: path == CoachPath.perfil ? Phase.perfil : Phase.chat,
     stage: Stage.diagnostico,
@@ -397,7 +462,8 @@ class Session {
     updatedAt: DateTime.now().toUtc().toIso8601String(),
   );
 
-  bool get hasProgress => messages.isNotEmpty || perfil != null || informe != null;
+  // La apertura del coach es un mensaje de control oculto: un proceso existe desde que la persona escribe o carga su perfil.
+  bool get hasProgress => messages.any((m) => m.isUser && !m.hidden) || perfil != null || informe != null;
 
   static Map<Stage, T> _byStage<T>(Object? raw, T Function(Object?) conv) => {
     for (final e in ((raw as Map?) ?? const {}).entries) Stage.parse(e.key as String): conv(e.value),
@@ -408,6 +474,7 @@ class Session {
     if (j['version'] != 2) return null;
     final cub = _byStage<List<String>>(j['cubiertos'], _strings);
     return Session(
+      id: (j['id'] as String?) ?? newId(),
       path: CoachPath.parse(j['path'] as String?),
       phase: Phase.values.firstWhere((p) => p.name == j['phase'], orElse: () => Phase.chat),
       stage: Stage.parse(j['stage'] as String?),
@@ -428,6 +495,7 @@ class Session {
   }
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'version': 2,
     'path': path.id,
     'phase': phase.name,
@@ -447,3 +515,6 @@ class Session {
     'updatedAt': updatedAt,
   };
 }
+
+/// Id corto para un proceso nuevo (no necesita ser un UUID: solo no repetirse en este navegador).
+String newId() => 'p${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}${(Random().nextDouble() * 1e9).floor().toRadixString(36)}';

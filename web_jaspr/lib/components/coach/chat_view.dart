@@ -10,12 +10,19 @@ import '../../models/types.dart';
 import '../../ui.dart';
 import '../logo.dart';
 import 'doc_inputs.dart';
+import 'profile_step.dart' show signalList;
 import 'stage_map.dart';
 
 String _nextLabel(Stage stage) => tl('chat.next.${stage.id}');
 
 // Para vencer la hoja en blanco: frases para arrancar que la persona puede editar.
 List<String> _starters(CoachPath path) => [for (var n = 1; n <= 3; n++) tl('chat.starters.${path.id}.$n')];
+
+String _formatDate(String? iso) {
+  final d = iso == null ? null : DateTime.tryParse(iso);
+  if (d == null) return '';
+  return currentLang == Lang.en ? '${d.month}/${d.day}/${d.year}' : '${d.day}/${d.month}/${d.year}';
+}
 
 const _inputId = 'chat-input';
 const _logId = 'chat-log';
@@ -60,6 +67,7 @@ class ChatView extends StatefulComponent {
 class _ChatViewState extends State<ChatView> {
   String draft = '';
   bool docsOpen = false;
+  bool recapOpen = false;
   // En pantallas táctiles Enter da un salto de línea (se envía con el botón): ahí se escriben textos largos.
   late final bool touch = web.window.matchMedia('(pointer: coarse)').matches;
   String _scrollKey = '';
@@ -132,7 +140,7 @@ class _ChatViewState extends State<ChatView> {
           for (final (i, m) in visible.indexed)
             el('div', 'space-y-3', [
               when(i == 0 || (i > 0 && visible[i - 1].stage != m.stage), () => _stageDivider(m.stage)),
-              m.isUser ? _userBubble(m.text) : _coachBubble(m.text),
+              m.isUser ? _userBubble(m.text) : _coachBubble(m.text, m.fuentes, m.fechaDatos),
               when(m.derivacion, _derivationCard),
               when(i == mapIndex, () => stageMap(
                 stage: session.stage,
@@ -197,6 +205,47 @@ class _ChatViewState extends State<ChatView> {
     ]);
   }
 
+  // Camino B: la lectura del perfil y los cambios elegidos quedan a mano arriba del chat (cerrados,
+  // para no quitar lugar a la conversación) en vez de desaparecer al pasar al Diagnóstico.
+  Component _profileRecap() {
+    final perfil = session.perfil!;
+    final lectura = perfil.lectura;
+    final recs = lectura.recomendaciones.take(3).toList();
+    final chosen = [for (final (i, r) in recs.indexed) if (perfil.elegidas.contains(i)) r];
+    final skipped = [for (final (i, r) in recs.indexed) if (!perfil.elegidas.contains(i)) r];
+    const label = 'text-xs font-semibold uppercase tracking-widest text-text-muted';
+
+    return el('div', 'mt-2.5', [
+      el(
+        'button',
+        'flex w-full items-center justify-between gap-3 rounded-xl bg-secondary px-3.5 py-2 text-left text-xs transition hover:bg-primary-soft',
+        [
+          el('span', 'min-w-0', [
+            el('span', 'block font-semibold text-foreground', [t(tl('chat.profile.title'))]),
+            el('span', 'block truncate text-text-muted', [t(tln('chat.profile.sub', chosen.length, {'role': perfil.puesto}))]),
+          ]),
+          el('span', 'text-text-muted', [t(recapOpen ? '−' : '+')], attrs: {'aria-hidden': 'true'}),
+        ],
+        attrs: {'type': 'button', 'aria-expanded': '$recapOpen', 'aria-controls': 'panel-lectura'},
+        on: events(onClick: () => setState(() => recapOpen = !recapOpen)),
+      ),
+      when(recapOpen, () => el('div', 'mt-2 max-h-64 space-y-4 overflow-y-auto rounded-xl bg-secondary p-4 text-sm leading-relaxed text-foreground', [
+        el('p', null, [t(lectura.resumen)]),
+        when(lectura.senales.isNotEmpty, () => signalList(lectura.senales)),
+        el('div', null, [
+          el('p', 'mb-1.5 $label', [t(tl('chat.profile.changes'))]),
+          chosen.isNotEmpty
+              ? el('ul', 'list-disc space-y-1 pl-5', [for (final r in chosen) el('li', null, [t(r.cambio)])])
+              : el('p', 'text-text-muted', [t(tl('chat.profile.none'))]),
+        ]),
+        when(skipped.isNotEmpty, () => el('div', null, [
+          el('p', 'mb-1.5 $label', [t(tl('chat.profile.skipped'))]),
+          el('ul', 'list-disc space-y-1 pl-5 text-text-muted', [for (final r in skipped) el('li', null, [t(r.cambio)])]),
+        ])),
+      ], id: 'panel-lectura')),
+    ]);
+  }
+
   // ── Encabezado: quién es el coach y dónde estás ─────────────────────────────
 
   Component _header() {
@@ -230,6 +279,8 @@ class _ChatViewState extends State<ChatView> {
       when(docsOpen, () => el('div', 'mt-3 rounded-2xl bg-secondary p-4', [
         DocsPanel(docs: session.documentos, status: component.docStatus, onAttach: component.onAttachDoc),
       ], id: 'panel-documentos')),
+
+      when(session.perfil != null, _profileRecap),
 
       // Dónde estás: etapa, qué se hace ahora y qué viene después.
       el('div', 'mt-2.5', [
@@ -287,11 +338,23 @@ class _ChatViewState extends State<ChatView> {
 
   // ── Mensajes ────────────────────────────────────────────────────────────────
 
-  Component _coachBubble(String text) => el('div', 'flex items-start gap-3', [
+  Component _coachBubble(String text, List<MarketSource> fuentes, String? fecha) => el('div', 'flex items-start gap-3', [
     coachAvatar(small: true),
-    el('div', 'max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base', [
-      el('span', 'sr-only', [t(tl('chat.coachSays'))]),
-      t(text),
+    el('div', 'max-w-[88%] rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base', [
+      el('p', 'whitespace-pre-wrap', [
+        el('span', 'sr-only', [t(tl('chat.coachSays'))]),
+        t(text),
+      ]),
+      when(fuentes.isNotEmpty, () => el('div', 'mt-3 border-t border-border-color pt-2.5 text-xs leading-relaxed text-text-muted', [
+        el('p', 'font-semibold', [t(tl('chat.sources.title', {'date': _formatDate(fecha)}))]),
+        el('ul', 'mt-1 flex flex-wrap gap-x-3 gap-y-1', [
+          for (final f in fuentes)
+            el('li', null, [
+              el('a', 'underline underline-offset-2 hover:text-foreground', [t(f.titulo)], attrs: {'href': f.url, 'target': '_blank', 'rel': 'noopener noreferrer'}),
+            ]),
+        ]),
+        el('p', 'mt-1', [t(tl('chat.sources.note'))]),
+      ])),
     ]),
   ]);
 

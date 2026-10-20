@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { documentsToText, extractPdfText, requestProfileReading } from '../../lib/coach/api'
 import { draftReady, emptyDraft, type DocDraft } from '../../lib/coach/docs'
-import type { DocTipo, Observation, ProfileDoc, ProfileReading } from '../../lib/coach/types'
-import { tr } from '../../lib/i18n'
+import type { DocTipo, Observation, ProfileDoc, ProfileReading, ProfileSignal, SignalState } from '../../lib/coach/types'
+import { tr, type Key } from '../../lib/i18n'
 import { trackEvent } from '../../lib/tracking'
 import { CoachAvatar } from '../Logo'
 import { DocSlot } from './DocInputs'
@@ -198,10 +198,11 @@ function StepTitle({ n, id, title }: { n: number; id: string; title: string }) {
   )
 }
 
-function Cita({ cita, fuente }: { cita: string; fuente?: string }) {
+function Cita({ cita, fuente, label }: { cita: string; fuente?: string; label?: string }) {
   if (!cita) return null
   return (
     <span className="mt-1 block text-xs italic text-text-muted">
+      {label && <span className="mr-1.5 not-italic font-semibold">{label}:</span>}
       {fuente && <span className="mr-1.5 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold not-italic uppercase">{fuente}</span>}“{cita}”
     </span>
   )
@@ -239,13 +240,14 @@ function ReadingView({
 
       <div className="flex flex-col gap-4">
         <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5">
-          <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-semibold text-accent-ink">{tr('profile.read.score', { n: lectura.nota })}</span>
-            <p className="text-sm font-medium text-accent-ink">{lectura.notaComunica}</p>
-          </div>
-          <p className="mt-2 text-xs leading-relaxed text-accent-ink">
-            {tr('profile.read.scoreNote', { role: puesto })}
-          </p>
+          <p className="text-base font-medium leading-snug text-accent-ink">{lectura.comunicaHoy ?? lectura.notaComunica}</p>
+          {(lectura.senales?.length ?? 0) > 0 && (
+            <>
+              <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-widest text-accent-ink">{tr('profile.read.signals')}</p>
+              <SignalList signals={lectura.senales ?? []} />
+            </>
+          )}
+          <p className="mt-3 text-xs leading-relaxed text-accent-ink">{tr('profile.read.signalsNote', { role: puesto })}</p>
         </div>
 
         <div className="card">
@@ -256,7 +258,7 @@ function ReadingView({
 
         <div className="grid gap-4 md:grid-cols-2">
           <ObservationList title={tr('profile.read.good')} items={lectura.fortalezas} />
-          <ObservationList title={tr('profile.read.missing')} items={lectura.ausencias} />
+          <ObservationList title={tr('profile.read.missing')} items={lectura.ausencias} citeLabel={tr('profile.read.closest')} />
         </div>
 
         <div className="card">
@@ -303,7 +305,7 @@ function ReadingView({
   )
 }
 
-function ObservationList({ title, items }: { title: string; items: Observation[] }) {
+function ObservationList({ title, items, citeLabel }: { title: string; items: Observation[]; citeLabel?: string }) {
   return (
     <div className="card">
       <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">{title}</p>
@@ -311,10 +313,31 @@ function ObservationList({ title, items }: { title: string; items: Observation[]
         {items.map((it, i) => (
           <li key={i} className="text-sm leading-relaxed text-foreground">
             {it.observacion}
-            <Cita cita={it.cita} fuente={it.fuente} />
+            <Cita cita={it.cita} fuente={it.fuente} label={citeLabel} />
           </li>
         ))}
       </ul>
     </div>
+  )
+}
+
+const SIGNAL_STYLE: Record<SignalState, string> = {
+  entiende: 'bg-primary-soft text-primary',
+  insinua: 'border border-accent text-accent-ink',
+  ausente: 'border border-dashed border-text-muted/60 text-text-muted',
+}
+
+/** Qué busca quien filtra perfiles y cuánto de eso se entiende hoy: reemplaza a la nota. */
+export function SignalList({ signals }: { signals: ProfileSignal[] }) {
+  return (
+    <ul role="list" className="space-y-2">
+      {signals.map((s, i) => (
+        <li key={i} className="text-sm leading-relaxed text-foreground">
+          <span className={`mr-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${SIGNAL_STYLE[s.estado]}`}>{tr(`profile.signal.${s.estado}` as Key)}</span>
+          <span className="font-semibold">{s.tema}.</span> {s.comentario}
+          <Cita cita={s.cita} />
+        </li>
+      ))}
+    </ul>
   )
 }

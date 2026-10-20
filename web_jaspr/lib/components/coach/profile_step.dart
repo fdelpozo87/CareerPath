@@ -170,9 +170,10 @@ class _ProfileFormState extends State<_ProfileForm> {
   }
 }
 
-Component _cita(String cita, String? fuente) {
+Component _cita(String cita, String? fuente, {String? label}) {
   if (cita.isEmpty) return const Component.empty();
   return el('span', 'mt-1 block text-xs italic text-text-muted', [
+    when(label != null, () => el('span', 'mr-1.5 not-italic font-semibold', [t('$label:')])),
     when(fuente != null && fuente.isNotEmpty, () => el('span', 'mr-1.5 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold not-italic uppercase', [t(fuente!)])),
     t('“$cita”'),
   ]);
@@ -199,10 +200,10 @@ class _ReadingViewState extends State<_ReadingView> {
 
   void _toggle(int i) => setState(() => elegidas.contains(i) ? elegidas.remove(i) : elegidas.add(i));
 
-  Component _observationList(String title, List<Observation> items) => el('div', 'card', [
+  Component _observationList(String title, List<Observation> items, {String? citeLabel}) => el('div', 'card', [
     el('p', 'mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted', [t(title)]),
     el('ul', 'space-y-3', [
-      for (final it in items) el('li', 'text-sm leading-relaxed text-foreground', [t(it.observacion), _cita(it.cita, it.fuente)]),
+      for (final it in items) el('li', 'text-sm leading-relaxed text-foreground', [t(it.observacion), _cita(it.cita, it.fuente, label: citeLabel)]),
     ]),
   ]);
 
@@ -220,12 +221,13 @@ class _ReadingViewState extends State<_ReadingView> {
       ]),
       el('div', 'flex flex-col gap-4', [
         el('div', 'rounded-2xl border border-accent/30 bg-accent-soft p-5', [
-          el('div', 'flex items-baseline gap-3', [
-            el('span', 'text-3xl font-semibold text-accent-ink', [t(tl('profile.read.score', {'n': lectura.nota}))]),
-            el('p', 'text-sm font-medium text-accent-ink', [t(lectura.notaComunica)]),
-          ]),
-          el('p', 'mt-2 text-xs leading-relaxed text-accent-ink', [
-            t(tl('profile.read.scoreNote', {'role': puesto})),
+          el('p', 'text-base font-medium leading-snug text-accent-ink', [t(lectura.resumen)]),
+          when(lectura.senales.isNotEmpty, () => el('div', null, [
+            el('p', 'mb-2 mt-4 text-xs font-semibold uppercase tracking-widest text-accent-ink', [t(tl('profile.read.signals'))]),
+            signalList(lectura.senales),
+          ])),
+          el('p', 'mt-3 text-xs leading-relaxed text-accent-ink', [
+            t(tl('profile.read.signalsNote', {'role': puesto})),
           ]),
         ]),
         el('div', 'card', [
@@ -235,7 +237,7 @@ class _ReadingViewState extends State<_ReadingView> {
         ]),
         el('div', 'grid gap-4 md:grid-cols-2', [
           _observationList(tl('profile.read.good'), lectura.fortalezas),
-          _observationList(tl('profile.read.missing'), lectura.ausencias),
+          _observationList(tl('profile.read.missing'), lectura.ausencias, citeLabel: tl('profile.read.closest')),
         ]),
         el('div', 'card', [
           el('p', 'mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted', [t(tl('profile.read.changes'))]),
@@ -265,3 +267,20 @@ class _ReadingViewState extends State<_ReadingView> {
     ]);
   }
 }
+
+const _signalStyle = {
+  'entiende': 'bg-primary-soft text-primary',
+  'insinua': 'border border-accent text-accent-ink',
+  'ausente': 'border border-dashed border-text-muted/60 text-text-muted',
+};
+
+/// Qué busca quien filtra perfiles y cuánto de eso se entiende hoy: reemplaza a la nota.
+Component signalList(List<ProfileSignal> signals) => el('ul', 'space-y-2', [
+  for (final s in signals)
+    el('li', 'text-sm leading-relaxed text-foreground', [
+      el('span', 'mr-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${_signalStyle[s.estado] ?? ''}', [t(tl('profile.signal.${s.estado}'))]),
+      el('span', 'font-semibold', [t('${s.tema}.')]),
+      t(' ${s.comentario}'),
+      _cita(s.cita, null),
+    ]),
+], attrs: {'role': 'list'});

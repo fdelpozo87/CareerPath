@@ -53,6 +53,8 @@ void _applyTurn(Session s, Stage stage, TurnResult turn) {
     stage: stage,
     derivacion: turn.derivacion,
     cierraEtapa: entregaMapa,
+    fuentes: turn.fuentes,
+    fechaDatos: turn.fuentes.isEmpty ? null : turn.fechaDatos,
   ));
   s.cubiertos[stage] = turn.objetivosCubiertos;
   // Una etapa cerrada no se reabre: lo que la persona escriba después (un "gracias", un ajuste) no
@@ -78,6 +80,9 @@ Map<String, dynamic> _turnToJson(TurnResult t) => {
   'sintesisEtapa': t.sintesisEtapa,
   'sintesisItems': [for (final i in t.sintesisItems) i.toJson()],
   'preguntaPuente': t.preguntaPuente,
+  // Cuenta para el tope de búsquedas de mercado por conversación (lo lee el servidor del historial).
+  if (t.fuentes.isNotEmpty) 'fuentes': [for (final f in t.fuentes) f.toJson()],
+  if (t.fuentes.isNotEmpty && t.fechaDatos != null) 'fechaDatos': t.fechaDatos,
 };
 
 class CoachFlow extends StatefulComponent {

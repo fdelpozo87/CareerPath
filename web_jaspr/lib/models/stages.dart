@@ -90,6 +90,7 @@ const formacionObjectives = <Stage, List<StageObjective>>{
     StageObjective('intereses', omitible: false),
     StageObjective('aptitudes', omitible: true),
     StageObjective('criterios', omitible: false),
+    StageObjective('comparacion', omitible: false),
   ],
   Stage.plan: [
     StageObjective('eleccion', omitible: false),

@@ -12,7 +12,7 @@ vi.mock('@google/generative-ai', () => ({
 
 import { runEndpoint } from '../server/endpoints'
 import { resetRateLimits } from '../server/guard'
-import { askCounts } from '../server/coach'
+import { askCounts, normalizeReading } from '../server/coach'
 import { wrongLanguage } from '../server/lang'
 import { buildProfilePrompt, buildReportPrompt, buildTurnSystemPrompt } from '../server/prompts'
 import { en, es } from '../shared/locales/dictionaries'
@@ -785,5 +785,67 @@ describe('acceso de prueba (código de invitación)', () => {
     const logged = vi.mocked(console.log).mock.calls.flat().join(' ')
     expect(logged).toContain('"who":"ana"')
     expect(logged).not.toMatch(/K7QM|X2PD|9RTA/)
+  })
+})
+
+describe('profundidad del coach (análisis de UX)', () => {
+  const base = { sintesisPrevias: {} }
+
+  it('pide atender una emoción o un obstáculo antes de pasar al tema siguiente', () => {
+    const p = buildTurnSystemPrompt({ ...base, stage: 'diagnostico', path: 'quiebre' })
+    expect(p).toMatch(/Una emoción o un obstáculo se atienden antes que el tema siguiente/)
+    expect(p).toMatch(/El obstáculo que la persona nombra es el suyo/)
+    expect(p).toMatch(/Contradicciones, con cuidado y como pregunta/)
+  })
+
+  it('en Exploración (A) trabaja todos los caminos nombrados y deja elegir cuál llevar al Plan', () => {
+    const p = buildTurnSystemPrompt({ ...base, stage: 'discovery', path: 'quiebre' })
+    expect(p).toMatch(/Trabaja TODOS los caminos que la persona nombró/)
+    expect(p).toMatch(/cuál le gustaría llevar al Plan/)
+  })
+
+  it('en Exploración (C) hay un tema de comparación obligatorio y los criterios se piden de a uno', () => {
+    const p = buildTurnSystemPrompt({ ...base, stage: 'discovery', path: 'formacion' })
+    expect(p).toMatch(/"comparacion" \[pendiente/)
+    expect(p).toMatch(/de a uno por turno/)
+    expect(p).toMatch(/Lo que todavía falta[\s\S]*"comparacion"/)
+  })
+
+  it('el prompt no asume el género de la persona', () => {
+    const p = buildTurnSystemPrompt({ ...base, stage: 'diagnostico', path: 'quiebre' })
+    expect(p).toMatch(/lenguaje sin género por defecto/)
+    expect(p).not.toMatch(/\bella\b/i)
+  })
+})
+
+describe('Camino B: lectura sin nota', () => {
+  it('el prompt de lectura no pide nota y sí señales con estado', () => {
+    const p = buildProfilePrompt('Product Manager')
+    expect(p).not.toMatch(/"nota"/)
+    expect(p).toMatch(/"senales"/)
+    expect(p).toMatch(/NO das una nota/)
+    expect(p).toMatch(/no deduzcas el género/i)
+  })
+
+  it('normalizeReading quita la nota, descarta señales inválidas y conserva el resumen', () => {
+    const out = normalizeReading({
+      primeraImpresion: 'x',
+      nota: 6,
+      notaComunica: 'Tu perfil hoy comunica algo.',
+      senales: [
+        { tema: 'Resultados', estado: 'ausente', comentario: 'No aparecen cifras.' },
+        { tema: 'Raro', estado: 'excelente', comentario: 'no vale' },
+        { tema: '', estado: 'entiende', comentario: 'sin tema' },
+      ],
+    })
+    expect(out).not.toHaveProperty('nota')
+    expect(out).not.toHaveProperty('notaComunica')
+    expect(out.comunicaHoy).toBe('Tu perfil hoy comunica algo.')
+    expect(out.senales).toEqual([{ tema: 'Resultados', estado: 'ausente', comentario: 'No aparecen cifras.', cita: '' }])
+  })
+
+  it('el aviso de apertura retoma la lectura y no repregunta el puesto', () => {
+    expect(es['srv.open.perfil']).toMatch(/No le preguntes de nuevo/)
+    expect(en['srv.open.perfil']).toMatch(/Don’t ask again/)
   })
 })

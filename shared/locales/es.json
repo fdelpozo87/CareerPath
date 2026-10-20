@@ -400,7 +400,7 @@
   "privacy.s3.d.rest": ", si están activados: información técnica del error, sin el contenido de tu conversación ni de tus documentos.",
   "privacy.s3.d.strong": "Reportes de errores",
   "privacy.s3.title": "Qué datos se tratan y para qué",
-  "privacy.s4.g.rest": ": procesa el contenido de la conversación y los documentos para generar las respuestas, bajo sus términos para servicios pagos de la API. [Confirmar con el equipo legal las condiciones vigentes de retención y uso de datos del plan contratado.]",
+  "privacy.s4.g.rest": ": procesa el contenido de la conversación y los documentos para generar las respuestas, bajo sus términos para servicios pagos de la API. Si preguntas por datos de mercado (sueldos, demanda, costos de formación), el coach hace una búsqueda web con una consulta genérica que no incluye tus datos personales, y te muestra las fuentes. [Confirmar con el equipo legal las condiciones vigentes de retención y uso de datos del plan contratado.]",
   "privacy.s4.g.strong": "Google (API de Gemini)",
   "privacy.s4.intro": "No vendemos ni cedemos tus datos. Para prestar el servicio trabajamos con estos proveedores:",
   "privacy.s4.outside": "Algunos de estos proveedores procesan datos fuera de Argentina. [Detallar las garantías de transferencia internacional que correspondan.]",
@@ -555,5 +555,10 @@
   "process.deleteAria": "Borrar {name}",
   "process.deleteTitle": "¿Borrar este proceso?",
   "process.deleteConfirm": "Se borran su conversación, el informe y los compromisos de este navegador. No se puede deshacer.",
-  "process.deleteAction": "Sí, borrar este proceso"
+  "process.deleteAction": "Sí, borrar este proceso",
+  "srv.market.ok": "DATOS DE MERCADO (búsqueda web del {date}). Respóndele a la persona con la cifra o el rango concreto, la fuente y la fecha, como orientativos y para verificar, sin recomendar ni elegir por la persona:\n{text}\nFuentes: {sources}.",
+  "srv.market.none": "DATOS DE MERCADO: no se pudo consultar información confiable con fuente en este momento. Dile a la persona con honestidad que no tienes ese dato y cómo puede averiguarlo. No inventes cifras.",
+  "srv.market.limit": "DATOS DE MERCADO: ya se hicieron todas las búsquedas permitidas en esta conversación. Dile a la persona con honestidad que no puedes buscar más datos ahora y cómo puede averiguarlo. No inventes cifras.",
+  "chat.sources.title": "Fuentes consultadas el {date}",
+  "chat.sources.note": "Son datos orientativos de la web: verifícalos en la fuente antes de decidir."
 }

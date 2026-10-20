@@ -400,7 +400,7 @@
   "privacy.s3.d.rest": ", if enabled: technical information about the error, without the content of your conversation or your documents.",
   "privacy.s3.d.strong": "Error reports",
   "privacy.s3.title": "What data we process and why",
-  "privacy.s4.g.rest": ": processes the content of the conversation and the documents to generate the answers, under its terms for paid API services. [To be confirmed with the legal team: current data retention and use conditions of the contracted plan.]",
+  "privacy.s4.g.rest": ": processes the content of the conversation and the documents to generate the answers, under its terms for paid API services. If you ask about market data (salaries, demand, training costs), the coach runs a web search with a generic query that doesn’t include your personal data, and shows you the sources. [To be confirmed with the legal team: current data retention and use conditions of the contracted plan.]",
   "privacy.s4.g.strong": "Google (Gemini API)",
   "privacy.s4.intro": "We do not sell or transfer your data. To provide the service we work with these providers:",
   "privacy.s4.outside": "Some of these providers process data outside Argentina. [Detail the applicable international transfer safeguards.]",
@@ -555,5 +555,10 @@
   "process.deleteAria": "Delete {name}",
   "process.deleteTitle": "Delete this process?",
   "process.deleteConfirm": "Its conversation, report and commitments will be deleted from this browser. This can’t be undone.",
-  "process.deleteAction": "Yes, delete this process"
+  "process.deleteAction": "Yes, delete this process",
+  "srv.market.ok": "MARKET DATA (web search on {date}). Answer the person with the concrete figure or range, the source and the date, as indicative and to be verified, without recommending or choosing for them:\n{text}\nSources: {sources}.",
+  "srv.market.none": "MARKET DATA: no reliable sourced information could be retrieved right now. Tell the person honestly that you don’t have that data and how they can find it. Do not invent figures.",
+  "srv.market.limit": "MARKET DATA: all the searches allowed in this conversation have been used. Tell the person honestly that you can’t search for more data now and how they can find it. Do not invent figures.",
+  "chat.sources.title": "Sources checked on {date}",
+  "chat.sources.note": "This is indicative data from the web: check it at the source before deciding."
 }

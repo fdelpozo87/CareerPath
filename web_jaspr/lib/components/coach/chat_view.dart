@@ -18,6 +18,12 @@ String _nextLabel(Stage stage) => tl('chat.next.${stage.id}');
 // Para vencer la hoja en blanco: frases para arrancar que la persona puede editar.
 List<String> _starters(CoachPath path) => [for (var n = 1; n <= 3; n++) tl('chat.starters.${path.id}.$n')];
 
+String _formatDate(String? iso) {
+  final d = iso == null ? null : DateTime.tryParse(iso);
+  if (d == null) return '';
+  return currentLang == Lang.en ? '${d.month}/${d.day}/${d.year}' : '${d.day}/${d.month}/${d.year}';
+}
+
 const _inputId = 'chat-input';
 const _logId = 'chat-log';
 
@@ -134,7 +140,7 @@ class _ChatViewState extends State<ChatView> {
           for (final (i, m) in visible.indexed)
             el('div', 'space-y-3', [
               when(i == 0 || (i > 0 && visible[i - 1].stage != m.stage), () => _stageDivider(m.stage)),
-              m.isUser ? _userBubble(m.text) : _coachBubble(m.text),
+              m.isUser ? _userBubble(m.text) : _coachBubble(m.text, m.fuentes, m.fechaDatos),
               when(m.derivacion, _derivationCard),
               when(i == mapIndex, () => stageMap(
                 stage: session.stage,
@@ -332,11 +338,23 @@ class _ChatViewState extends State<ChatView> {
 
   // ── Mensajes ────────────────────────────────────────────────────────────────
 
-  Component _coachBubble(String text) => el('div', 'flex items-start gap-3', [
+  Component _coachBubble(String text, List<MarketSource> fuentes, String? fecha) => el('div', 'flex items-start gap-3', [
     coachAvatar(small: true),
-    el('div', 'max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base', [
-      el('span', 'sr-only', [t(tl('chat.coachSays'))]),
-      t(text),
+    el('div', 'max-w-[88%] rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base', [
+      el('p', 'whitespace-pre-wrap', [
+        el('span', 'sr-only', [t(tl('chat.coachSays'))]),
+        t(text),
+      ]),
+      when(fuentes.isNotEmpty, () => el('div', 'mt-3 border-t border-border-color pt-2.5 text-xs leading-relaxed text-text-muted', [
+        el('p', 'font-semibold', [t(tl('chat.sources.title', {'date': _formatDate(fecha)}))]),
+        el('ul', 'mt-1 flex flex-wrap gap-x-3 gap-y-1', [
+          for (final f in fuentes)
+            el('li', null, [
+              el('a', 'underline underline-offset-2 hover:text-foreground', [t(f.titulo)], attrs: {'href': f.url, 'target': '_blank', 'rel': 'noopener noreferrer'}),
+            ]),
+        ]),
+        el('p', 'mt-1', [t(tl('chat.sources.note'))]),
+      ])),
     ]),
   ]);
 

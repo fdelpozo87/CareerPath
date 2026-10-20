@@ -13,6 +13,7 @@ import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type SynthesisItem } from '../s
 import { generateJson, responseText } from './gemini.js'
 import { wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
+import { MAX_MARKET_PER_CONVERSATION, fetchMarketData, type MarketData, type MarketSource } from './market.js'
 
 // Lógica compartida del agente conversacional. La usan api/coach.ts (Vercel)
 // y el middleware de desarrollo en vite.config.ts. La API key y el system
@@ -37,6 +38,9 @@ export interface TurnResult {
   sintesisItems: SynthesisItem[]
   /** Pregunta abierta que la persona se lleva a la próxima etapa. */
   preguntaPuente: string
+  /** Si este turno usó datos de mercado: de dónde salieron y cuándo se consultaron. */
+  fuentes?: MarketSource[]
+  fechaDatos?: string
 }
 
 type CoachRequest =
@@ -345,6 +349,21 @@ function normalizeTurn(
   }
 }
 
+/** Cuántos turnos del coach de esta conversación ya usaron datos de mercado (los marca el campo "fuentes"). */
+export function marketSearches(history: ChatMessage[]): number {
+  let n = 0
+  for (const m of history) {
+    if (m.role !== 'model') continue
+    try {
+      const fuentes = (JSON.parse(m.text) as { fuentes?: unknown }).fuentes
+      if (Array.isArray(fuentes) && fuentes.length > 0) n++
+    } catch {
+      // Turno sin JSON (sesiones viejas): no cuenta.
+    }
+  }
+  return n
+}
+
 async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Promise<unknown> {
   const genAI = new GoogleGenerativeAI(apiKey)
   const modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
@@ -359,7 +378,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
         generationConfig,
       }, requestOptions)
       const run = (extra = '') =>
-        generateJson<Partial<TurnResult>>(async () =>
+        generateJson<Partial<TurnResult> & { consultaMercado?: unknown }>(async () =>
           responseText((await model.generateContent({ contents: toContents(req.history, lang, extra) })).response, 'turno'),
         )
       let raw = await run()
@@ -370,7 +389,35 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
         logEvent('warn', 'coach_idioma_equivocado', { lang })
         raw = await run(translate(lang, 'srv.langRetry'))
       }
-      return normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path, lang)
+      // El coach pidió datos de mercado: se busca con fuente y se le vuelve a pedir el turno con el resultado.
+      const consulta = typeof raw.consultaMercado === 'string' ? raw.consultaMercado.trim() : ''
+      let market: MarketData | null = null
+      if (consulta) {
+        let note: string
+        if (marketSearches(req.history) >= MAX_MARKET_PER_CONVERSATION) {
+          note = translate(lang, 'srv.market.limit')
+        } else {
+          market = await fetchMarketData(genAI, modelName, consulta, lang).catch((e) => {
+            logEvent('warn', 'coach_mercado_error', { error: e instanceof Error ? e : String(e) })
+            return null
+          })
+          note = market
+            ? translate(lang, 'srv.market.ok', { date: market.fecha, text: market.texto, sources: market.fuentes.map((f) => f.titulo).join(', ') })
+            : translate(lang, 'srv.market.none')
+        }
+        logEvent('info', 'coach_mercado', { ok: Boolean(market) })
+        try {
+          raw = await run(note)
+        } catch (e) {
+          // Si el modelo no logra responder con los datos, se responde sin ellos antes que fallar el turno.
+          if (!market) throw e
+          logEvent('warn', 'coach_mercado_reintento', { error: e instanceof Error ? e : String(e) })
+          market = null
+          raw = await run(translate(lang, 'srv.market.none'))
+        }
+      }
+      const turn = normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path, lang)
+      return market ? { ...turn, fuentes: market.fuentes, fechaDatos: market.fecha } : turn
     }
     case 'informe': {
       const model = genAI.getGenerativeModel({

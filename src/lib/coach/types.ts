@@ -14,6 +14,14 @@ export interface TurnResult {
   sintesisEtapa: string
   sintesisItems: SynthesisItem[]
   preguntaPuente: string
+  /** Si este turno usó datos de mercado: de dónde salieron y cuándo se consultaron. */
+  fuentes?: MarketSource[]
+  fechaDatos?: string
+}
+
+export interface MarketSource {
+  titulo: string
+  url: string
 }
 
 /** El mapa con el que cierra una etapa (lo que la persona dijo, ordenado). */
@@ -34,6 +42,9 @@ export interface UiMessage {
   derivacion?: boolean
   /** Este mensaje del coach cerró la etapa: el mapa se muestra justo después. */
   cierraEtapa?: boolean
+  /** Fuentes de los datos de mercado que usó este mensaje (AAAA-MM-DD en `fechaDatos`). */
+  fuentes?: MarketSource[]
+  fechaDatos?: string
 }
 
 export type DocTipo = 'cv' | 'linkedin'

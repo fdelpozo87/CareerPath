@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { STAGE_ORDER, introFor, objectiveLabel, objectivesFor } from '../../../shared/stages'
 import { docLabel } from '../../lib/coach/docs'
 import { getLang, stageLabel, tr, type Key } from '../../lib/i18n'
-import type { DocTipo, Path, Session, Stage } from '../../lib/coach/types'
+import type { DocTipo, MarketSource, Path, Session, Stage } from '../../lib/coach/types'
 import { CoachAvatar } from '../Logo'
 import { DocsPanel } from './DocInputs'
 import { ProfileRecap } from './ProfileRecap'
 import { StageMap } from './StageMap'
+
+const formatDate = (iso?: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString(getLang() === 'en' ? 'en-US' : 'es') : '')
 
 const nextLabel = (stage: Stage) => tr(`chat.next.${stage}` as Key)
 
@@ -106,7 +108,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
             return (
               <div key={i} className="space-y-3">
                 {(i === 0 || (prevStage && prevStage !== m.stage)) && <StageDivider stage={m.stage} />}
-                {m.role === 'user' ? <UserBubble text={m.text} /> : <CoachBubble text={m.text} />}
+                {m.role === 'user' ? <UserBubble text={m.text} /> : <CoachBubble text={m.text} sources={m.fuentes} date={m.fechaDatos} />}
                 {m.derivacion && <DerivationCard />}
                 {i === mapIndex && (
                   <StageMap
@@ -280,13 +282,30 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
 
 // ── Mensajes ─────────────────────────────────────────────────────────────────
 
-function CoachBubble({ text }: { text: string }) {
+function CoachBubble({ text, sources, date }: { text: string; sources?: MarketSource[]; date?: string }) {
   return (
     <div className="flex items-start gap-3">
       <CoachAvatar size="sm" />
-      <div className="max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base">
-        <span className="sr-only">{tr('chat.coachSays')}</span>
-        {text}
+      <div className="max-w-[88%] rounded-2xl rounded-tl-md border border-border-color bg-background px-4 py-3 text-[15px] leading-7 text-foreground sm:text-base">
+        <p className="whitespace-pre-wrap">
+          <span className="sr-only">{tr('chat.coachSays')}</span>
+          {text}
+        </p>
+        {sources && sources.length > 0 && (
+          <div className="mt-3 border-t border-border-color pt-2.5 text-xs leading-relaxed text-text-muted">
+            <p className="font-semibold">{tr('chat.sources.title', { date: formatDate(date) })}</p>
+            <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+              {sources.map((s) => (
+                <li key={s.url}>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+                    {s.titulo}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1">{tr('chat.sources.note')}</p>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -49,6 +49,8 @@ function applyTurn(prev: Session, stage: Stage, turn: TurnResult): Session {
     stage,
     derivacion: turn.derivacion || undefined,
     cierraEtapa: entregaMapa || undefined,
+    fuentes: turn.fuentes?.length ? turn.fuentes : undefined,
+    fechaDatos: turn.fuentes?.length ? turn.fechaDatos : undefined,
   }
   return {
     ...prev,

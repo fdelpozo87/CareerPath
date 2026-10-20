@@ -34,6 +34,25 @@ class StageMap {
   Map<String, dynamic> toJson() => {'items': [for (final i in items) i.toJson()], 'pregunta': pregunta};
 }
 
+/// Una fuente de los datos de mercado que usó el coach (solo enlaces https).
+class MarketSource {
+  const MarketSource({required this.titulo, required this.url});
+  final String titulo;
+  final String url;
+
+  static MarketSource? fromJson(Object? j) {
+    if (j is! Map) return null;
+    final url = j['url'];
+    final titulo = j['titulo'];
+    if (url is! String || titulo is! String || !url.startsWith('https://')) return null;
+    return MarketSource(titulo: titulo, url: url);
+  }
+
+  Map<String, dynamic> toJson() => {'titulo': titulo, 'url': url};
+}
+
+List<MarketSource> _sources(Object? v) => [for (final s in (v as List? ?? const [])) ?MarketSource.fromJson(s)];
+
 class TurnResult {
   const TurnResult({
     required this.mensaje,
@@ -45,6 +64,8 @@ class TurnResult {
     required this.sintesisEtapa,
     required this.sintesisItems,
     required this.preguntaPuente,
+    this.fuentes = const [],
+    this.fechaDatos,
   });
   final String mensaje;
   final String temaEnFoco;
@@ -56,6 +77,10 @@ class TurnResult {
   final List<SynthesisItem> sintesisItems;
   final String preguntaPuente;
 
+  /// Si este turno usó datos de mercado: de dónde salieron y cuándo se consultaron (AAAA-MM-DD).
+  final List<MarketSource> fuentes;
+  final String? fechaDatos;
+
   factory TurnResult.fromJson(Map<String, dynamic> j) => TurnResult(
     mensaje: _str(j['mensaje']),
     temaEnFoco: _str(j['temaEnFoco']),
@@ -66,6 +91,8 @@ class TurnResult {
     sintesisEtapa: _str(j['sintesisEtapa']),
     sintesisItems: [for (final i in (j['sintesisItems'] as List? ?? const [])) SynthesisItem.fromJson(i as Map<String, dynamic>)],
     preguntaPuente: _str(j['preguntaPuente']),
+    fuentes: _sources(j['fuentes']),
+    fechaDatos: j['fechaDatos'] as String?,
   );
 }
 
@@ -78,6 +105,8 @@ class UiMessage {
     this.hidden = false,
     this.derivacion = false,
     this.cierraEtapa = false,
+    this.fuentes = const [],
+    this.fechaDatos,
   });
 
   /// 'user' | 'model'
@@ -93,6 +122,10 @@ class UiMessage {
   final bool derivacion;
   final bool cierraEtapa;
 
+  /// Fuentes de los datos de mercado que usó este mensaje (AAAA-MM-DD en `fechaDatos`).
+  final List<MarketSource> fuentes;
+  final String? fechaDatos;
+
   bool get isUser => role == 'user';
 
   factory UiMessage.fromJson(Map<String, dynamic> j) => UiMessage(
@@ -103,6 +136,8 @@ class UiMessage {
     stage: Stage.parse(j['stage'] as String?),
     derivacion: j['derivacion'] == true,
     cierraEtapa: j['cierraEtapa'] == true,
+    fuentes: _sources(j['fuentes']),
+    fechaDatos: j['fechaDatos'] as String?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -113,6 +148,8 @@ class UiMessage {
     'stage': stage.id,
     if (derivacion) 'derivacion': true,
     if (cierraEtapa) 'cierraEtapa': true,
+    if (fuentes.isNotEmpty) 'fuentes': [for (final f in fuentes) f.toJson()],
+    if (fuentes.isNotEmpty && fechaDatos != null) 'fechaDatos': fechaDatos,
   };
 }
 

@@ -22,6 +22,7 @@ interface Fake {
   users: Record<string, { id: string; email: string; confirmed?: boolean }>
   perfiles: Record<string, { estado: Estado; last_seen_at: string | null }>
   calls: string[]
+  otpOk?: boolean
 }
 
 /** Supabase de mentira: lo justo para probar quién entra y quién no. */
@@ -38,6 +39,13 @@ function fakeSupabase(f: Fake) {
     }
     if (url.includes('/rest/v1/bivio_perfiles')) {
       const id = /user_id=eq\.([^&]+)/.exec(url)?.[1]
+      const byEmail = /email=eq\.([^&]+)/.exec(url)?.[1]
+      if (method === 'GET' && byEmail) {
+        const e = decodeURIComponent(byEmail)
+        const u = Object.values(f.users).find((x) => x.email.toLowerCase() === e)
+        const p = u ? f.perfiles[u.id] : undefined
+        return json(u && p ? [{ user_id: u.id, email: u.email, estado: p.estado, created_at: '2026-10-01T00:00:00Z', last_seen_at: p.last_seen_at }] : [])
+      }
       if (method === 'GET' && id) {
         const p = f.perfiles[id]
         const email = Object.values(f.users).find((u) => u.id === id)?.email ?? ''
@@ -47,6 +55,8 @@ function fakeSupabase(f: Fake) {
       if (method === 'POST') {
         const b = JSON.parse(String(init?.body))
         f.perfiles[b.user_id] = { estado: 'pendiente', last_seen_at: null }
+        const known = Object.values(f.users).find((u) => u.id === b.user_id)
+        if (!known) f.users[`tok_${b.email}`] = { id: b.user_id, email: b.email }
         return json({}, 201)
       }
       if (method === 'PATCH' && id) {
@@ -56,6 +66,14 @@ function fakeSupabase(f: Fake) {
       }
     }
     if (url.includes('/auth/v1/admin/users/') && method === 'DELETE') return json({})
+    if (url.endsWith('/auth/v1/admin/users') && method === 'POST') {
+      const b = JSON.parse(String(init?.body)) as { email: string }
+      if (Object.values(f.users).some((u) => u.email === b.email)) return json({ error_code: 'email_exists' }, 422)
+      const id = '66666666-6666-4666-8666-666666666666'
+      f.users[`tok_${b.email}`] = { id, email: b.email }
+      return json({ id, email: b.email })
+    }
+    if (url.includes('/auth/v1/otp')) return f.otpOk === false ? json({}, 429) : json({})
     return json({}, 404)
   })
 }
@@ -214,5 +232,50 @@ describe('panel de administración', () => {
     expect((await handleAdmin(req('tok_admin', { action: 'setEstado', id: 'no-es-uuid', estado: 'activo' }))).status).toBe(400)
     expect((await handleAdmin(req('tok_admin', { action: 'setEstado', id: OTHER_ID, estado: 'dios' }))).status).toBe(400)
     expect((await handleAdmin(req('tok_admin', { action: 'otra' }))).status).toBe(400)
+  })
+})
+
+describe('alta de cuentas por quien administra', () => {
+  const NEW_ID = '66666666-6666-4666-8666-666666666666'
+  const add = (email: unknown, notify = false, token = 'tok_admin') => handleAdmin(req(token, { action: 'add', email, notify }))
+
+  it('crea la cuenta ya activa y la persona entra sin esperar aprobación', async () => {
+    const res = await add('Nueva@Empresa.test')
+    expect(res.status).toBe(200)
+    expect(res.body).toMatchObject({ ok: true, created: true })
+    expect(fake.perfiles[NEW_ID].estado).toBe('activo')
+    expect((await runEndpoint('coach', req('tok_nueva@empresa.test', coachBody), 'k')).status).toBe(200)
+  })
+
+  it('si ya tenía cuenta (pendiente o desactivada), la deja activa sin duplicarla', async () => {
+    fake.perfiles['33333333-3333-4333-8333-333333333333'] = { estado: 'pendiente', last_seen_at: null }
+    const res = await add('nuevo@x.test')
+    expect(res.body).toMatchObject({ ok: true, created: false })
+    expect(fake.perfiles['33333333-3333-4333-8333-333333333333'].estado).toBe('activo')
+    expect(fake.calls.filter((c) => c.startsWith('POST /auth/v1/admin/users')).length).toBe(0)
+  })
+
+  it('si Supabase tiene la cuenta pero no tiene perfil, lo dice claro en vez de fallar mudo', async () => {
+    const res = await add('nuevo@x.test') // existe en auth, sin perfil
+    expect(res.status).toBe(409)
+  })
+
+  it('con aviso manda el enlace; si el mail falla, el alta igual queda hecha', async () => {
+    expect((await add('uno@x.test', true)).body).toMatchObject({ created: true, notified: true })
+    resetAuthCache()
+    fake.otpOk = false
+    expect((await add('dos@x.test', true)).body).toMatchObject({ ok: true, notified: false })
+  })
+
+  it('sin aviso no manda ningún mail', async () => {
+    await add('tres@x.test', false)
+    expect(fake.calls.some((c) => c.includes('/auth/v1/otp'))).toBe(false)
+  })
+
+  it('rechaza emails inválidos y solo lo hace el administrador', async () => {
+    expect((await add('no-es-un-email')).status).toBe(400)
+    expect((await add('a'.repeat(260) + '@x.test')).status).toBe(400)
+    expect((await add(123 as unknown)).status).toBe(400)
+    expect((await add('otro@x.test', false, 'tok_activo')).status).toBe(404)
   })
 })

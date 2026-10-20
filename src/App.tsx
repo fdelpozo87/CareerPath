@@ -5,13 +5,14 @@ import CompanySection from './components/CompanySection'
 import Footer from './components/Footer'
 import { CompanyFlow } from './components/CompanyFlow'
 import AccessGate from './components/AccessGate'
-import { AccountStatus, LoginGate } from './components/LoginGate'
+import { AccountStatus, LoginGate, SetPasswordScreen } from './components/LoginGate'
 import { AdminPanel } from './components/AdminPanel'
+import PasswordDialog from './components/PasswordDialog'
 import ConfirmDialog from './components/ConfirmDialog'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import { CoachFlow } from './components/coach/CoachFlow'
 import { clearAllSessions, deleteSession, listSessions, loadSessionById, newSession, saveSession } from './lib/coach/session'
-import { cloudEnabled, currentUser, deleteAccount, listSavedReports, onAuthChange, saveReport, sessionFromSaved, signOut, takePendingSave, type CloudUser } from './lib/cloud'
+import { cloudEnabled, currentUser, deleteAccount, listSavedReports, onAuthChange, onPasswordRecovery, saveReport, sessionFromSaved, signOut, takePendingSave, type CloudUser } from './lib/cloud'
 import type { Path, Session } from './lib/coach/types'
 import { ACCESS_LOST_EVENT, checkAccess, clearAccessCode, getAccessCode, getAccessLabel, saveAccessCode } from './lib/access'
 import type { AccountInfo } from './components/AccountMenu'
@@ -38,6 +39,9 @@ function App() {
   useLang()
   const [view, setView] = useState<View>(() => (isPrivacyHash() ? 'privacidad' : isAdminHash() ? 'admin' : 'landing'))
   const [isAdmin, setIsAdmin] = useState(false)
+  // Contraseña (opcional): el diálogo del menú y la pantalla de "olvidé mi contraseña".
+  const [passwordOpen, setPasswordOpen] = useState(false)
+  const [recovery, setRecovery] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [access, setAccess] = useState<Access>({ state: 'checking' })
   const [label, setLabel] = useState<string | null>(getAccessLabel)
@@ -130,9 +134,11 @@ function App() {
     window.addEventListener(ACCESS_LOST_EVENT, lost)
     // Entrar o salir de la cuenta (por ejemplo, al volver del enlace del mail) cambia el acceso.
     const off = onAuthChange(() => void refreshAccess())
+    const offRecovery = onPasswordRecovery(() => setRecovery(true))
     return () => {
       window.removeEventListener(ACCESS_LOST_EVENT, lost)
       off()
+      offRecovery()
     }
   }, [refreshAccess])
 
@@ -208,6 +214,7 @@ function App() {
             setNotice(null)
           },
           onDeleteAccount: () => setPending({ kind: 'deleteAccount' }),
+          onPassword: () => setPasswordOpen(true),
         }
       : undefined,
   }
@@ -235,12 +242,36 @@ function App() {
     />
   )
 
+  const passwordDialog = (
+    <PasswordDialog
+      open={passwordOpen}
+      onClose={() => setPasswordOpen(false)}
+      onSaved={() => {
+        setPasswordOpen(false)
+        setNotice(tr('password.saved'))
+      }}
+    />
+  )
+
   if (view === 'privacidad') {
     return (
       <PrivacyPolicy
         onBack={() => {
           history.replaceState(null, '', window.location.pathname)
           setView('landing')
+        }}
+      />
+    )
+  }
+
+  // Volvió del enlace de "olvidé mi contraseña": primero elige la nueva.
+  if (recovery) {
+    return (
+      <SetPasswordScreen
+        onDone={() => {
+          setRecovery(false)
+          setNotice(tr('password.saved'))
+          void refreshAccess()
         }}
       />
     )
@@ -294,7 +325,12 @@ function App() {
         onExit={() => setView('landing')}
         onRestart={() => deleteOne(session.id)}
         account={account}
-        confirmDialog={confirmDialog}
+        confirmDialog={
+          <>
+            {confirmDialog}
+            {passwordDialog}
+          </>
+        }
       />
     )
   }
@@ -332,6 +368,7 @@ function App() {
       </main>
       <Footer />
       {confirmDialog}
+      {passwordDialog}
     </div>
   )
 }

@@ -55,6 +55,68 @@ export function onAuthChange(cb: (user: CloudUser | null) => void): () => void {
   return () => data.subscription.unsubscribe()
 }
 
+/** Qué mensaje mostrar cuando falla el envío del enlace (para que la persona sepa qué hacer). */
+export function loginErrorKey(e: unknown): 'login.error.rate' | 'login.error.network' | 'login.error.email' | 'login.error' {
+  const err = e as { code?: string; status?: number; name?: string } | null
+  const code = err?.code ?? ''
+  if (code.includes('rate_limit') || err?.status === 429) return 'login.error.rate'
+  if (code === 'validation_failed' || code.startsWith('email_address')) return 'login.error.email'
+  // Sin respuesta del servicio (red caída, dirección del proyecto mal cargada en el build).
+  if (err?.name === 'AuthRetryableFetchError' || err?.status === 0 || e instanceof TypeError) return 'login.error.network'
+  return 'login.error'
+}
+
+// ── Contraseña (opcional) ─────────────────────────────────────────────────────
+// Las contraseñas las guarda y protege Supabase Auth (hash bcrypt, nunca en claro): ni el navegador ni
+// nuestro servidor las almacenan ni las registran. Solo pueden tenerla cuentas que ya existen (alta por
+// el administrador o por enlace aprobado): acá no hay registro público con contraseña.
+
+export const MIN_PASSWORD = 10
+
+export async function signInWithPassword(email: string, password: string): Promise<void> {
+  const c = sb()
+  if (!c) throw new Error('cloud_off')
+  const { error } = await c.auth.signInWithPassword({ email, password })
+  if (error) throw error
+}
+
+/** Crea o cambia la contraseña de quien tiene la sesión iniciada. */
+export async function setPassword(password: string): Promise<void> {
+  const c = sb()
+  if (!c) throw new Error('cloud_off')
+  const { error } = await c.auth.updateUser({ password })
+  if (error) throw error
+}
+
+/** Manda un email para elegir una contraseña nueva (sirve también para quien nunca tuvo una). */
+export async function sendPasswordReset(email: string): Promise<void> {
+  const c = sb()
+  if (!c) throw new Error('cloud_off')
+  const { error } = await c.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+  if (error) throw error
+}
+
+/** Avisa cuando la persona vuelve del enlace de "olvidé mi contraseña": ahí tiene que elegir una nueva. */
+export function onPasswordRecovery(cb: () => void): () => void {
+  const c = sb()
+  if (!c) return () => {}
+  const { data } = c.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') cb()
+  })
+  return () => data.subscription.unsubscribe()
+}
+
+export function passwordErrorKey(e: unknown): 'password.error.credentials' | 'password.error.weak' | 'password.error.same' | 'login.error.rate' | 'login.error.network' | 'password.error' {
+  const err = e as { code?: string; status?: number; name?: string } | null
+  const code = err?.code ?? ''
+  if (code === 'invalid_credentials') return 'password.error.credentials'
+  if (code === 'weak_password') return 'password.error.weak'
+  if (code === 'same_password') return 'password.error.same'
+  if (code.includes('rate_limit') || err?.status === 429) return 'login.error.rate'
+  if (err?.name === 'AuthRetryableFetchError' || err?.status === 0 || e instanceof TypeError) return 'login.error.network'
+  return 'password.error'
+}
+
 /** Manda un enlace de acceso al email. No hay contraseña. */
 export async function sendLoginLink(email: string): Promise<void> {
   const c = sb()

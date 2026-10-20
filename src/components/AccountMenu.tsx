@@ -16,7 +16,7 @@ export interface AccountInfo {
   /** Solo para quien administra: abre el panel de usuarios. */
   onAdmin?: () => void
   /** Cuenta opcional (guardar el informe con email). Solo si hay una sesión iniciada. */
-  cloud?: { email: string; onSignOut: () => void; onDeleteAccount: () => void }
+  cloud?: { email: string; onSignOut: () => void; onDeleteAccount: () => void; onPassword: () => void }
 }
 
 function PersonIcon() {
@@ -83,6 +83,16 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
               <button
                 type="button"
                 className={`${ITEM} -mx-3 mt-1`}
+                onClick={() => {
+                  setOpen(false)
+                  account.cloud?.onPassword()
+                }}
+              >
+                {tr('password.menu')}
+              </button>
+              <button
+                type="button"
+                className={`${ITEM} -mx-3`}
                 onClick={() => {
                   setOpen(false)
                   account.cloud?.onSignOut()

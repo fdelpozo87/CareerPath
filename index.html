@@ -8,21 +8,8 @@
     <meta name="description" content="Bivio - Tu próximo paso de carrera, pensado con vos. Coach de carrera IA disponible para profesionales y empresas." />
     <meta name="theme-color" content="#781633" />
 
-    <!-- Apariencia e idioma: se resuelven antes del primer dibujado (sin destello claro, y con el lang correcto). Misma regla que src/lib/theme.ts y src/lib/i18n.ts. -->
-    <script>
-      (function () {
-        try {
-          var l = localStorage.getItem('cp_lang');
-          var en = l === 'en' || (l !== 'es' && (navigator.language || '').toLowerCase().indexOf('en') === 0);
-          document.documentElement.setAttribute('lang', en ? 'en' : 'es');
-          var m = localStorage.getItem('cp_theme');
-          var dark = m === 'dark' || (m !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-          var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', dark ? '#170e12' : '#781633');
-        } catch (e) {}
-      })();
-    </script>
+    <!-- Apariencia e idioma: se resuelven antes del primer dibujado (sin destello claro, y con el lang correcto). Misma regla que src/lib/theme.ts y src/lib/i18n.ts. Archivo propio, no en línea, por la CSP. -->
+    <script src="/prepaint.js"></script>
 
     <!-- Fraunces (títulos) + Hanken Grotesk (texto): la tipografía del diseño del equipo -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

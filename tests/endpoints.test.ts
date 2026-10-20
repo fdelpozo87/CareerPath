@@ -787,3 +787,33 @@ describe('acceso de prueba (código de invitación)', () => {
     expect(logged).not.toMatch(/K7QM|X2PD|9RTA/)
   })
 })
+
+describe('profundidad del coach (análisis de UX)', () => {
+  const base = { sintesisPrevias: {} }
+
+  it('pide atender una emoción o un obstáculo antes de pasar al tema siguiente', () => {
+    const p = buildTurnSystemPrompt({ ...base, stage: 'diagnostico', path: 'quiebre' })
+    expect(p).toMatch(/Una emoción o un obstáculo se atienden antes que el tema siguiente/)
+    expect(p).toMatch(/El obstáculo que la persona nombra es el suyo/)
+    expect(p).toMatch(/Contradicciones, con cuidado y como pregunta/)
+  })
+
+  it('en Exploración (A) trabaja todos los caminos nombrados y deja elegir cuál llevar al Plan', () => {
+    const p = buildTurnSystemPrompt({ ...base, stage: 'discovery', path: 'quiebre' })
+    expect(p).toMatch(/Trabaja TODOS los caminos que la persona nombró/)
+    expect(p).toMatch(/cuál le gustaría llevar al Plan/)
+  })
+
+  it('en Exploración (C) hay un tema de comparación obligatorio y los criterios se piden de a uno', () => {
+    const p = buildTurnSystemPrompt({ ...base, stage: 'discovery', path: 'formacion' })
+    expect(p).toMatch(/"comparacion" \[pendiente/)
+    expect(p).toMatch(/de a uno por turno/)
+    expect(p).toMatch(/Lo que todavía falta[\s\S]*"comparacion"/)
+  })
+
+  it('el prompt no asume el género de la persona', () => {
+    const p = buildTurnSystemPrompt({ ...base, stage: 'diagnostico', path: 'quiebre' })
+    expect(p).toMatch(/lenguaje sin género por defecto/)
+    expect(p).not.toMatch(/\bella\b/i)
+  })
+})

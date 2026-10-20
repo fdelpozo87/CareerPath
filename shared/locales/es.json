@@ -535,5 +535,6 @@
   "report.restartTitle": "¿Empezar de nuevo?",
   "report.restartConfirm": "Se borran la conversación, el informe y los compromisos de este navegador. No se puede deshacer.",
   "report.restartAction": "Sí, empezar de nuevo",
-  "report.pickAria": "Asumir esta acción: {text}"
+  "report.pickAria": "Asumir esta acción: {text}",
+  "obj.comparacion": "Tus opciones, comparadas"
 }

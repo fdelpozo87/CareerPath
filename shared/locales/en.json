@@ -535,5 +535,6 @@
   "report.restartTitle": "Start over?",
   "report.restartConfirm": "The conversation, report and commitments will be deleted from this browser. This can’t be undone.",
   "report.restartAction": "Yes, start over",
-  "report.pickAria": "Take on this action: {text}"
+  "report.pickAria": "Take on this action: {text}",
+  "obj.comparacion": "Your options, compared"
 }

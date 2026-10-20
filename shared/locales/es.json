@@ -638,5 +638,8 @@
   "admin.delete": "Eliminar",
   "admin.deleteTitle": "¿Eliminar a este usuario?",
   "admin.deleteConfirm": "Se elimina la cuenta de {email} con sus informes, compromisos y recordatorios. No se puede deshacer. Si se vuelve a registrar, quedará pendiente.",
-  "admin.deleteAction": "Sí, eliminar"
+  "admin.deleteAction": "Sí, eliminar",
+  "login.error.rate": "Ya se enviaron varios enlaces a este email. Espera un rato (hasta una hora) y vuelve a intentarlo; revisa también la carpeta de spam.",
+  "login.error.network": "No pudimos conectar con el servicio de cuentas. Revisa tu conexión e inténtalo de nuevo; si sigue igual, avísale a quien administra Bivio.",
+  "login.error.email": "Ese email no parece válido. Revísalo e inténtalo de nuevo."
 }

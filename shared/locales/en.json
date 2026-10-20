@@ -638,5 +638,8 @@
   "admin.delete": "Delete",
   "admin.deleteTitle": "Delete this user?",
   "admin.deleteConfirm": "The account of {email} will be deleted with its reports, commitments and reminders. This can’t be undone. If they sign up again, they’ll be pending.",
-  "admin.deleteAction": "Yes, delete"
+  "admin.deleteAction": "Yes, delete",
+  "login.error.rate": "Several links were already sent to this email. Wait a while (up to an hour) and try again; also check your spam folder.",
+  "login.error.network": "We couldn’t reach the accounts service. Check your connection and try again; if it keeps happening, let whoever runs Bivio know.",
+  "login.error.email": "That email doesn’t look valid. Check it and try again."
 }

@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { cloudEnabled, currentUser, deleteSavedReport, onAuthChange, saveReport, sendLoginLink, setPendingSave, type CloudUser } from '../../lib/cloud'
+import { cloudEnabled, currentUser, deleteSavedReport, loginErrorKey, onAuthChange, saveReport, sendLoginLink, setPendingSave, type CloudUser } from '../../lib/cloud'
 import type { Session } from '../../lib/coach/types'
 import { tr } from '../../lib/i18n'
 
@@ -44,7 +44,8 @@ export function SaveCard({ session }: { session: Session }) {
       await sendLoginLink(email.trim())
       setStatus({ kind: 'sent' })
     } catch (e) {
-      fail(e)
+      console.error(e)
+      setStatus({ kind: 'error', message: tr(loginErrorKey(e)) })
     }
   }
 

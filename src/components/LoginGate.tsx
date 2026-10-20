@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { sendLoginLink, signOut } from '../lib/cloud'
-import { tr } from '../lib/i18n'
+import { loginErrorKey, sendLoginLink, signOut } from '../lib/cloud'
+import { tr, type Key } from '../lib/i18n'
 import LanguageToggle from './LanguageToggle'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
@@ -29,7 +29,9 @@ function Shell({ children }: { children: ReactNode }) {
 
 export function LoginGate({ initialError }: { initialError?: string }) {
   const [email, setEmail] = useState('')
-  const [error, setError] = useState<string | null>(initialError ?? null)
+  // Se guarda la clave y no el texto: así el mensaje sigue el idioma si la persona lo cambia.
+  const [errorKey, setErrorKey] = useState<Key | null>(null)
+  const error = errorKey ? tr(errorKey) : (initialError ?? null)
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -38,13 +40,13 @@ export function LoginGate({ initialError }: { initialError?: string }) {
     const value = email.trim()
     if (!value || busy) return
     setBusy(true)
-    setError(null)
+    setErrorKey(null)
     try {
       await sendLoginLink(value)
       setSent(true)
     } catch (err) {
       console.error(err)
-      setError(tr('login.error'))
+      setErrorKey(loginErrorKey(err))
     } finally {
       setBusy(false)
     }

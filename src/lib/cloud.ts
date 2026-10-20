@@ -55,6 +55,17 @@ export function onAuthChange(cb: (user: CloudUser | null) => void): () => void {
   return () => data.subscription.unsubscribe()
 }
 
+/** Qué mensaje mostrar cuando falla el envío del enlace (para que la persona sepa qué hacer). */
+export function loginErrorKey(e: unknown): 'login.error.rate' | 'login.error.network' | 'login.error.email' | 'login.error' {
+  const err = e as { code?: string; status?: number; name?: string } | null
+  const code = err?.code ?? ''
+  if (code.includes('rate_limit') || err?.status === 429) return 'login.error.rate'
+  if (code === 'validation_failed' || code.startsWith('email_address')) return 'login.error.email'
+  // Sin respuesta del servicio (red caída, dirección del proyecto mal cargada en el build).
+  if (err?.name === 'AuthRetryableFetchError' || err?.status === 0 || e instanceof TypeError) return 'login.error.network'
+  return 'login.error'
+}
+
 /** Manda un enlace de acceso al email. No hay contraseña. */
 export async function sendLoginLink(email: string): Promise<void> {
   const c = sb()

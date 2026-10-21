@@ -55,3 +55,30 @@ describe('datos de mercado con fuente', () => {
     expect(en['srv.market.ok']).toContain('{date}')
   })
 })
+
+describe('red de seguridad para las preguntas de mercado', () => {
+  it('reconoce preguntas por sueldos, costos y salida laboral', async () => {
+    const { looksLikeMarketQuestion } = await import('../server/market')
+    for (const t of ['¿Cuánto cuesta una diplomatura?', 'qué sueldo se cobra al empezar', 'Quiero saber la salida laboral', 'How much does it cost?', 'What are the salaries like?']) {
+      expect(looksLikeMarketQuestion(t), t).toBe(true)
+    }
+    for (const t of ['Me gusta trabajar con personas', 'Tengo 29 años y trabajo en logística', 'No sé qué estudiar']) {
+      expect(looksLikeMarketQuestion(t), t).toBe(false)
+    }
+  })
+})
+
+describe('red de seguridad contra formas con género', () => {
+  it('cambia el saludo con género y "juntas/juntos" en español', async () => {
+    const { neutralizeGender } = await import('../server/lang')
+    expect(neutralizeGender('Bienvenida, qué bueno tenerte por aquí.', 'es')).toBe('Hola. Qué bueno tenerte por aquí.')
+    expect(neutralizeGender('¡Bienvenido! Vamos a recorrerlo juntos.', 'es')).toBe('Hola. Vamos a recorrerlo en conjunto.')
+    expect(neutralizeGender('Lo vemos juntas, paso a paso.', 'es')).toBe('Lo vemos en conjunto, paso a paso.')
+  })
+
+  it('no toca palabras que solo contienen esas letras ni el inglés', async () => {
+    const { neutralizeGender } = await import('../server/lang')
+    expect(neutralizeGender('Es una conjuntas rara', 'es')).toBe('Es una conjuntas rara')
+    expect(neutralizeGender('Welcome, we will do it together', 'en')).toBe('Welcome, we will do it together')
+  })
+})

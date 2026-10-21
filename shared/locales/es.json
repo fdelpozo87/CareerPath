@@ -510,10 +510,10 @@
   "srv.leftLater": "Dejó para más adelante: {topics}.",
   "srv.lockout": "Demasiados intentos con un código incorrecto. Espera unos minutos y vuelve a intentarlo.",
   "srv.noMapPromise": "Para armarte el mapa me falta que me cuentes sobre \"{topic}\". Si hoy no tienes ganas, podemos parar aquí: tu conversación queda guardada y la retomas cuando quieras.",
-  "srv.open.formacion": "(Inicio de la sesión, Camino C: la persona quiere decidir en qué formarse. Preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y haz tu primera pregunta abierta sobre qué le gustaría lograr con una formación. No sugieras carreras ni cursos.)",
+  "srv.open.formacion": "(Inicio de la sesión, Camino C: la persona quiere decidir en qué formarse. Saluda con un “Hola” simple (sin fórmulas de bienvenida con género) y preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y haz tu primera pregunta abierta sobre qué le gustaría lograr con una formación. No sugieras carreras ni cursos.)",
   "srv.open.next": "(La persona confirmó la síntesis de la etapa anterior y pasa a {stage}. Haz una transición de una oración apoyada en lo que dijo y tu primera pregunta de esta etapa.)",
-  "srv.open.perfil": "(Inicio de la sesión, Camino B. La persona acaba de ver la lectura externa de su perfil y ya sabes a qué puesto apunta y qué cambios eligió tomar y cuáles no (están en el contexto). Preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y abre desde la lectura: pregunta qué le resonó y qué no, o por alguno de los cambios que eligió o dejó afuera. No le preguntes de nuevo a qué puesto apunta. Indaga antes de sumar cualquier lectura propia.)",
-  "srv.open.quiebre": "(Inicio de la sesión, Camino A. Preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y haz tu primera pregunta abierta.)",
+  "srv.open.perfil": "(Inicio de la sesión, Camino B. La persona acaba de ver la lectura externa de su perfil y ya sabes a qué puesto apunta y qué cambios eligió tomar y cuáles no (están en el contexto). Saluda con un “Hola” simple (sin fórmulas de bienvenida con género) y preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y abre desde la lectura: pregunta qué le resonó y qué no, o por alguno de los cambios que eligió o dejó afuera. No le preguntes de nuevo a qué puesto apunta. Indaga antes de sumar cualquier lectura propia.)",
+  "srv.open.quiebre": "(Inicio de la sesión, Camino A. Saluda con un “Hola” simple (sin fórmulas de bienvenida con género) y preséntate en una oración — vas a preguntar más de lo que vas a responder y las conclusiones van a ser suyas — y haz tu primera pregunta abierta.)",
   "srv.origin": "Origen no permitido",
   "srv.rate": "Hiciste muchas consultas seguidas. Espera un momento y vuelve a intentarlo.",
   "srv.reportEnd": "(Fin de la conversación. Genera el informe de cierre en JSON.)",
@@ -692,5 +692,6 @@
   "admin.audit.activar": "{actor} activó a {target}",
   "admin.audit.desactivar": "{actor} desactivó a {target}",
   "admin.audit.pendiente": "{actor} dejó pendiente a {target}",
-  "admin.audit.eliminar": "{actor} eliminó a {target}"
+  "admin.audit.eliminar": "{actor} eliminó a {target}",
+  "srv.market.force": "(La persona preguntó por datos de mercado: sueldos, costos o demanda. No respondas \"no tengo esos datos\": completa \"consultaMercado\" con una consulta breve y concreta (sin datos personales) para que el servidor busque con fuente.)"
 }

@@ -11,9 +11,9 @@ import {
 import { DEFAULT_LANG, isLang, translate, type Lang } from '../shared/i18n.js'
 import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type SynthesisItem } from '../shared/stages.js'
 import { generateJson, responseText } from './gemini.js'
-import { wrongLanguage } from './lang.js'
+import { neutralizeGender, wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
-import { MAX_MARKET_PER_CONVERSATION, fetchMarketData, type MarketData, type MarketSource } from './market.js'
+import { MAX_MARKET_PER_CONVERSATION, fetchMarketData, looksLikeMarketQuestion, type MarketData, type MarketSource } from './market.js'
 
 // Lógica compartida del agente conversacional. La usan api/coach.ts (Vercel)
 // y el middleware de desarrollo en vite.config.ts. La API key y el system
@@ -390,7 +390,12 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
         raw = await run(translate(lang, 'srv.langRetry'))
       }
       // El coach pidió datos de mercado: se busca con fuente y se le vuelve a pedir el turno con el resultado.
-      const consulta = typeof raw.consultaMercado === 'string' ? raw.consultaMercado.trim() : ''
+      let consulta = typeof raw.consultaMercado === 'string' ? raw.consultaMercado.trim() : ''
+      // Si la persona preguntó por sueldos o costos y el modelo no pidió la búsqueda, se le vuelve a pedir una vez.
+      if (!consulta && looksLikeMarketQuestion(lastUser) && marketSearches(req.history) < MAX_MARKET_PER_CONVERSATION) {
+        raw = await run(translate(lang, 'srv.market.force'))
+        consulta = typeof raw.consultaMercado === 'string' ? raw.consultaMercado.trim() : ''
+      }
       let market: MarketData | null = null
       if (consulta) {
         let note: string
@@ -417,7 +422,8 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
         }
       }
       const turn = normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path, lang)
-      return market ? { ...turn, fuentes: market.fuentes, fechaDatos: market.fecha } : turn
+      const clean = { ...turn, mensaje: neutralizeGender(turn.mensaje, lang) }
+      return market ? { ...clean, fuentes: market.fuentes, fechaDatos: market.fecha } : clean
     }
     case 'informe': {
       const model = genAI.getGenerativeModel({

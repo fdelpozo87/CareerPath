@@ -692,5 +692,6 @@
   "admin.audit.activar": "{actor} activated {target}",
   "admin.audit.desactivar": "{actor} turned off {target}",
   "admin.audit.pendiente": "{actor} set {target} to pending",
-  "admin.audit.eliminar": "{actor} deleted {target}"
+  "admin.audit.eliminar": "{actor} deleted {target}",
+  "srv.market.force": "(The person asked about market data: salaries, costs or demand. Don’t answer “I don’t have that data”: fill in \"consultaMercado\" with a short, concrete query (no personal data) so the server can search with sources.)"
 }

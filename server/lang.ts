@@ -13,3 +13,14 @@ export function wrongLanguage(text: string, lang: Lang): boolean {
   const en = text.match(EN)?.length ?? 0
   return lang === 'en' ? es >= 3 && es > en : en >= 3 && en > es
 }
+
+/**
+ * Red de seguridad contra las dos formas con género que el modelo suelta por costumbre cuando todavía no
+ * sabe nada de la persona: el "Bienvenida" del saludo y el "juntas/juntos". Solo para español.
+ */
+export function neutralizeGender(text: string, lang: Lang): string {
+  if (lang !== 'es') return text
+  return text
+    .replace(/^\s*¡?bienvenid[ao]s?\s*[,.!]?\s*(.)/i, (_m, c: string) => `Hola. ${c.toUpperCase()}`)
+    .replace(/(?<![\p{L}])juntas(?![\p{L}])|(?<![\p{L}])juntos(?![\p{L}])/giu, 'en conjunto')
+}

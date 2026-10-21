@@ -79,6 +79,18 @@ Además del enlace por email, quien ya tiene cuenta puede elegir una contraseña
 - **Recomendado en Supabase** (Authentication → Providers → Email): subir el largo mínimo de contraseña a 10 o más y,
   si el plan lo permite, activar la protección contra contraseñas filtradas.
 
+### Seguridad del panel
+
+- **Verificación en dos pasos (TOTP):** el servidor solo deja tocar el panel a una sesión que pasó también el código
+  de una app autenticadora (nivel `aal2`). La primera vez, el panel muestra un QR para activarla; después pide el
+  código de 6 dígitos al entrar. Es obligatoria: `ADMIN_REQUIRE_MFA=0` la apaga solo para desarrollo. Requiere TOTP
+  habilitado en Supabase (Authentication → Multi-Factor) y se lee del token ya verificado por Supabase (`server/auth.ts`).
+- **Registro de actividad:** cada alta, activación, desactivación y eliminación queda en `bivio_auditoria` (quién, a
+  quién, cuándo) y se ve en “Actividad reciente” del panel. Solo el servidor puede escribirla o leerla. Si el registro
+  falla, la acción se hace igual y queda un error en los logs.
+- Correr `supabase/migrations/20261021000000_bivio_auditoria.sql` antes de desplegar (sin la tabla, las acciones
+  funcionan pero no se registran).
+
 ### Límites
 
 - La versión Jaspr (`web_jaspr/`) sigue con el acceso por código y no funciona con el acceso por cuenta.

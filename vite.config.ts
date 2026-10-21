@@ -79,7 +79,7 @@ export default defineConfig(({ mode }) => {
   if (env.ALLOWED_ORIGINS) process.env.ALLOWED_ORIGINS = env.ALLOWED_ORIGINS
   if (env.ACCESS_CODES && !process.env.ACCESS_CODES) process.env.ACCESS_CODES = env.ACCESS_CODES
   // El servidor (borrar cuenta, recordatorios) lee estas variables con process.env.
-  for (const k of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'RESEND_API_KEY', 'REMINDER_FROM', 'APP_URL', 'ADMIN_EMAIL', 'REQUIRE_LOGIN'] as const) {
+  for (const k of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'RESEND_API_KEY', 'REMINDER_FROM', 'APP_URL', 'ADMIN_EMAIL', 'REQUIRE_LOGIN', 'ADMIN_REQUIRE_MFA'] as const) {
     if (env[k] && !process.env[k]) process.env[k] = env[k]
   }
   // Al navegador solo llegan la URL y la clave anónima de Supabase (públicas por diseño, la seguridad la

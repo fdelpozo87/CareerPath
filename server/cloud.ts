@@ -136,6 +136,30 @@ export async function touchSeen(env: CloudEnv, userId: string, at: Date): Promis
   })
 }
 
+// ── Auditoría de lo que hace quien administra ─────────────────────────────────
+
+export type AuditAction = 'alta' | 'activar' | 'desactivar' | 'pendiente' | 'eliminar'
+
+export interface AuditEntry {
+  id: number
+  at: string
+  actor_email: string
+  action: AuditAction
+  target_email: string
+  detail: Record<string, unknown> | null
+}
+
+export async function logAudit(env: CloudEnv, entry: { actor_email: string; action: AuditAction; target_email: string; detail?: Record<string, unknown> }): Promise<boolean> {
+  const res = await call(env, '/rest/v1/bivio_auditoria', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(entry) })
+  return res.ok
+}
+
+export async function listAudit(env: CloudEnv, limit = 50): Promise<AuditEntry[]> {
+  const res = await call(env, `/rest/v1/bivio_auditoria?select=id,at,actor_email,action,target_email,detail&order=at.desc&limit=${limit}`)
+  if (!res.ok) throw new Error(`auditoria ${res.status}`)
+  return (await res.json()) as AuditEntry[]
+}
+
 export async function listPerfiles(env: CloudEnv): Promise<Perfil[]> {
   const res = await call(env, `/rest/v1/bivio_perfiles?select=${PERFIL_COLS}&order=created_at.desc&limit=500`)
   if (!res.ok) throw new Error(`perfiles ${res.status}`)

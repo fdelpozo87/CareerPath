@@ -23,6 +23,8 @@ interface Fake {
   perfiles: Record<string, { estado: Estado; last_seen_at: string | null }>
   calls: string[]
   otpOk?: boolean
+  audit: { id: number; at: string; actor_email: string; action: string; target_email: string; detail: unknown }[]
+  auditFail?: boolean
 }
 
 /** Supabase de mentira: lo justo para probar quién entra y quién no. */
@@ -66,6 +68,15 @@ function fakeSupabase(f: Fake) {
       }
     }
     if (url.includes('/auth/v1/admin/users/') && method === 'DELETE') return json({})
+    if (url.includes('/rest/v1/bivio_auditoria')) {
+      if (method === 'POST') {
+        if (f.auditFail) return json({}, 500)
+        const b = JSON.parse(String(init?.body)) as Fake['audit'][number]
+        f.audit.unshift({ ...b, id: f.audit.length + 1, at: new Date().toISOString() })
+        return new Response(null, { status: 201 })
+      }
+      return json(f.audit)
+    }
     if (url.endsWith('/auth/v1/admin/users') && method === 'POST') {
       const b = JSON.parse(String(init?.body)) as { email: string }
       if (Object.values(f.users).some((u) => u.email === b.email)) return json({ error_code: 'email_exists' }, 422)
@@ -99,6 +110,8 @@ beforeEach(() => {
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service')
   vi.stubEnv('ADMIN_EMAIL', 'admin@bivio.test')
   vi.stubEnv('REQUIRE_LOGIN', '')
+  // Los tests del panel parten sin verificación en dos pasos; la de abajo la prueba a propósito.
+  vi.stubEnv('ADMIN_REQUIRE_MFA', '0')
   gemini.generateContent.mockReset().mockResolvedValue(modelReply)
   fake = {
     users: {
@@ -113,6 +126,7 @@ beforeEach(() => {
       '44444444-4444-4444-8444-444444444444': { estado: 'desactivado', last_seen_at: null },
     },
     calls: [],
+    audit: [],
   }
   fakeSupabase(fake)
   vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -277,5 +291,62 @@ describe('alta de cuentas por quien administra', () => {
     expect((await add('a'.repeat(260) + '@x.test')).status).toBe(400)
     expect((await add(123 as unknown)).status).toBe(400)
     expect((await add('otro@x.test', false, 'tok_activo')).status).toBe(404)
+  })
+})
+
+describe('verificación en dos pasos del administrador', () => {
+  const jwt = (aal: string) => `h.${Buffer.from(JSON.stringify({ aal })).toString('base64url')}.s`
+
+  beforeEach(() => {
+    vi.stubEnv('ADMIN_REQUIRE_MFA', '')
+    for (const aal of ['aal1', 'aal2']) fake.users[jwt(aal)] = { id: USER_ID, email: 'admin@bivio.test' }
+  })
+
+  it('con la sesión sin verificar, el panel pide el segundo paso y no hace nada', async () => {
+    const res = await handleAdmin(req(jwt('aal1'), { action: 'list' }))
+    expect(res.status).toBe(403)
+    expect(res.body).toMatchObject({ reason: 'mfa_required' })
+    const add = await handleAdmin(req(jwt('aal1'), { action: 'add', email: 'x@y.test' }))
+    expect(add.status).toBe(403)
+    expect(fake.calls.some((c) => c.includes('/auth/v1/admin/users') && c.startsWith('POST'))).toBe(false)
+  })
+
+  it('con el segundo paso verificado (aal2), el panel funciona', async () => {
+    expect((await handleAdmin(req(jwt('aal2'), { action: 'list' }))).status).toBe(200)
+  })
+
+  it('quien no administra sigue viendo un 404, sin enterarse de que existe la verificación', async () => {
+    expect((await handleAdmin(req('tok_activo', { action: 'list' }))).status).toBe(404)
+  })
+
+  it('un token que dice aal2 pero Supabase no reconoce no sirve', async () => {
+    expect((await handleAdmin(req(jwt('aal2') + 'x', { action: 'list' }))).status).toBe(404)
+  })
+})
+
+describe('registro de actividad del panel', () => {
+  const NEW = '33333333-3333-4333-8333-333333333333'
+
+  it('anota quién hizo qué sobre quién', async () => {
+    await runEndpoint('coach', req('tok_nuevo', coachBody), 'k') // crea el perfil pendiente
+    await handleAdmin(req('tok_admin', { action: 'setEstado', id: NEW, estado: 'activo' }))
+    await handleAdmin(req('tok_admin', { action: 'setEstado', id: NEW, estado: 'desactivado' }))
+    await handleAdmin(req('tok_admin', { action: 'add', email: 'nueva@x.test', notify: false }))
+    await handleAdmin(req('tok_admin', { action: 'delete', id: NEW }))
+    expect(fake.audit.map((a) => a.action).reverse()).toEqual(['activar', 'desactivar', 'alta', 'eliminar'])
+    expect(fake.audit[0]).toMatchObject({ actor_email: 'Admin@Bivio.test', target_email: 'nuevo@x.test' })
+  })
+
+  it('el panel muestra lo registrado', async () => {
+    await handleAdmin(req('tok_admin', { action: 'add', email: 'a@x.test' }))
+    const res = await handleAdmin(req('tok_admin', { action: 'audit' }))
+    expect((res.body as { entries: unknown[] }).entries.length).toBe(1)
+  })
+
+  it('si no se puede registrar, la acción igual se hace (y queda en los logs)', async () => {
+    fake.auditFail = true
+    const res = await handleAdmin(req('tok_admin', { action: 'add', email: 'b@x.test' }))
+    expect(res.status).toBe(200)
+    expect(console.error).toHaveBeenCalled()
   })
 })

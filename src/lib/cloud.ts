@@ -23,6 +23,9 @@ export interface SavedReport {
   updatedAt: string
 }
 
+/** El cliente de Supabase (para módulos que lo necesitan, como la verificación en dos pasos). */
+export const getClient = (): SupabaseClient | null => sb()
+
 export const cloudEnabled = (): boolean => Boolean(__SUPABASE_URL__ && __SUPABASE_ANON_KEY__)
 
 let client: SupabaseClient | null | undefined

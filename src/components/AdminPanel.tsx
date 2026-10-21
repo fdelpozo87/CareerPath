@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
-import { addUser, deleteUserAccount, listUsers, setUserEstado, type AdminUser, type Estado } from '../lib/admin'
+import { AdminError, addUser, deleteUserAccount, listAudit, listUsers, setUserEstado, type AdminUser, type AuditEntry, type Estado } from '../lib/admin'
 import { getLang, tr, type Key } from '../lib/i18n'
 import ConfirmDialog from './ConfirmDialog'
+import { MfaStep } from './MfaStep'
 import LanguageToggle from './LanguageToggle'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
@@ -21,6 +22,9 @@ type Filter = 'todos' | 'pendiente'
 
 export function AdminPanel({ onBack }: { onBack: () => void }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null)
+  const [audit, setAudit] = useState<AuditEntry[]>([])
+  // El servidor pide verificación en dos pasos antes de dejar tocar nada.
+  const [needsMfa, setNeedsMfa] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('todos')
@@ -34,8 +38,11 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
   const load = useCallback(async () => {
     try {
       setUsers(await listUsers())
+      setNeedsMfa(false)
       setError(null)
+      setAudit(await listAudit().catch(() => []))
     } catch (e) {
+      if (e instanceof AdminError && e.reason === 'mfa_required') return setNeedsMfa(true)
       setError(e instanceof Error ? e.message : tr('cloud.error'))
     }
   }, [])
@@ -100,6 +107,10 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
         <button onClick={onBack} className="mb-4 text-sm text-text-muted underline underline-offset-2 hover:text-foreground">
           ← {tr('admin.back')}
         </button>
+        {needsMfa ? (
+          <MfaStep onDone={() => void load()} />
+        ) : (
+          <>
         <h1 className="mb-1 text-2xl md:text-3xl">{tr('admin.title')}</h1>
         <p className="mb-6 text-sm text-text-muted">{tr('admin.lede')}</p>
 
@@ -206,6 +217,25 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
               )
             })}
           </ul>
+        )}
+
+        {audit.length > 0 && (
+          <section aria-labelledby="actividad" className="mt-10">
+            <h2 id="actividad" className="mb-1 text-base">
+              {tr('admin.audit.title')}
+            </h2>
+            <p className="mb-3 text-sm text-text-muted">{tr('admin.audit.lede')}</p>
+            <ul className="divide-y divide-border-color rounded-2xl border border-border-color bg-card text-sm">
+              {audit.map((a) => (
+                <li key={a.id} className="flex flex-col gap-1 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-foreground">{tr(`admin.audit.${a.action}` as Key, { actor: a.actor_email, target: a.target_email })}</span>
+                  <span className="shrink-0 text-xs text-text-muted">{fmt(a.at)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+          </>
         )}
       </main>
 

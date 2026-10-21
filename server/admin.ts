@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 import { translate, type Lang } from '../shared/i18n.js'
-import { authorize, resetAuthCache } from './auth.js'
-import { ESTADOS, cloudEnv, createUser, deleteUser, ensurePerfil, findPerfilByEmail, listPerfiles, sendAccessLink, setEstado, type Estado } from './cloud.js'
+import { adminMfaRequired, authorize, resetAuthCache } from './auth.js'
+import { ESTADOS, cloudEnv, createUser, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, sendAccessLink, setEstado, type AuditAction, type Estado } from './cloud.js'
 import { RATE_RULES, clientIp, isAllowedOrigin, logEvent, rateLimit, requestLang } from './guard.js'
 
 // POST /api/admin — panel de administración de cuentas. Solo lo usa quien tenga el email de ADMIN_EMAIL
@@ -9,6 +9,7 @@ import { RATE_RULES, clientIp, isAllowedOrigin, logEvent, rateLimit, requestLang
 //   { action: 'list' }                         → usuarios, más recientes primero
 //   { action: 'setEstado', id, estado }        → activar, desactivar o dejar pendiente a alguien
 //   { action: 'delete', id }                   → eliminar su cuenta y todo lo suyo
+//   { action: 'audit' }                        → últimas acciones de administración
 //   { action: 'add', email, notify }           → dar de alta un email ya aprobado (y, si se pide, mandarle el enlace)
 
 type Req = IncomingMessage & { body?: unknown }
@@ -19,6 +20,7 @@ export interface AdminResult {
 }
 
 const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/
+const AUDIT_BY_ESTADO: Record<Estado, AuditAction> = { activo: 'activar', desactivado: 'desactivar', pendiente: 'pendiente' }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function handleAdmin(req: Req): Promise<AdminResult> {
@@ -33,12 +35,23 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
   const gate = await authorize(req)
   // Para quien no es administrador el panel simplemente no existe.
   if (!gate.ok || !gate.isAdmin) return { status: 404, body: { error: 'Not found' } }
+  // Verificación en dos pasos: sin ella la sesión no puede tocar nada (el cliente muestra cómo activarla).
+  if (adminMfaRequired() && gate.aal !== 'aal2') return { status: 403, body: { error: msg('srv.mfaRequired'), reason: 'mfa_required' } }
+  const actor = gate.user.email
+  // El registro no frena la acción si falla, pero queda en los logs del servidor.
+  const audit = async (action: AuditAction, target: string, detail?: Record<string, unknown>) => {
+    const ok = await logAudit(env, { actor_email: actor, action, target_email: target, detail }).catch(() => false)
+    if (!ok) logEvent('error', 'auditoria_no_registrada', { action })
+  }
 
   const body = (req.body ?? {}) as { action?: unknown; id?: unknown; estado?: unknown; email?: unknown; notify?: unknown }
   try {
     if (body.action === 'list') {
       const users = await listPerfiles(env)
       return { status: 200, body: { users: users.map((u) => ({ ...u, isSelf: u.user_id === gate.user.id })) } }
+    }
+    if (body.action === 'audit') {
+      return { status: 200, body: { entries: await listAudit(env, 50).catch(() => []) } }
     }
     if (body.action === 'add') {
       const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
@@ -58,6 +71,7 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
         created = true
       }
       resetAuthCache()
+      await audit('alta', email, { creada: created, avisoPedido: body.notify === true })
       const origin = typeof req.headers.origin === 'string' ? req.headers.origin : ''
       const notified = body.notify === true && origin ? await sendAccessLink(env, email, origin).catch(() => false) : false
       logEvent('info', 'admin_alta', { created, notified })
@@ -70,14 +84,18 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
 
     if (body.action === 'setEstado') {
       if (typeof body.estado !== 'string' || !ESTADOS.includes(body.estado as Estado)) return { status: 400, body: { error: msg('srv.badPayload') } }
+      const target = await getPerfil(env, id)
       const ok = await setEstado(env, id, body.estado as Estado)
       resetAuthCache()
+      if (ok) await audit(AUDIT_BY_ESTADO[body.estado as Estado], target?.email ?? id, { antes: target?.estado })
       logEvent(ok ? 'info' : 'error', 'admin_estado', { ok, estado: body.estado })
       return ok ? { status: 200, body: { ok: true } } : { status: 502, body: { error: msg('srv.upstream') } }
     }
     if (body.action === 'delete') {
+      const target = await getPerfil(env, id)
       const ok = await deleteUser(env, id)
       resetAuthCache()
+      if (ok) await audit('eliminar', target?.email ?? id, { estadoAnterior: target?.estado })
       logEvent(ok ? 'info' : 'error', 'admin_borrar', { ok })
       return ok ? { status: 200, body: { ok: true } } : { status: 502, body: { error: msg('srv.upstream') } }
     }

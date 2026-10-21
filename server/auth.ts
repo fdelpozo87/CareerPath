@@ -16,12 +16,30 @@ const CACHE_MAX = 500
 export type Denied = 'sin_sesion' | 'pendiente' | 'desactivado' | 'no_disponible'
 
 export type Gate =
-  | { ok: true; user: CloudUser; estado: Estado; isAdmin: boolean }
+  | { ok: true; user: CloudUser; estado: Estado; isAdmin: boolean; aal: 'aal1' | 'aal2' }
   | { ok: false; reason: Denied; user?: CloudUser; isAdmin?: false }
 
 /** ¿Se usa el acceso por cuenta? Con Supabase configurado, sí (salvo REQUIRE_LOGIN=0). */
 export function accountsMode(): boolean {
   return cloudEnv() !== null && process.env.REQUIRE_LOGIN !== '0'
+}
+
+/** El panel exige verificación en dos pasos (salvo ADMIN_REQUIRE_MFA=0, por ejemplo en desarrollo). */
+export function adminMfaRequired(): boolean {
+  return process.env.ADMIN_REQUIRE_MFA !== '0'
+}
+
+/**
+ * Nivel de verificación de la sesión (aal2 = pasó también el código de la app autenticadora). Se lee del
+ * token DESPUÉS de que Supabase confirmó que es auténtico (verifyUser): acá no se confía en una firma propia.
+ */
+export function tokenAal(token: string): 'aal1' | 'aal2' {
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf-8')) as { aal?: unknown }
+    return payload.aal === 'aal2' ? 'aal2' : 'aal1'
+  } catch {
+    return 'aal1'
+  }
 }
 
 export function isAdminEmail(email: string): boolean {
@@ -53,7 +71,7 @@ async function resolve(env: CloudEnv, token: string, now: number): Promise<Gate>
   // Último acceso: se anota como mucho una vez por minuto.
   const seen = perfil.last_seen_at ? Date.parse(perfil.last_seen_at) : 0
   if (now - seen > 60_000) void touchSeen(env, user.id, new Date(now)).catch(() => {})
-  return { ok: true, user, estado, isAdmin }
+  return { ok: true, user, estado, isAdmin, aal: tokenAal(token) }
 }
 
 /** Quién es y si puede usar el servicio, según el token de sesión del pedido. */

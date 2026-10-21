@@ -2,7 +2,8 @@ import type { IncomingMessage } from 'node:http'
 import { translate, type Lang } from '../shared/i18n.js'
 import { adminMfaRequired, authorize, resetAuthCache } from './auth.js'
 import { ESTADOS, cloudEnv, createUser, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, sendAccessLink, setEstado, type AuditAction, type Estado } from './cloud.js'
-import { RATE_RULES, clientIp, isAllowedOrigin, logEvent, rateLimit, requestLang } from './guard.js'
+import { RATE_RULES, clientIp, isAllowedOrigin, logEvent, requestLang } from './guard.js'
+import { durableLimit } from './limits.js'
 
 // POST /api/admin — panel de administración de cuentas. Solo lo usa quien tenga el email de ADMIN_EMAIL
 // (verificado en el servidor con su token de sesión: el navegador no decide quién es administrador).
@@ -28,7 +29,7 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
   const msg = (k: Parameters<typeof translate>[1]) => translate(lang, k)
   if (req.method !== 'POST') return { status: 405, body: { error: 'Method not allowed' } }
   if (!isAllowedOrigin(req)) return { status: 403, body: { error: msg('srv.origin') } }
-  if (!rateLimit(`admin:${clientIp(req)}`, RATE_RULES.admin).ok) return { status: 429, body: { error: msg('srv.rate') } }
+  if (!(await durableLimit(`admin:${clientIp(req)}`, RATE_RULES.admin)).ok) return { status: 429, body: { error: msg('srv.rate') } }
 
   const env = cloudEnv()
   if (!env) return { status: 503, body: { error: msg('srv.cloudOff') } }

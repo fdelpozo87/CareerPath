@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 import { accessState } from './access.js'
 import { accountsMode, authorize } from './auth.js'
+import { durableLimit } from './limits.js'
 import { coachMode, handleCoachRequest } from './coach.js'
 import { runCompanyAnalysis, validateCompany } from './company.js'
 import { translate, type Lang } from '../shared/i18n.js'
@@ -90,7 +91,8 @@ export async function runEndpoint(endpoint: EndpointName, req: Req, apiKey: stri
       return finish({ status: d.status, body: { error: msg(d.key), reason: gate.reason } }, { rule: 'cuenta', reason: gate.reason })
     }
     accountWho = `u:${gate.user.id.slice(0, 8)}`
-    const perUser = rateLimit(`usuario:${gate.user.id}`, RATE_RULES.porCodigo)
+    // Tope diario por persona: lo que cuida la cuota de Gemini, así que usa el contador compartido.
+    const perUser = await durableLimit(`usuario:${gate.user.id}`, RATE_RULES.porCodigo)
     if (!perUser.ok) {
       return finish({ status: 429, body: { error: msg('srv.dailyCap') }, headers: { 'Retry-After': String(perUser.retryAfterS) } }, { rule: 'porUsuario', who: accountWho })
     }

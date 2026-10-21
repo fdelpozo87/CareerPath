@@ -13,6 +13,8 @@ export interface AccountInfo {
   onLogout: () => void
   /** Borra la conversación guardada en este navegador. */
   onDeleteData: () => void
+  /** Baja un archivo con todo lo que hay de la persona (procesos de este navegador y lo guardado en su cuenta). */
+  onExport: () => void
   /** Solo para quien administra: abre el panel de usuarios. */
   onAdmin?: () => void
   /** Cuenta opcional (guardar el informe con email). Solo si hay una sesión iniciada. */
@@ -131,6 +133,18 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
               <a href="#privacidad" className={ITEM} onClick={() => setOpen(false)}>
                 {tr('account.privacy')}
               </a>
+            </li>
+            <li>
+              <button
+                type="button"
+                className={ITEM}
+                onClick={() => {
+                  setOpen(false)
+                  account.onExport()
+                }}
+              >
+                {tr('account.export')}
+              </button>
             </li>
             <li>
               <button

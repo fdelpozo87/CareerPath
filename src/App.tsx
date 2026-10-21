@@ -13,6 +13,7 @@ import PrivacyPolicy from './components/PrivacyPolicy'
 import { CoachFlow } from './components/coach/CoachFlow'
 import { clearAllSessions, deleteSession, listSessions, loadSessionById, newSession, saveSession } from './lib/coach/session'
 import { cloudEnabled, currentUser, deleteAccount, listSavedReports, onAuthChange, onPasswordRecovery, saveReport, sessionFromSaved, signOut, takePendingSave, type CloudUser } from './lib/cloud'
+import { downloadMyData } from './lib/exportData'
 import type { Path, Session } from './lib/coach/types'
 import { ACCESS_LOST_EVENT, checkAccess, clearAccessCode, getAccessCode, getAccessLabel, saveAccessCode } from './lib/access'
 import type { AccountInfo } from './components/AccountMenu'
@@ -206,6 +207,12 @@ function App() {
       window.scrollTo(0, 0)
     },
     onDeleteData: () => setPending({ kind: 'deleteAll' }),
+    onExport: () => {
+      downloadMyData().catch((e) => {
+        console.error(e)
+        setNotice(tr('account.export.error'))
+      })
+    },
     cloud: cloudUser
       ? {
           email: cloudUser.email,

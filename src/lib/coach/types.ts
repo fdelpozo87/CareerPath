@@ -111,6 +111,8 @@ export interface Report {
   checkIn: string
   horizonte: string
   preguntaAbierta: string
+  /** Lo que le falta al plan (algo para aprender, un plan B, un plazo…), como invitaciones. */
+  faltaParaCompletar?: string[]
   /** Solo en el Camino C. */
   presupuesto?: string
   respaldo?: string

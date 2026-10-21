@@ -130,6 +130,11 @@ class _ReportViewState extends State<ReportView> {
           when(report.respaldo.isNotEmpty, () => _infoCard(tl('report.planB'), report.respaldo)),
         ])),
         when(report.comparativa != null && (report.comparativa!.criterios.isNotEmpty || report.comparativa!.opciones.isNotEmpty), () => _comparison(report.comparativa!)),
+        when(report.faltaParaCompletar.isNotEmpty, () => el('div', 'card', [
+          el('p', 'mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted', [t(tl('report.gaps.title'))]),
+          el('p', 'mb-3 text-sm text-text-muted', [t(tl('report.gaps.lede'))]),
+          el('ul', 'list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-foreground', [for (final g in report.faltaParaCompletar) el('li', null, [t(g)])]),
+        ])),
         when(report.preguntaAbierta.isNotEmpty, () => el('div', 'ai-tint rounded-2xl p-6', [
           el('p', 'mb-2 text-xs font-semibold uppercase tracking-widest text-primary', [t(tl('report.take'))]),
           el('p', 'italic leading-relaxed text-foreground', [t(report.preguntaAbierta)]),

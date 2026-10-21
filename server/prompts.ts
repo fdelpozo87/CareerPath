@@ -315,6 +315,8 @@ Reglas:
 - "cuatroC": cuáles de las 4 C de Savickas fortalece la acción ("preocupación", "control", "curiosidad", "confianza").
 - Si alguna síntesis dice que la persona dejó temas "para más adelante", incluye un hallazgo que lo diga con honestidad y sin interpretarlo (por ejemplo, "Quedó pendiente lo de tus caminos, y puedes retomarlo cuando quieras").
 - Redacta en segunda persona, sin frases corporativas. No es un veredicto: es lo que la persona construyó.
+- Cada acción dice para cuándo. Si la persona dio una fecha o un plazo, ponlo en el texto de la acción ("… antes del viernes 15", "… en las próximas dos semanas"). Si no lo dio, NO inventes una: deja la acción sin plazo y anótalo en "faltaParaCompletar".
+- "faltaParaCompletar": entre 0 y 4 cosas que le faltan a su plan, escritas en lenguaje llano como invitaciones cortas ("Algo para aprender: todavía no apareció ninguna lectura, curso o práctica", "Un plan B por si esto no sale", "Cómo vas a manejar el obstáculo que nombraste", "Una fecha para tal acción"). Elige solo las que de verdad faltan entre: algo para aprender, alguien de quien aprender o a quien pedir, un plan B, cómo manejar el obstáculo que nombró y un plazo en cada acción. No agregues acciones para cubrirlas: solo señálalas. Si el plan está completo, va vacío.
 - "preguntaAbierta": una pregunta para que la persona se lleve, basada en su propio change talk.
 ${
   ctx.path === 'formacion'
@@ -335,6 +337,7 @@ Responde SOLO con JSON:
   "metrica": "",
   "checkIn": "",
   "horizonte": "",
+  "faltaParaCompletar": [""],
   "preguntaAbierta": ""${
     ctx.path === 'formacion'
       ? `,

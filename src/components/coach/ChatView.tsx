@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { STAGE_ORDER, introFor, objectiveLabel, objectivesFor } from '../../../shared/stages'
+import { looksLikeMarketQuestion } from '../../../shared/marketIntent'
 import { docLabel } from '../../lib/coach/docs'
 import { getLang, stageLabel, tr, type Key } from '../../lib/i18n'
 import type { DocTipo, MarketSource, Path, Session, Stage } from '../../lib/coach/types'
@@ -110,6 +111,15 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
                 {(i === 0 || (prevStage && prevStage !== m.stage)) && <StageDivider stage={m.stage} />}
                 {m.role === 'user' ? <UserBubble text={m.text} /> : <CoachBubble text={m.text} sources={m.fuentes} date={m.fechaDatos} />}
                 {m.derivacion && <DerivationCard />}
+                {/* El mapa de una etapa ya cerrada queda en el hilo, plegado, para poder releerlo. */}
+                {m.cierraEtapa && m.stage !== session.stage && session.mapas?.[m.stage] && (
+                  <details className="rounded-2xl border border-border-color bg-secondary/40 p-3 text-sm">
+                    <summary className="cursor-pointer font-semibold text-foreground">{tr('chat.pastMap', { stage: stageLabel(m.stage) })}</summary>
+                    <div className="mt-3">
+                      <StageMap stage={m.stage} path={session.path} map={session.mapas[m.stage]} fallbackText={session.sintesis[m.stage]} onAdjust={() => {}} onResume={() => {}} readOnly />
+                    </div>
+                  </details>
+                )}
                 {i === mapIndex && (
                   <StageMap
                     stage={session.stage}
@@ -129,7 +139,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
             )
           })}
 
-          {thinking && <Typing />}
+          {thinking && <Typing searching={looksLikeMarketQuestion(visible.findLast((m) => m.role === 'user')?.text ?? '')} />}
 
           {error && (
             <div role="alert" className="flex items-center justify-between gap-3 rounded-2xl border border-danger/20 bg-danger-soft p-3.5 text-sm text-danger">
@@ -190,6 +200,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
 
 function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'session' | 'docStatus' | 'onAttachDoc'>) {
   const [docsOpen, setDocsOpen] = useState(false)
+  const [topicsOpen, setTopicsOpen] = useState(false)
   const idx = STAGE_ORDER.indexOf(session.stage)
   const objetivos = objectivesFor(session.stage, session.path)
   const cubiertos = session.cubiertos[session.stage]
@@ -248,7 +259,17 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
         <p className="mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden">{tr('chat.now', { what: intro.queHacemos })}</p>
 
         {/* Con poca altura (teclado abierto, celular horizontal) se deja más lugar a la conversación. */}
-        <ul role="list" aria-label={tr('chat.topics')} className="mt-1.5 flex flex-wrap gap-1.5 [@media(max-height:560px)]:hidden">
+        {/* En pantallas angostas los temas quedan plegados: el encabezado ocupaba un tercio de la pantalla. */}
+        <button
+          type="button"
+          onClick={() => setTopicsOpen((o) => !o)}
+          aria-expanded={topicsOpen}
+          aria-controls="temas-etapa"
+          className="mt-1.5 text-xs text-text-muted underline underline-offset-2 sm:hidden"
+        >
+          {tr(topicsOpen ? 'chat.topics.hide' : 'chat.topics.show', { done: cubiertos.length, total: objetivos.length })}
+        </button>
+        <ul id="temas-etapa" role="list" aria-label={tr('chat.topics')} className={`mt-1.5 flex-wrap gap-1.5 sm:flex [@media(max-height:560px)]:hidden ${topicsOpen ? 'flex' : 'hidden'}`}>
           {objetivos.map((o) => {
             const done = cubiertos.includes(o.id)
             const dejado = !done && omitidos.includes(o.id)
@@ -322,7 +343,7 @@ function UserBubble({ text }: { text: string }) {
   )
 }
 
-function Typing() {
+function Typing({ searching }: { searching?: boolean }) {
   return (
     <div className="flex items-start gap-3">
       <CoachAvatar size="sm" />
@@ -334,7 +355,7 @@ function Typing() {
           ))}
         </span>
         <span className="text-xs italic text-text-muted" aria-hidden="true">
-          {tr('chat.typing')}
+          {tr(searching ? 'chat.typing.market' : 'chat.typing')}
         </span>
       </div>
     </div>

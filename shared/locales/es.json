@@ -411,7 +411,7 @@
   "privacy.s4.v.strong": "Vercel",
   "privacy.s5.body": "Tus procesos (conversación, síntesis, informe y compromisos) se guardan en el almacenamiento local de tu navegador, no en nuestros servidores. Se borran cuando tocas “Borrar este proceso” o “Borrar todos mis procesos” o cuando limpias los datos del sitio en tu navegador. Si usas una computadora compartida, te recomendamos borrarlos al terminar. Si creas una cuenta, tu informe y tus compromisos se guardan en nuestro proveedor de base de datos hasta que los quites o borres tu cuenta desde el menú de tu cuenta en Bivio; al borrar la cuenta se eliminan también tus informes y recordatorios pendientes. [Definir con el equipo legal el plazo de conservación de los datos de cuenta inactiva.]",
   "privacy.s5.title": "Dónde se guardan y por cuánto tiempo",
-  "privacy.s6.body": "Puedes pedirnos acceso, rectificación, actualización o supresión de tus datos personales escribiendo a [email de contacto de privacidad]. Como no guardamos tu conversación en servidores, en general no tendremos datos tuyos asociados a tu identidad. La Agencia de Acceso a la Información Pública, en su carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.",
+  "privacy.s6.body": "Puedes pedirnos acceso, rectificación, actualización o supresión de tus datos personales escribiendo a [email de contacto de privacidad]. Sin cuenta, no guardamos tu conversación en servidores y en general no tenemos datos tuyos asociados a tu identidad. Con cuenta, guardamos tu email, tu informe y tus compromisos: desde el menú de tu cuenta puedes descargar todo lo que tenemos (“Descargar mis datos”) y borrar tu cuenta y tus datos (“Borrar mi cuenta y datos guardados”) sin pedirnos nada. La Agencia de Acceso a la Información Pública, en su carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.",
   "privacy.s6.title": "Tus derechos",
   "privacy.s7.1": "Bivio acompaña un proceso de reflexión sobre tu carrera. Las conclusiones y decisiones son tuyas: la herramienta no decide por ti ni evalúa tu valor como profesional.",
   "privacy.s7.2": "No es un servicio de salud mental, médico ni legal. Si atraviesas una situación de maltrato, acoso o riesgo, busca ayuda profesional; ante una emergencia, llama al 911.",
@@ -597,7 +597,7 @@
   "cloud.deleteAction": "Sí, borrar mi cuenta",
   "cloud.dismiss": "Cerrar aviso",
   "privacy.s3.e.strong": "Tu cuenta (solo si decides crearla)",
-  "privacy.s3.e.rest": ": tu email y, si decides guardarlos, tu informe y tus compromisos, junto con el recordatorio de check-in que pidas. Nunca se guarda la conversación. Se usan solo para que puedas verlos desde otro dispositivo y para mandarte, una sola vez, el recordatorio que pediste.",
+  "privacy.s3.e.rest": ": tu email y, si decides guardarlos, tu informe y tus compromisos, junto con el recordatorio de check-in que pidas. Nunca se guarda la conversación. Se usan solo para que puedas verlos desde otro dispositivo y para mandarte, una sola vez, el recordatorio que pediste. Si alguien administra tu acceso, queda un registro de esas acciones (alta, activación, desactivación o eliminación de la cuenta) con tu email. [Definir con el equipo legal el plazo de conservación de este registro.]",
   "privacy.s4.sb.strong": "Supabase",
   "privacy.s4.sb.rest": " (solo si creas una cuenta): guarda tu email, tu informe y tus compromisos, y envía el enlace para entrar. [Confirmar la región del proyecto y las condiciones vigentes con el equipo legal.]",
   "privacy.s4.r.strong": "Resend",
@@ -699,5 +699,7 @@
   "chat.topics.show": "Ver temas ({done}/{total})",
   "chat.topics.hide": "Ocultar temas",
   "report.gaps.title": "Para completar tu plan",
-  "report.gaps.lede": "Cosas que no aparecieron en lo que armaste. Puedes sumarlas con un nuevo proceso o llevarlas como tarea."
+  "report.gaps.lede": "Cosas que no aparecieron en lo que armaste. Puedes sumarlas con un nuevo proceso o llevarlas como tarea.",
+  "account.export": "Descargar mis datos",
+  "account.export.error": "No pudimos preparar la descarga. Inténtalo de nuevo."
 }

@@ -13,7 +13,8 @@
     "access:code": "node scripts/gen-access-code.mjs",
     "i18n": "node scripts/gen-i18n.mjs",
     "i18n:check": "node scripts/gen-i18n.mjs --check",
-    "eval": "node scripts/eval-coach.mjs"
+    "eval": "node scripts/eval-coach.mjs",
+    "legal:check": "node scripts/legal-check.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

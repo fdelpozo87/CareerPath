@@ -19,7 +19,7 @@ export async function handleAccount(req: Req): Promise<AccountResult> {
   const msg = (k: Parameters<typeof translate>[1]) => translate(lang, k)
   if (req.method !== 'POST') return { status: 405, body: { error: 'Method not allowed' } }
   if (!isAllowedOrigin(req)) return { status: 403, body: { error: msg('srv.origin') } }
-  if (!(await durableLimit(`cuenta:${clientIp(req)}`, RATE_RULES.cuenta)).ok) return { status: 429, body: { error: msg('srv.rate') } }
+  if (!(await durableLimit(`cuenta:${ipTag(clientIp(req))}`, RATE_RULES.cuenta)).ok) return { status: 429, body: { error: msg('srv.rate') } }
 
   const env = cloudEnv()
   if (!env) return { status: 503, body: { error: msg('srv.cloudOff') } }

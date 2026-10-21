@@ -380,7 +380,7 @@
   "obj.reencuadre": "Tu obstáculo",
   "obj.respaldo": "Tu plan B",
   "obj.situacion": "Tu situación hoy",
-  "obj.will": "Tu compromiso",
+  "obj.will": "Lo que ya intentaste",
   "privacy.date": "9 de octubre de 2026",
   "privacy.draft": "Este texto es un borrador pendiente de revisión legal. La versión en inglés es una traducción del borrador en español.",
   "privacy.s1.1": "No necesitas cuenta ni registro. No te pedimos nombre, email ni teléfono.",
@@ -693,5 +693,11 @@
   "admin.audit.desactivar": "{actor} desactivó a {target}",
   "admin.audit.pendiente": "{actor} dejó pendiente a {target}",
   "admin.audit.eliminar": "{actor} eliminó a {target}",
-  "srv.market.force": "(La persona preguntó por datos de mercado: sueldos, costos o demanda. No respondas \"no tengo esos datos\": completa \"consultaMercado\" con una consulta breve y concreta (sin datos personales) para que el servidor busque con fuente.)"
+  "srv.market.force": "(La persona preguntó por datos de mercado: sueldos, costos o demanda. No respondas \"no tengo esos datos\": completa \"consultaMercado\" con una consulta breve y concreta (sin datos personales) para que el servidor busque con fuente.)",
+  "chat.pastMap": "Tu mapa de {stage}",
+  "chat.typing.market": "buscando datos con fuente…",
+  "chat.topics.show": "Ver temas ({done}/{total})",
+  "chat.topics.hide": "Ocultar temas",
+  "report.gaps.title": "Para completar tu plan",
+  "report.gaps.lede": "Cosas que no aparecieron en lo que armaste. Puedes sumarlas con un nuevo proceso o llevarlas como tarea."
 }

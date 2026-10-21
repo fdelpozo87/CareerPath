@@ -15,9 +15,11 @@ interface StageMapProps {
   onAdjust: () => void
   /** Retomar un tema que la persona había dejado para más adelante. */
   onResume: (id: string) => void
+  /** Mapa de una etapa ya cerrada: se muestra lo que la persona dijo, sin botones para ajustar. */
+  readOnly?: boolean
 }
 
-export function StageMap({ stage, path, map, fallbackText, onAdjust, onResume }: StageMapProps) {
+export function StageMap({ stage, path, map, fallbackText, onAdjust, onResume, readOnly }: StageMapProps) {
   const labelOf = (id: string) => objectiveLabel(id, getLang())
   const titleId = `mapa-${stage}`
 
@@ -67,11 +69,13 @@ export function StageMap({ stage, path, map, fallbackText, onAdjust, onResume }:
         </div>
       )}
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <button onClick={onAdjust} className="btn-secondary px-5 py-3 text-sm">
-          {tr('map.adjust')}
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button onClick={onAdjust} className="btn-secondary px-5 py-3 text-sm">
+            {tr('map.adjust')}
+          </button>
+        </div>
+      )}
     </section>
   )
 }

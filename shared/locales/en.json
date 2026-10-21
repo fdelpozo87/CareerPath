@@ -380,7 +380,7 @@
   "obj.reencuadre": "Your obstacle",
   "obj.respaldo": "Your plan B",
   "obj.situacion": "Your situation today",
-  "obj.will": "Your commitment",
+  "obj.will": "What you’ve tried",
   "privacy.date": "October 9, 2026",
   "privacy.draft": "This text is a draft pending legal review. The English version is a translation of the Spanish draft.",
   "privacy.s1.1": "You don’t need an account or to sign up. We don’t ask for your name, email or phone number.",
@@ -693,5 +693,11 @@
   "admin.audit.desactivar": "{actor} turned off {target}",
   "admin.audit.pendiente": "{actor} set {target} to pending",
   "admin.audit.eliminar": "{actor} deleted {target}",
-  "srv.market.force": "(The person asked about market data: salaries, costs or demand. Don’t answer “I don’t have that data”: fill in \"consultaMercado\" with a short, concrete query (no personal data) so the server can search with sources.)"
+  "srv.market.force": "(The person asked about market data: salaries, costs or demand. Don’t answer “I don’t have that data”: fill in \"consultaMercado\" with a short, concrete query (no personal data) so the server can search with sources.)",
+  "chat.pastMap": "Your {stage} map",
+  "chat.typing.market": "looking up sourced data…",
+  "chat.topics.show": "Show topics ({done}/{total})",
+  "chat.topics.hide": "Hide topics",
+  "report.gaps.title": "To complete your plan",
+  "report.gaps.lede": "Things that didn’t come up in what you built. You can add them in a new process or take them as homework."
 }

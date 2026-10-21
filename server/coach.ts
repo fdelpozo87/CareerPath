@@ -433,7 +433,8 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
       }, requestOptions)
       const contents = toContents(req.history, lang)
       contents.push({ role: 'user', parts: [{ text: `${translate(lang, 'srv.reportEnd')}\n${translate(lang, 'srv.langNote')}` }] })
-      return generateJson(async () => responseText((await model.generateContent({ contents })).response, 'informe'))
+      const informe = await generateJson<Record<string, unknown>>(async () => responseText((await model.generateContent({ contents })).response, 'informe'))
+      return normalizeReport(informe)
     }
     case 'perfil': {
       const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { ...generationConfig, temperature: 0.3 } }, requestOptions)
@@ -557,6 +558,15 @@ function demoTurn(req: Extract<CoachRequest, { mode: 'turno' }>): TurnResult {
   }
 }
 
+/** Deja `faltaParaCompletar` como una lista corta de textos (el modelo a veces manda otra cosa). */
+export function normalizeReport(raw: Record<string, unknown>): Record<string, unknown> {
+  const falta = (Array.isArray(raw.faltaParaCompletar) ? raw.faltaParaCompletar : [])
+    .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    .map((x) => x.trim().slice(0, 240))
+    .slice(0, 4)
+  return { ...raw, faltaParaCompletar: falta }
+}
+
 const SIGNAL_STATES = ['entiende', 'insinua', 'ausente']
 
 /**
@@ -596,6 +606,7 @@ function runDemo(req: CoachRequest): unknown {
         metrica: 'Haber tenido las dos conversaciones y poder nombrar qué aprendiste de cada una.',
         checkIn: 'Cada dos semanas, 15 minutos.',
         horizonte: '3 meses',
+        faltaParaCompletar: ['Algo para aprender: todavía no apareció ninguna lectura, curso o práctica.', 'Un plan B por si esto no sale.'],
         preguntaAbierta: '¿Qué te dirías dentro de 3 meses si esta vez te moviste?',
       }
     case 'perfil':

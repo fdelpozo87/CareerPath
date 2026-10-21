@@ -82,3 +82,22 @@ describe('red de seguridad contra formas con género', () => {
     expect(neutralizeGender('Welcome, we will do it together', 'en')).toBe('Welcome, we will do it together')
   })
 })
+
+describe('informe con plan completo', () => {
+  it('el prompt pide plazos y que se señalen los huecos sin inventar acciones', async () => {
+    const { buildReportPrompt } = await import('../server/prompts')
+    const p = buildReportPrompt({ path: 'quiebre', sintesisPrevias: {} })
+    expect(p).toMatch(/Cada acción dice para cuándo/)
+    expect(p).toMatch(/NO inventes una/)
+    expect(p).toMatch(/"faltaParaCompletar"/)
+    expect(p).toMatch(/No agregues acciones para cubrirlas/)
+  })
+
+  it('normalizeReport deja una lista corta de textos', async () => {
+    const { normalizeReport } = await import('../server/coach')
+    const out = normalizeReport({ objetivoSesion: 'x', faltaParaCompletar: ['  Un plan B  ', '', 5, 'a'.repeat(400), 'c', 'd', 'e'] })
+    expect(out.faltaParaCompletar).toEqual(['Un plan B', 'a'.repeat(240), 'c', 'd'])
+    expect(normalizeReport({}).faltaParaCompletar).toEqual([])
+    expect(normalizeReport({ faltaParaCompletar: 'no es lista' }).faltaParaCompletar).toEqual([])
+  })
+})

@@ -358,6 +358,7 @@ class Report {
     required this.checkIn,
     required this.horizonte,
     required this.preguntaAbierta,
+    this.faltaParaCompletar = const [],
     this.presupuesto = '',
     this.respaldo = '',
     this.comparativa,
@@ -369,6 +370,9 @@ class Report {
   final String checkIn;
   final String horizonte;
   final String preguntaAbierta;
+
+  /// Lo que le falta al plan (algo para aprender, un plan B, un plazo…), como invitaciones.
+  final List<String> faltaParaCompletar;
 
   /// Solo en el Camino C.
   final String presupuesto;
@@ -383,6 +387,7 @@ class Report {
     checkIn: _str(j['checkIn']),
     horizonte: _str(j['horizonte']),
     preguntaAbierta: _str(j['preguntaAbierta']),
+    faltaParaCompletar: _strings(j['faltaParaCompletar']),
     presupuesto: _str(j['presupuesto']),
     respaldo: _str(j['respaldo']),
     comparativa: j['comparativa'] is Map<String, dynamic> ? Comparison.fromJson(j['comparativa'] as Map<String, dynamic>) : null,
@@ -396,6 +401,7 @@ class Report {
     'checkIn': checkIn,
     'horizonte': horizonte,
     'preguntaAbierta': preguntaAbierta,
+    if (faltaParaCompletar.isNotEmpty) 'faltaParaCompletar': faltaParaCompletar,
     if (presupuesto.isNotEmpty) 'presupuesto': presupuesto,
     if (respaldo.isNotEmpty) 'respaldo': respaldo,
     if (comparativa != null) 'comparativa': comparativa!.toJson(),

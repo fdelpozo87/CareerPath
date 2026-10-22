@@ -91,6 +91,13 @@ Además del enlace por email, quien ya tiene cuenta puede elegir una contraseña
 - Correr `supabase/migrations/20261021000000_bivio_auditoria.sql` antes de desplegar (sin la tabla, las acciones
   funcionan pero no se registran).
 
+### Verificación en dos pasos opcional (cualquier cuenta)
+
+Menú de la cuenta → “Verificación en dos pasos”: cada persona puede activarla (QR + código de una app autenticadora) o
+desactivarla. Quien la activó debe pasar el código en cada sesión: el servidor lo exige (`mfa_requerido`) leyendo del
+usuario de Supabase si tiene un factor verificado y comprobando que el token sea `aal2` (`server/auth.ts`); si no, la
+pantalla muestra “Verifica que eres tú”. Para el administrador sigue siendo obligatoria en el panel.
+
 ### Registros cerrados y SMTP propio
 
 - **Registros cerrados:** en Supabase, *Authentication → Sign In / Providers → Email → “Allow new users to sign up”* en

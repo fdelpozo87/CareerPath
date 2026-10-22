@@ -19,7 +19,7 @@ const USER_ID = '11111111-1111-4111-8111-111111111111'
 const OTHER_ID = '22222222-2222-4222-8222-222222222222'
 
 interface Fake {
-  users: Record<string, { id: string; email: string; confirmed?: boolean }>
+  users: Record<string, { id: string; email: string; confirmed?: boolean; mfa?: boolean }>
   perfiles: Record<string, { estado: Estado; last_seen_at: string | null }>
   calls: string[]
   otpOk?: boolean
@@ -37,7 +37,7 @@ function fakeSupabase(f: Fake) {
     if (url.endsWith('/auth/v1/user')) {
       const token = String((init?.headers as Record<string, string>).Authorization).slice(7)
       const u = f.users[token]
-      return u ? json({ id: u.id, email: u.email, email_confirmed_at: u.confirmed === false ? null : '2026-10-01T00:00:00Z' }) : json({}, 401)
+      return u ? json({ id: u.id, email: u.email, email_confirmed_at: u.confirmed === false ? null : '2026-10-01T00:00:00Z', factors: u.mfa ? [{ id: 'f1', factor_type: 'totp', status: 'verified' }] : [] }) : json({}, 401)
     }
     if (url.includes('/rest/v1/bivio_perfiles')) {
       const id = /user_id=eq\.([^&]+)/.exec(url)?.[1]
@@ -348,5 +348,33 @@ describe('registro de actividad del panel', () => {
     const res = await handleAdmin(req('tok_admin', { action: 'add', email: 'b@x.test' }))
     expect(res.status).toBe(200)
     expect(console.error).toHaveBeenCalled()
+  })
+})
+
+describe('verificación en dos pasos opcional para cualquier cuenta', () => {
+  const MFA_ID = '77777777-7777-4777-8777-777777777777'
+  const jwt = (aal: string) => `h.${Buffer.from(JSON.stringify({ aal })).toString('base64url')}.s`
+
+  beforeEach(() => {
+    fake.users[jwt('aal1')] = { id: MFA_ID, email: 'con-mfa@x.test', mfa: true }
+    fake.users[jwt('aal2')] = { id: MFA_ID, email: 'con-mfa@x.test', mfa: true }
+    fake.perfiles[MFA_ID] = { estado: 'activo', last_seen_at: new Date().toISOString() }
+  })
+
+  it('quien la activó no usa el coach hasta pasar el código (sesión aal1)', async () => {
+    const res = await runEndpoint('coach', req(jwt('aal1'), coachBody), 'k')
+    expect(res.status).toBe(403)
+    expect(res.body).toMatchObject({ reason: 'mfa_requerido' })
+    expect(gemini.generateContent).not.toHaveBeenCalled()
+    const acc = await runEndpoint('access', req(jwt('aal1')), undefined)
+    expect(acc.body).toMatchObject({ ok: false, reason: 'mfa_requerido' })
+  })
+
+  it('con el código verificado (aal2) entra normalmente', async () => {
+    expect((await runEndpoint('coach', req(jwt('aal2'), coachBody), 'k')).status).toBe(200)
+  })
+
+  it('quien no la activó no se entera: entra como siempre', async () => {
+    expect((await runEndpoint('coach', req('tok_activo', coachBody), 'k')).status).toBe(200)
   })
 })

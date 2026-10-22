@@ -5,9 +5,10 @@ import CompanySection from './components/CompanySection'
 import Footer from './components/Footer'
 import { CompanyFlow } from './components/CompanyFlow'
 import AccessGate from './components/AccessGate'
-import { AccountStatus, LoginGate, SetPasswordScreen } from './components/LoginGate'
+import { AccountStatus, LoginGate, MfaGate, SetPasswordScreen } from './components/LoginGate'
 import { AdminPanel } from './components/AdminPanel'
 import PasswordDialog from './components/PasswordDialog'
+import MfaSettingsDialog from './components/MfaSettingsDialog'
 import ConfirmDialog from './components/ConfirmDialog'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import { CoachFlow } from './components/coach/CoachFlow'
@@ -32,6 +33,7 @@ type Access =
   | { state: 'locked'; error?: string } // puerta del código de invitación
   | { state: 'login'; error?: string } // puerta por cuenta (email)
   | { state: 'pending' }
+  | { state: 'mfa' }
   | { state: 'disabled' }
   | { state: 'open' }
 
@@ -42,6 +44,7 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false)
   // Contraseña (opcional): el diálogo del menú y la pantalla de "olvidé mi contraseña".
   const [passwordOpen, setPasswordOpen] = useState(false)
+  const [mfaSettingsOpen, setMfaSettingsOpen] = useState(false)
   const [recovery, setRecovery] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [access, setAccess] = useState<Access>({ state: 'checking' })
@@ -103,6 +106,7 @@ function App() {
         setIsAdmin(Boolean(s.isAdmin))
         if (!cloudEnabled()) setAccess({ state: 'login', error: tr('login.notConfigured') })
         else if (s.ok) setAccess({ state: 'open' })
+        else if (s.reason === 'mfa_requerido') setAccess({ state: 'mfa' })
         else if (s.reason === 'pendiente') setAccess({ state: 'pending' })
         else if (s.reason === 'desactivado') setAccess({ state: 'disabled' })
         else if (s.reason === 'no_disponible') setAccess({ state: 'login', error: tr('srv.authDown') })
@@ -222,6 +226,7 @@ function App() {
           },
           onDeleteAccount: () => setPending({ kind: 'deleteAccount' }),
           onPassword: () => setPasswordOpen(true),
+          onMfa: () => setMfaSettingsOpen(true),
         }
       : undefined,
   }
@@ -250,6 +255,8 @@ function App() {
   )
 
   const passwordDialog = (
+    <>
+    <MfaSettingsDialog open={mfaSettingsOpen} onClose={() => setMfaSettingsOpen(false)} />
     <PasswordDialog
       open={passwordOpen}
       onClose={() => setPasswordOpen(false)}
@@ -258,6 +265,7 @@ function App() {
         setNotice(tr('password.saved'))
       }}
     />
+    </>
   )
 
   if (view === 'privacidad') {
@@ -307,6 +315,7 @@ function App() {
   }
 
   if (access.state === 'login') return <LoginGate initialError={access.error} />
+  if (access.state === 'mfa') return <MfaGate onDone={() => void refreshAccess()} />
   if (access.state === 'pending' || access.state === 'disabled') {
     return <AccountStatus kind={access.state === 'pending' ? 'pendiente' : 'desactivado'} onRecheck={() => void refreshAccess()} />
   }

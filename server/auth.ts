@@ -13,7 +13,7 @@ import { cloudEnv, ensurePerfil, setEstado, touchSeen, verifyUser, type CloudEnv
 const CACHE_TTL_MS = 30_000
 const CACHE_MAX = 500
 
-export type Denied = 'sin_sesion' | 'pendiente' | 'desactivado' | 'no_disponible'
+export type Denied = 'sin_sesion' | 'pendiente' | 'desactivado' | 'no_disponible' | 'mfa_requerido'
 
 export type Gate =
   | { ok: true; user: CloudUser; estado: Estado; isAdmin: boolean; aal: 'aal1' | 'aal2' }
@@ -61,6 +61,8 @@ export function resetAuthCache() {
 async function resolve(env: CloudEnv, token: string, now: number): Promise<Gate> {
   const user = await verifyUser(env, token)
   if (!user || !user.confirmed) return { ok: false, reason: 'sin_sesion' }
+  // Quien activó la verificación en dos pasos tiene que haberla pasado en esta sesión (aal2): si no, el factor sería decorativo.
+  if (user.mfa && tokenAal(token) !== 'aal2') return { ok: false, reason: 'mfa_requerido', user }
   const perfil = await ensurePerfil(env, user)
   const isAdmin = isAdminEmail(user.email)
   // Quien administra no puede quedar afuera: se lo deja activo aunque su perfil diga otra cosa.

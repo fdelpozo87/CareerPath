@@ -701,5 +701,19 @@
   "report.gaps.title": "To complete your plan",
   "report.gaps.lede": "Things that didn’t come up in what you built. You can add them in a new process or take them as homework.",
   "account.export": "Download my data",
-  "account.export.error": "We couldn’t prepare the download. Please try again."
+  "account.export.error": "We couldn’t prepare the download. Please try again.",
+  "srv.mfaLogin": "The code from your authenticator app is needed to sign in.",
+  "mfa.login.title": "Verify it’s you",
+  "mfa.login.body": "Your account has two-step verification turned on. Enter the 6-digit code from your authenticator app.",
+  "mfa.menu": "Two-step verification",
+  "mfa.settings.title": "Two-step verification",
+  "mfa.settings.off": "It’s off. When on, besides the link or password, the code from an authenticator app (Google Authenticator, 1Password, Authy…) is required.",
+  "mfa.settings.on": "It’s on: signing in asks for the code from your authenticator app.",
+  "mfa.settings.enable": "Turn on",
+  "mfa.settings.disable": "Turn off",
+  "mfa.settings.close": "Close",
+  "mfa.settings.enabledNow": "Done: two-step verification is now on.",
+  "mfa.settings.disabledNow": "Two-step verification is now off.",
+  "mfa.settings.error": "We couldn’t complete that. Please try again.",
+  "mfa.settings.needsCode": "To turn it off, first verify your identity with the code from your app."
 }

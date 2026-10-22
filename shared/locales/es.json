@@ -701,5 +701,19 @@
   "report.gaps.title": "Para completar tu plan",
   "report.gaps.lede": "Cosas que no aparecieron en lo que armaste. Puedes sumarlas con un nuevo proceso o llevarlas como tarea.",
   "account.export": "Descargar mis datos",
-  "account.export.error": "No pudimos preparar la descarga. Inténtalo de nuevo."
+  "account.export.error": "No pudimos preparar la descarga. Inténtalo de nuevo.",
+  "srv.mfaLogin": "Falta el código de tu app autenticadora para entrar.",
+  "mfa.login.title": "Verifica que eres tú",
+  "mfa.login.body": "Tu cuenta tiene la verificación en dos pasos activada. Escribe el código de 6 dígitos de tu app autenticadora.",
+  "mfa.menu": "Verificación en dos pasos",
+  "mfa.settings.title": "Verificación en dos pasos",
+  "mfa.settings.off": "Está desactivada. Con ella, además del enlace o la contraseña, se pide el código de una app autenticadora (Google Authenticator, 1Password, Authy…).",
+  "mfa.settings.on": "Está activada: al entrar se pide el código de tu app autenticadora.",
+  "mfa.settings.enable": "Activar",
+  "mfa.settings.disable": "Desactivar",
+  "mfa.settings.close": "Cerrar",
+  "mfa.settings.enabledNow": "Listo: la verificación en dos pasos quedó activada.",
+  "mfa.settings.disabledNow": "La verificación en dos pasos quedó desactivada.",
+  "mfa.settings.error": "No pudimos completar la acción. Inténtalo de nuevo.",
+  "mfa.settings.needsCode": "Para desactivarla, primero verifica tu identidad con el código de tu app."
 }

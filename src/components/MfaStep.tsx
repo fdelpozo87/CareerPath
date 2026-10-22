@@ -4,7 +4,7 @@ import { tr } from '../lib/i18n'
 
 // Antes de mostrar el panel: activar o confirmar la verificación en dos pasos del administrador.
 
-export function MfaStep({ onDone }: { onDone: () => void }) {
+export function MfaStep({ onDone, variant = 'admin' }: { onDone: () => void; variant?: 'admin' | 'login' }) {
   const [factorId, setFactorId] = useState<string | null | undefined>(undefined)
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null)
   const [code, setCode] = useState('')
@@ -51,8 +51,8 @@ export function MfaStep({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="card mx-auto max-w-md">
-      <h2 className="mb-2 text-xl">{tr(enrollment ? 'mfa.setup.title' : 'mfa.title')}</h2>
-      <p className="mb-4 text-sm leading-relaxed text-text-muted">{tr(enrollment ? 'mfa.setup.body' : 'mfa.body')}</p>
+      <h2 className="mb-2 text-xl">{tr(enrollment ? 'mfa.setup.title' : variant === 'login' ? 'mfa.login.title' : 'mfa.title')}</h2>
+      <p className="mb-4 text-sm leading-relaxed text-text-muted">{tr(enrollment ? 'mfa.setup.body' : variant === 'login' ? 'mfa.login.body' : 'mfa.body')}</p>
 
       {enrollment && (
         <div className="mb-4 flex flex-col items-center gap-2 rounded-xl bg-secondary p-4">

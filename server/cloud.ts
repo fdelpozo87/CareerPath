@@ -29,6 +29,8 @@ export interface CloudUser {
   email: string
   /** El email se confirmó (entró con el enlace que se le mandó). */
   confirmed: boolean
+  /** Activó la verificación en dos pasos (tiene un factor TOTP verificado). */
+  mfa?: boolean
 }
 
 /** Quién es la persona que presenta este token de sesión (null si no es válido). */
@@ -38,8 +40,9 @@ export async function verifyUser(env: CloudEnv, token: string): Promise<CloudUse
     signal: AbortSignal.timeout(15_000),
   })
   if (!res.ok) return null
-  const u = (await res.json()) as { id?: string; email?: string; email_confirmed_at?: string | null }
-  return u.id ? { id: u.id, email: u.email ?? '', confirmed: Boolean(u.email_confirmed_at) } : null
+  const u = (await res.json()) as { id?: string; email?: string; email_confirmed_at?: string | null; factors?: { status?: string; factor_type?: string }[] | null }
+  const mfa = (u.factors ?? []).some((f) => f.status === 'verified')
+  return u.id ? { id: u.id, email: u.email ?? '', confirmed: Boolean(u.email_confirmed_at), mfa } : null
 }
 
 /** Borra la cuenta; los informes y recordatorios se van en cascada. */

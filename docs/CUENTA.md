@@ -91,6 +91,19 @@ Además del enlace por email, quien ya tiene cuenta puede elegir una contraseña
 - Correr `supabase/migrations/20261021000000_bivio_auditoria.sql` antes de desplegar (sin la tabla, las acciones
   funcionan pero no se registran).
 
+### Registros cerrados y SMTP propio
+
+- **Registros cerrados:** en Supabase, *Authentication → Sign In / Providers → Email → “Allow new users to sign up”* en
+  apagado. Las cuentas las da de alta quien administra desde el panel (la API de administración no depende de ese
+  interruptor). El cliente pide el enlace con `shouldCreateUser: false` y, si el email no tiene cuenta, muestra el mismo
+  aviso que cuando el enlace se envía, para no revelar quién tiene acceso.
+- **SMTP propio:** *Authentication → Emails → SMTP Settings*. Con Resend: host `smtp.resend.com`, puerto `465`, usuario
+  `resend`, contraseña = la API key (`re_…`), remitente de un dominio verificado en Resend. Después, en *Authentication →
+  Rate Limits*, se puede subir el tope de mails por hora. Los mismos datos de Resend sirven para los recordatorios
+  (`RESEND_API_KEY`, `REMINDER_FROM`).
+- Con los registros cerrados el estado `pendiente` casi no se usa (solo cuentas que ya existían): se mantiene como red de
+  seguridad.
+
 ### Límites
 
 - La versión Jaspr (`web_jaspr/`) sigue con el acceso por código y no funciona con el acceso por cuenta.

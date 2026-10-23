@@ -46,3 +46,13 @@ como tarjeta y un fondo `#150E24`.
 - Color de la barra del navegador: `public/prepaint.js`, `index.html`, `src/lib/theme.ts`, `web_jaspr/lib/services/theme.dart`.
 - Mail del recordatorio: `server/reminders.ts` (HTML con estilos en línea).
 - Sección de Empresas (`CompanyFlow.tsx`, `CompanySection.tsx`): usa gamas de violeta y mandarina oscuro.
+
+## Web pública: buscadores, redes e IA
+
+- `index.html`: título y descripción, canonical, Open Graph / Twitter (imagen `public/og-image.png`, 1200×630), datos estructurados
+  (JSON-LD) y la portada en HTML inicial, que React reemplaza al arrancar. Cada pantalla pone su título en la pestaña (`meta.title.*`).
+- `vite.site.ts` publica `robots.txt` (permite a los asistentes de IA, bloquea `/api/`), `sitemap.xml` y `llms.txt`, y completa la
+  URL pública. **Con dominio propio alcanza con definir `SITE_URL` en Vercel** y redesplegar.
+- `public/404.html` es la página de error con la marca; `site.webmanifest` e íconos (192, 512, apple-touch) para "instalar" la web.
+- Las pantallas pesadas (coach, empresas, evaluaciones, administración, privacidad) se descargan al entrar: el primer paquete pasó de
+  733 KB a 455 KB (128 KB comprimido). No se publican source maps.

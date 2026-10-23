@@ -917,5 +917,12 @@
   "eval.build.pickSearch": "Search by email",
   "eval.build.pickNone": "No matching accounts.",
   "eval.build.createdNotified": "Their account was created and a sign-in link was sent.",
-  "eval.build.createdNoMail": "Their account was created and the evaluation assigned. No email was sent: let them know yourself."
+  "eval.build.createdNoMail": "Their account was created and the evaluation assigned. No email was sent: let them know yourself.",
+  "meta.title.coach": "Your process · Bivio",
+  "meta.title.company": "For companies · Bivio",
+  "meta.title.evaluaciones": "Performance evaluations · Bivio",
+  "meta.title.admin": "Administration · Bivio",
+  "meta.title.privacidad": "Privacy policy · Bivio",
+  "meta.title.login": "Sign in · Bivio",
+  "app.loading": "Loading…"
 }

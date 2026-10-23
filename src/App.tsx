@@ -1,19 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import Header from './components/Header'
 import Landing from './components/Landing'
 import CompanySection from './components/CompanySection'
 import Footer from './components/Footer'
-import { CompanyFlow } from './components/CompanyFlow'
 import AccessGate from './components/AccessGate'
 import { AccountStatus, LoginGate, MfaGate, SetPasswordScreen } from './components/LoginGate'
-import { AdminPanel } from './components/AdminPanel'
-import { EvaluacionesPage } from './components/evaluaciones/EvaluacionesPage'
 import { mias as listMias } from './lib/evaluaciones'
-import PasswordDialog from './components/PasswordDialog'
-import MfaSettingsDialog from './components/MfaSettingsDialog'
 import ConfirmDialog from './components/ConfirmDialog'
-import PrivacyPolicy from './components/PrivacyPolicy'
-import { CoachFlow } from './components/coach/CoachFlow'
 import { clearAllSessions, deleteSession, listSessions, loadSessionById, newSession, saveSession } from './lib/coach/session'
 import { cloudEnabled, currentUser, deleteAccount, listSavedReports, onAuthChange, onPasswordRecovery, saveReport, sessionFromSaved, signOut, takePendingSave, type CloudUser } from './lib/cloud'
 import { downloadMyData } from './lib/exportData'
@@ -22,6 +15,15 @@ import { ACCESS_LOST_EVENT, checkAccess, clearAccessCode, getAccessCode, getAcce
 import type { AccountInfo } from './components/AccountMenu'
 import { trackEvent } from './lib/tracking'
 import { tr, trn, useLang } from './lib/i18n'
+
+// Lo que no se necesita para ver la portada se descarga recién al entrar (el primer paquete queda liviano).
+const CompanyFlow = lazy(() => import('./components/CompanyFlow').then((m) => ({ default: m.CompanyFlow })))
+const AdminPanel = lazy(() => import('./components/AdminPanel').then((m) => ({ default: m.AdminPanel })))
+const EvaluacionesPage = lazy(() => import('./components/evaluaciones/EvaluacionesPage').then((m) => ({ default: m.EvaluacionesPage })))
+const CoachFlow = lazy(() => import('./components/coach/CoachFlow').then((m) => ({ default: m.CoachFlow })))
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'))
+const PasswordDialog = lazy(() => import('./components/PasswordDialog'))
+const MfaSettingsDialog = lazy(() => import('./components/MfaSettingsDialog'))
 
 type View = 'landing' | 'coach' | 'company' | 'privacidad' | 'admin' | 'evaluaciones'
 
@@ -40,9 +42,9 @@ type Access =
   | { state: 'disabled' }
   | { state: 'open' }
 
-function App() {
+function AppInner() {
   // Se vuelve a dibujar cuando cambia el idioma (y con él, todo lo que cuelga de acá).
-  useLang()
+  const lang = useLang()
   const [view, setView] = useState<View>(() => (isPrivacyHash() ? 'privacidad' : isAdminHash() ? 'admin' : isEvalHash() ? 'evaluaciones' : 'landing'))
   const [isAdmin, setIsAdmin] = useState(false)
   // Qué partes del servicio tiene habilitadas la cuenta (sin dato: las dos).
@@ -53,6 +55,10 @@ function App() {
   // Evaluaciones de desempeño: cuántas tiene pendientes de responder la persona.
   const [evalPending, setEvalPending] = useState(0)
   const [recovery, setRecovery] = useState(false)
+  // Cada pantalla tiene su título en la pestaña (también para quien comparte o guarda el enlace).
+  useEffect(() => {
+    document.title = view === 'landing' ? tr('meta.title') : tr(`meta.title.${view}`)
+  }, [view, lang])
   const [session, setSession] = useState<Session | null>(null)
   const [access, setAccess] = useState<Access>({ state: 'checking' })
   const [label, setLabel] = useState<string | null>(getAccessLabel)
@@ -461,6 +467,14 @@ function App() {
       {confirmDialog}
       {passwordDialog}
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Suspense fallback={<div role="status" aria-live="polite" className="flex min-h-screen items-center justify-center bg-background text-sm text-text-muted">{tr('app.loading')}</div>}>
+      <AppInner />
+    </Suspense>
   )
 }
 

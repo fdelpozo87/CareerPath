@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { sitePlugin } from './vite.site'
 
 // Dev-only: sirve /api/coach, /api/analyze y /api/access con `npm run dev` usando la misma
 // capa que las funciones de Vercel (server/endpoints.ts), cargada con
@@ -91,6 +92,6 @@ export default defineConfig(({ mode }) => {
   }
   return {
     define: publicSupabase,
-    plugins: [react(), tailwindcss(), devApi(env.GEMINI_API_KEY)],
+    plugins: [react(), tailwindcss(), sitePlugin(), devApi(env.GEMINI_API_KEY)],
   }
 })

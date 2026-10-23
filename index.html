@@ -3,10 +3,50 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="canonical" href="__SITE_URL__/" />
     <!-- interactive-widget=resizes-content: en Chrome del celular, el teclado achica la página (y el chat) en lugar de taparla. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
     <meta name="description" content="Bivio - Tu próximo paso de carrera, pensado con vos. Coach de carrera IA disponible para profesionales y empresas." />
     <meta name="theme-color" content="#6a3fc1" />
+
+    <!-- Al compartir el enlace (WhatsApp, LinkedIn, Slack, X) se ve una tarjeta con la marca. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bivio" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:title" content="Bivio - Tu próximo paso de carrera" />
+    <meta property="og:description" content="Tu próximo paso de carrera, pensado contigo. Coach de carrera con IA para profesionales y empresas." />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:image" content="__SITE_URL__/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Bivio: tu próximo paso de carrera, pensado contigo" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bivio - Tu próximo paso de carrera" />
+    <meta name="twitter:description" content="Coach de carrera con IA para profesionales y empresas." />
+    <meta name="twitter:image" content="__SITE_URL__/og-image.png" />
+
+    <!-- Datos estructurados para buscadores y asistentes de IA (es un bloque de datos: no lo toca la CSP). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "Organization", "@id": "__SITE_URL__/#org", "name": "Bivio", "url": "__SITE_URL__/", "logo": "__SITE_URL__/icon-512.png" },
+          {
+            "@type": "WebApplication",
+            "name": "Bivio",
+            "url": "__SITE_URL__/",
+            "applicationCategory": "BusinessApplication",
+            "inLanguage": ["es", "en"],
+            "description": "Coach de carrera con IA para profesionales y empresas: conversación guiada para decidir el próximo paso y evaluaciones de desempeño.",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "ARS" },
+            "publisher": { "@id": "__SITE_URL__/#org" }
+          }
+        ]
+      }
+    </script>
 
     <!-- Apariencia e idioma: se resuelven antes del primer dibujado (sin destello claro, y con el lang correcto). Misma regla que src/lib/theme.ts y src/lib/i18n.ts. Archivo propio, no en línea, por la CSP. -->
     <script src="/prepaint.js"></script>
@@ -19,7 +59,20 @@
     <title>Bivio - Tu próximo paso de carrera</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Contenido de la portada en el HTML inicial (lo leen buscadores, asistentes de IA y quien tenga el JavaScript apagado); React lo reemplaza al arrancar. -->
+    <div id="root">
+      <main style="max-width:44rem;margin:0 auto;padding:4rem 1.5rem;font-family:'Hanken Grotesk',system-ui,sans-serif;line-height:1.6">
+        <p><strong>Bivio</strong></p>
+        <h1 style="font-family:Fraunces,Georgia,serif;font-weight:500;line-height:1.15">Tu próximo paso de carrera, pensado contigo</h1>
+        <p>Coach de carrera con IA para profesionales y empresas. Una conversación guiada, con preguntas y sin veredictos, para decidir qué sigue.</p>
+        <ul>
+          <li>Me siento estancado/a y no sé qué hacer con eso.</li>
+          <li>Quiero explorar el mercado, empezando por mi perfil.</li>
+          <li>Quiero decidir qué estudiar o en qué formarme.</li>
+        </ul>
+        <noscript><p>Bivio necesita JavaScript para funcionar. Actívalo en tu navegador y recarga la página.</p></noscript>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

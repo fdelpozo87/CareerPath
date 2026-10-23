@@ -107,7 +107,7 @@ Component landing({
       ]),
       el('div', 'mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3', [
         for (final p in _paths())
-          el('div', 'card flex flex-col p-7', [
+          el('div', 'card flex flex-col p-7 transition-colors hover:border-accent focus-within:border-accent', [
             el('div', 'mb-6 flex items-center justify-between', [
               el('span', 'rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary', [t(p.tag)]),
               el('span', 'flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-lg text-primary', [p.icon()], attrs: {'aria-hidden': 'true'}),

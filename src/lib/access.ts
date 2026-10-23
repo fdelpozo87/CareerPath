@@ -58,6 +58,8 @@ export interface AccessStatus {
   reason?: 'sin_sesion' | 'pendiente' | 'desactivado' | 'no_disponible' | 'mfa_requerido'
   /** Quien tiene la sesión es administrador (ve el panel de usuarios). */
   isAdmin?: boolean
+  /** Qué partes del servicio puede usar la cuenta. Sin dato, las dos. */
+  areas?: { profesionales: boolean; empresas: boolean }
 }
 
 export async function checkAccess(code?: string): Promise<AccessStatus> {
@@ -74,8 +76,9 @@ export async function checkAccess(code?: string): Promise<AccessStatus> {
     mode?: 'accounts'
     reason?: AccessStatus['reason']
     isAdmin?: boolean
+    areas?: { profesionales: boolean; empresas: boolean }
   }
-  if (res.ok) return { required: Boolean(json.required), ok: Boolean(json.ok), label: json.label, mode: json.mode, reason: json.reason, isAdmin: json.isAdmin }
+  if (res.ok) return { required: Boolean(json.required), ok: Boolean(json.ok), label: json.label, mode: json.mode, reason: json.reason, isAdmin: json.isAdmin, areas: json.areas }
   // 401 (código inválido), 429 (demasiados intentos) o 503 (sin configurar).
   return { required: true, ok: false, error: json.error ?? tr('net.verify') }
 }

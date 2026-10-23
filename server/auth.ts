@@ -13,10 +13,16 @@ import { cloudEnv, ensurePerfil, setEstado, touchSeen, verifyUser, type CloudEnv
 const CACHE_TTL_MS = 30_000
 const CACHE_MAX = 500
 
+/** Qué partes del servicio puede usar la cuenta. */
+export interface Areas {
+  profesionales: boolean
+  empresas: boolean
+}
+
 export type Denied = 'sin_sesion' | 'pendiente' | 'desactivado' | 'no_disponible' | 'mfa_requerido'
 
 export type Gate =
-  | { ok: true; user: CloudUser; estado: Estado; isAdmin: boolean; aal: 'aal1' | 'aal2' }
+  | { ok: true; user: CloudUser; estado: Estado; isAdmin: boolean; aal: 'aal1' | 'aal2'; areas: Areas }
   | { ok: false; reason: Denied; user?: CloudUser; isAdmin?: false }
 
 /** ¿Se usa el acceso por cuenta? Con Supabase configurado, sí (salvo REQUIRE_LOGIN=0). */
@@ -73,7 +79,9 @@ async function resolve(env: CloudEnv, token: string, now: number): Promise<Gate>
   // Último acceso: se anota como mucho una vez por minuto.
   const seen = perfil.last_seen_at ? Date.parse(perfil.last_seen_at) : 0
   if (now - seen > 60_000) void touchSeen(env, user.id, new Date(now)).catch(() => {})
-  return { ok: true, user, estado, isAdmin, aal: tokenAal(token) }
+  // Quien administra usa todo; el resto, lo que el panel le habilitó (por defecto, las dos).
+  const areas: Areas = isAdmin ? { profesionales: true, empresas: true } : { profesionales: perfil.acceso_profesionales !== false, empresas: perfil.acceso_empresas !== false }
+  return { ok: true, user, estado, isAdmin, aal: tokenAal(token), areas }
 }
 
 /** Quién es y si puede usar el servicio, según el token de sesión del pedido. */

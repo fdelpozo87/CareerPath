@@ -11,6 +11,9 @@ export interface AdminUser {
   estado: Estado
   created_at: string
   last_seen_at: string | null
+  /** Puede usar "Para profesionales" y "Para empresas". */
+  acceso_profesionales: boolean
+  acceso_empresas: boolean
   isSelf: boolean
 }
 
@@ -40,9 +43,11 @@ export interface AuditEntry {
   id: number
   at: string
   actor_email: string
-  action: 'alta' | 'activar' | 'desactivar' | 'pendiente' | 'eliminar'
+  action: 'alta' | 'activar' | 'desactivar' | 'pendiente' | 'eliminar' | 'areas'
   target_email: string
 }
 export const listAudit = async (): Promise<AuditEntry[]> => (await call<{ entries: AuditEntry[] }>({ action: 'audit' })).entries
-export const addUser = (email: string, notify: boolean) => call<{ ok: true; created: boolean; notified: boolean }>({ action: 'add', email, notify })
+export const addUser = (email: string, notify: boolean, areas: { profesionales: boolean; empresas: boolean }) =>
+  call<{ ok: true; created: boolean; notified: boolean }>({ action: 'add', email, notify, ...areas })
+export const setUserAreas = (id: string, areas: { profesionales?: boolean; empresas?: boolean }) => call<{ ok: true }>({ action: 'setAreas', id, ...areas })
 export const deleteUserAccount = (id: string) => call<{ ok: true }>({ action: 'delete', id })

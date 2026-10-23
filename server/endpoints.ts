@@ -76,7 +76,7 @@ export async function runEndpoint(endpoint: EndpointName, req: Req, apiKey: stri
       return finish({
         status: 200,
         body: gate.ok
-          ? { required: true, mode: 'accounts', ok: true, isAdmin: gate.isAdmin }
+          ? { required: true, mode: 'accounts', ok: true, isAdmin: gate.isAdmin, areas: gate.areas }
           : { required: true, mode: 'accounts', ok: false, reason: gate.reason },
       })
     }
@@ -90,6 +90,10 @@ export async function runEndpoint(endpoint: EndpointName, req: Req, apiKey: stri
       } as const
       const d = denied[gate.reason]
       return finish({ status: d.status, body: { error: msg(d.key), reason: gate.reason } }, { rule: 'cuenta', reason: gate.reason })
+    }
+    // Cada parte del servicio se habilita por separado: el coach es "Para profesionales" y el análisis, "Para empresas".
+    if (!(endpoint === 'coach' ? gate.areas.profesionales : gate.areas.empresas)) {
+      return finish({ status: 403, body: { error: msg('srv.noArea'), reason: 'sin_area' } }, { rule: 'area', reason: endpoint })
     }
     accountWho = `u:${gate.user.id.slice(0, 8)}`
     // Tope diario por persona: lo que cuida la cuota de Gemini, así que usa el contador compartido.

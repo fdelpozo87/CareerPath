@@ -97,9 +97,13 @@ export interface Perfil {
   estado: Estado
   created_at: string
   last_seen_at: string | null
+  /** Puede usar "Para profesionales" (el coach). */
+  acceso_profesionales: boolean
+  /** Puede usar "Para empresas". */
+  acceso_empresas: boolean
 }
 
-const PERFIL_COLS = 'user_id,email,estado,created_at,last_seen_at'
+const PERFIL_COLS = 'user_id,email,estado,created_at,last_seen_at,acceso_profesionales,acceso_empresas'
 
 export async function getPerfil(env: CloudEnv, userId: string): Promise<Perfil | null> {
   const res = await call(env, `/rest/v1/bivio_perfiles?select=${PERFIL_COLS}&user_id=eq.${encodeURIComponent(userId)}&limit=1`)
@@ -131,6 +135,19 @@ export async function setEstado(env: CloudEnv, userId: string, estado: Estado): 
   return res.ok
 }
 
+export async function setAreas(env: CloudEnv, userId: string, areas: { profesionales?: boolean; empresas?: boolean }): Promise<boolean> {
+  const patch: Record<string, boolean> = {}
+  if (typeof areas.profesionales === 'boolean') patch.acceso_profesionales = areas.profesionales
+  if (typeof areas.empresas === 'boolean') patch.acceso_empresas = areas.empresas
+  if (Object.keys(patch).length === 0) return true
+  const res = await call(env, `/rest/v1/bivio_perfiles?user_id=eq.${encodeURIComponent(userId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify(patch),
+  })
+  return res.ok
+}
+
 export async function touchSeen(env: CloudEnv, userId: string, at: Date): Promise<void> {
   await call(env, `/rest/v1/bivio_perfiles?user_id=eq.${encodeURIComponent(userId)}`, {
     method: 'PATCH',
@@ -141,7 +158,7 @@ export async function touchSeen(env: CloudEnv, userId: string, at: Date): Promis
 
 // ── Auditoría de lo que hace quien administra ─────────────────────────────────
 
-export type AuditAction = 'alta' | 'activar' | 'desactivar' | 'pendiente' | 'eliminar'
+export type AuditAction = 'alta' | 'activar' | 'desactivar' | 'pendiente' | 'eliminar' | 'areas'
 
 export interface AuditEntry {
   id: number

@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 import { translate, type Lang } from '../shared/i18n.js'
 import { adminMfaRequired, authorize, resetAuthCache } from './auth.js'
-import { ESTADOS, cloudEnv, createUser, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, sendAccessLink, setEstado, type AuditAction, type Estado } from './cloud.js'
+import { ESTADOS, cloudEnv, createUser, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, sendAccessLink, setAreas, setEstado, type AuditAction, type Estado } from './cloud.js'
 import { RATE_RULES, clientIp, ipTag, isAllowedOrigin, logEvent, requestLang } from './guard.js'
 import { durableLimit } from './limits.js'
 
@@ -9,6 +9,7 @@ import { durableLimit } from './limits.js'
 // (verificado en el servidor con su token de sesión: el navegador no decide quién es administrador).
 //   { action: 'list' }                         → usuarios, más recientes primero
 //   { action: 'setEstado', id, estado }        → activar, desactivar o dejar pendiente a alguien
+//   { action: 'setAreas', id, profesionales?, empresas? } → habilitar o no "Para profesionales" y "Para empresas"
 //   { action: 'delete', id }                   → eliminar su cuenta y todo lo suyo
 //   { action: 'audit' }                        → últimas acciones de administración
 //   { action: 'add', email, notify }           → dar de alta un email ya aprobado (y, si se pide, mandarle el enlace)
@@ -45,7 +46,7 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
     if (!ok) logEvent('error', 'auditoria_no_registrada', { action })
   }
 
-  const body = (req.body ?? {}) as { action?: unknown; id?: unknown; estado?: unknown; email?: unknown; notify?: unknown }
+  const body = (req.body ?? {}) as { action?: unknown; id?: unknown; estado?: unknown; email?: unknown; notify?: unknown; profesionales?: unknown; empresas?: unknown }
   try {
     if (body.action === 'list') {
       const users = await listPerfiles(env)
@@ -57,22 +58,26 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
     if (body.action === 'add') {
       const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
       if (email.length > 254 || !EMAIL.test(email)) return { status: 400, body: { error: msg('srv.badEmail') } }
+      const areas = { profesionales: body.profesionales !== false, empresas: body.empresas !== false }
       const existing = await findPerfilByEmail(env, email)
       let created = false
       if (existing) {
         // Ya tenía cuenta (por ejemplo, pendiente o desactivada): se la deja activa.
         if (!(await setEstado(env, existing.user_id, 'activo'))) return { status: 502, body: { error: msg('srv.upstream') } }
+        // A quien ya tenía cuenta solo se le cambian las áreas que se indicaron explícitamente.
+        const explicit = { profesionales: typeof body.profesionales === 'boolean' ? body.profesionales : undefined, empresas: typeof body.empresas === 'boolean' ? body.empresas : undefined }
+        if (!(await setAreas(env, existing.user_id, explicit))) return { status: 502, body: { error: msg('srv.upstream') } }
       } else {
         const made = await createUser(env, email)
         // Cuenta de Supabase sin perfil (no debería pasar: la migración crea el perfil de las existentes).
         if (!made.ok) return made.reason === 'ya_existe' ? { status: 409, body: { error: msg('srv.addExists') } } : { status: 502, body: { error: msg('srv.upstream') } }
         // El alta crea su perfil pendiente (trigger); el administrador la deja activa de una vez.
         await ensurePerfil(env, { id: made.id, email, confirmed: true })
-        if (!(await setEstado(env, made.id, 'activo'))) return { status: 502, body: { error: msg('srv.upstream') } }
+        if (!(await setEstado(env, made.id, 'activo')) || !(await setAreas(env, made.id, areas))) return { status: 502, body: { error: msg('srv.upstream') } }
         created = true
       }
       resetAuthCache()
-      await audit('alta', email, { creada: created, avisoPedido: body.notify === true })
+      await audit('alta', email, { creada: created, avisoPedido: body.notify === true, ...areas })
       const origin = typeof req.headers.origin === 'string' ? req.headers.origin : ''
       const notified = body.notify === true && origin ? await sendAccessLink(env, email, origin).catch(() => false) : false
       logEvent('info', 'admin_alta', { created, notified })
@@ -83,6 +88,16 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
     // Quien administra no puede apagarse ni borrarse a sí mismo: quedaría sin panel.
     if (id === gate.user.id) return { status: 400, body: { error: msg('srv.adminSelf') } }
 
+    if (body.action === 'setAreas') {
+      if (typeof body.profesionales !== 'boolean' && typeof body.empresas !== 'boolean') return { status: 400, body: { error: msg('srv.badPayload') } }
+      const areas = { profesionales: typeof body.profesionales === 'boolean' ? body.profesionales : undefined, empresas: typeof body.empresas === 'boolean' ? body.empresas : undefined }
+      const target = await getPerfil(env, id)
+      const ok = await setAreas(env, id, areas)
+      resetAuthCache()
+      if (ok) await audit('areas', target?.email ?? id, { ...areas, antes: { profesionales: target?.acceso_profesionales, empresas: target?.acceso_empresas } })
+      logEvent(ok ? 'info' : 'error', 'admin_areas', { ok })
+      return ok ? { status: 200, body: { ok: true } } : { status: 502, body: { error: msg('srv.upstream') } }
+    }
     if (body.action === 'setEstado') {
       if (typeof body.estado !== 'string' || !ESTADOS.includes(body.estado as Estado)) return { status: 400, body: { error: msg('srv.badPayload') } }
       const target = await getPerfil(env, id)

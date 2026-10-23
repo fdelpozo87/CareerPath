@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
-import { AdminError, addUser, deleteUserAccount, listAudit, listUsers, setUserEstado, type AdminUser, type AuditEntry, type Estado } from '../lib/admin'
+import { AdminError, addUser, deleteUserAccount, listAudit, listUsers, setUserAreas, setUserEstado, type AdminUser, type AuditEntry, type Estado } from '../lib/admin'
 import { getLang, tr, type Key } from '../lib/i18n'
 import ConfirmDialog from './ConfirmDialog'
 import { MfaStep } from './MfaStep'
@@ -31,6 +31,8 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
   const [toDelete, setToDelete] = useState<AdminUser | null>(null)
   const [newEmail, setNewEmail] = useState('')
   const [notify, setNotify] = useState(true)
+  const [newProf, setNewProf] = useState(true)
+  const [newEmp, setNewEmp] = useState(true)
   const [adding, setAdding] = useState(false)
   const [addMsg, setAddMsg] = useState<string | null>(null)
   const addId = useId()
@@ -72,7 +74,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
     setAddMsg(null)
     setError(null)
     try {
-      const r = await addUser(email, notify)
+      const r = await addUser(email, notify, { profesionales: newProf, empresas: newEmp })
       setAddMsg(
         tr(r.created ? 'admin.add.created' : 'admin.add.existing', { email }) +
           (notify ? ' ' + tr(r.notified ? 'admin.add.notified' : 'admin.add.notNotified') : ''),
@@ -137,6 +139,19 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
               {tr('admin.add.button')}
             </button>
           </div>
+          <fieldset className="mt-3">
+            <legend className="mb-1 text-sm font-medium text-foreground">{tr('admin.areas.legend')}</legend>
+            <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-foreground">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={newProf} onChange={(e) => setNewProf(e.target.checked)} className="accent-primary" />
+                {tr('admin.area.profesionales')}
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={newEmp} onChange={(e) => setNewEmp(e.target.checked)} className="accent-primary" />
+                {tr('admin.area.empresas')}
+              </label>
+            </div>
+          </fieldset>
           <label className="mt-3 flex items-center gap-2 text-sm text-foreground">
             <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="accent-primary" />
             {tr('admin.add.notify')}
@@ -189,7 +204,26 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                     </p>
                   </div>
                   {!u.isSelf && (
-                    <div className="flex shrink-0 items-center gap-4">
+                    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
+                      {(['profesionales', 'empresas'] as const).map((area) => {
+                        const enabled = area === 'profesionales' ? u.acceso_profesionales : u.acceso_empresas
+                        return (
+                          <label key={area} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={enabled}
+                              aria-label={tr('admin.areaAria', { area: tr(`admin.area.${area}` as Key), email: u.email })}
+                              disabled={busy}
+                              onClick={() => void act(u.user_id, () => setUserAreas(u.user_id, { [area]: !enabled }))}
+                              className={`relative h-6 w-11 rounded-full transition disabled:opacity-50 ${enabled ? 'bg-primary' : 'bg-border-color'}`}
+                            >
+                              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-card shadow transition-all ${enabled ? 'left-[1.375rem]' : 'left-0.5'}`} />
+                            </button>
+                            {tr(`admin.area.${area}` as Key)}
+                          </label>
+                        )
+                      })}
                       <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
                         <button
                           type="button"

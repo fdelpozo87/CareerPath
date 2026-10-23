@@ -20,7 +20,7 @@ const OTHER_ID = '22222222-2222-4222-8222-222222222222'
 
 interface Fake {
   users: Record<string, { id: string; email: string; confirmed?: boolean; mfa?: boolean }>
-  perfiles: Record<string, { estado: Estado; last_seen_at: string | null }>
+  perfiles: Record<string, { estado: Estado; last_seen_at: string | null; acceso_profesionales?: boolean; acceso_empresas?: boolean }>
   calls: string[]
   otpOk?: boolean
   audit: { id: number; at: string; actor_email: string; action: string; target_email: string; detail: unknown }[]
@@ -46,12 +46,12 @@ function fakeSupabase(f: Fake) {
         const e = decodeURIComponent(byEmail)
         const u = Object.values(f.users).find((x) => x.email.toLowerCase() === e)
         const p = u ? f.perfiles[u.id] : undefined
-        return json(u && p ? [{ user_id: u.id, email: u.email, estado: p.estado, created_at: '2026-10-01T00:00:00Z', last_seen_at: p.last_seen_at }] : [])
+        return json(u && p ? [{ user_id: u.id, email: u.email, estado: p.estado, created_at: '2026-10-01T00:00:00Z', last_seen_at: p.last_seen_at, acceso_profesionales: p.acceso_profesionales ?? true, acceso_empresas: p.acceso_empresas ?? true }] : [])
       }
       if (method === 'GET' && id) {
         const p = f.perfiles[id]
         const email = Object.values(f.users).find((u) => u.id === id)?.email ?? ''
-        return json(p ? [{ user_id: id, email, estado: p.estado, created_at: '2026-10-01T00:00:00Z', last_seen_at: p.last_seen_at }] : [])
+        return json(p ? [{ user_id: id, email, estado: p.estado, created_at: '2026-10-01T00:00:00Z', last_seen_at: p.last_seen_at, acceso_profesionales: p.acceso_profesionales ?? true, acceso_empresas: p.acceso_empresas ?? true }] : [])
       }
       if (method === 'GET') return json(Object.entries(f.perfiles).map(([uid, p]) => ({ user_id: uid, email: 'x@y.z', estado: p.estado, created_at: '2026-10-01T00:00:00Z', last_seen_at: null })))
       if (method === 'POST') {
@@ -62,8 +62,10 @@ function fakeSupabase(f: Fake) {
         return json({}, 201)
       }
       if (method === 'PATCH' && id) {
-        const b = JSON.parse(String(init?.body)) as { estado?: Estado }
+        const b = JSON.parse(String(init?.body)) as { estado?: Estado; acceso_profesionales?: boolean; acceso_empresas?: boolean }
         if (b.estado) f.perfiles[id].estado = b.estado
+        if (typeof b.acceso_profesionales === 'boolean') f.perfiles[id].acceso_profesionales = b.acceso_profesionales
+        if (typeof b.acceso_empresas === 'boolean') f.perfiles[id].acceso_empresas = b.acceso_empresas
         return new Response(null, { status: 204 })
       }
     }
@@ -376,5 +378,70 @@ describe('verificación en dos pasos opcional para cualquier cuenta', () => {
 
   it('quien no la activó no se entera: entra como siempre', async () => {
     expect((await runEndpoint('coach', req('tok_activo', coachBody), 'k')).status).toBe(200)
+  })
+})
+
+describe('áreas habilitadas por cuenta (profesionales y empresas)', () => {
+  const ANA = '22222222-2222-4222-8222-222222222222' // tok_activo, activa
+  const analyzeBody = { contexto: { rol: 'x', seniority: 'y', tiempo: 'z', casoTipo: 'rendimiento' }, respuestas: {} }
+
+  it('por defecto una cuenta activa usa las dos partes', async () => {
+    expect((await runEndpoint('coach', req('tok_activo', coachBody), 'k')).status).toBe(200)
+    const acc = await runEndpoint('access', req('tok_activo'), undefined)
+    expect(acc.body).toMatchObject({ ok: true, areas: { profesionales: true, empresas: true } })
+  })
+
+  it('sin "Para profesionales" no usa el coach, pero sí Empresas', async () => {
+    fake.perfiles[ANA].acceso_profesionales = false
+    const res = await runEndpoint('coach', req('tok_activo', coachBody), 'k')
+    expect(res.status).toBe(403)
+    expect(res.body).toMatchObject({ reason: 'sin_area' })
+    expect(gemini.generateContent).not.toHaveBeenCalled()
+    const empresas = await runEndpoint('analyze', req('tok_activo', analyzeBody), 'k')
+    expect(empresas.status).not.toBe(403)
+    expect((await runEndpoint('access', req('tok_activo'), undefined)).body).toMatchObject({ areas: { profesionales: false, empresas: true } })
+  })
+
+  it('sin "Para empresas" no usa el análisis, pero sí el coach', async () => {
+    fake.perfiles[ANA].acceso_empresas = false
+    const res = await runEndpoint('analyze', req('tok_activo', analyzeBody), 'k')
+    expect(res.status).toBe(403)
+    expect(res.body).toMatchObject({ reason: 'sin_area' })
+    expect((await runEndpoint('coach', req('tok_activo', coachBody), 'k')).status).toBe(200)
+  })
+
+  it('quien administra usa todo aunque su perfil diga otra cosa', async () => {
+    fake.perfiles[USER_ID] = { estado: 'activo', last_seen_at: null, acceso_profesionales: false, acceso_empresas: false }
+    expect((await runEndpoint('coach', req('tok_admin', coachBody), 'k')).status).toBe(200)
+    expect((await runEndpoint('access', req('tok_admin'), undefined)).body).toMatchObject({ areas: { profesionales: true, empresas: true } })
+  })
+
+  it('el panel enciende y apaga cada parte por separado y lo registra', async () => {
+    expect((await handleAdmin(req('tok_admin', { action: 'setAreas', id: ANA, empresas: false }))).status).toBe(200)
+    expect(fake.perfiles[ANA]).toMatchObject({ acceso_empresas: false })
+    expect(fake.perfiles[ANA].acceso_profesionales).toBeUndefined() // no se tocó la otra
+    expect((await runEndpoint('analyze', req('tok_activo', analyzeBody), 'k')).status).toBe(403)
+    await handleAdmin(req('tok_admin', { action: 'setAreas', id: ANA, empresas: true, profesionales: false }))
+    expect((await runEndpoint('coach', req('tok_activo', coachBody), 'k')).status).toBe(403)
+    expect(fake.audit.filter((a) => a.action === 'areas')).toHaveLength(2)
+  })
+
+  it('valida lo que recibe el panel y no deja cambiar las propias áreas', async () => {
+    expect((await handleAdmin(req('tok_admin', { action: 'setAreas', id: ANA }))).status).toBe(400)
+    expect((await handleAdmin(req('tok_admin', { action: 'setAreas', id: ANA, empresas: 'si' }))).status).toBe(400)
+    expect((await handleAdmin(req('tok_admin', { action: 'setAreas', id: USER_ID, empresas: false }))).status).toBe(400)
+    expect((await handleAdmin(req('tok_activo', { action: 'setAreas', id: ANA, empresas: false }))).status).toBe(404)
+  })
+
+  it('al dar de alta se eligen las partes; si no se indican, las dos', async () => {
+    await handleAdmin(req('tok_admin', { action: 'add', email: 'solo-empresas@x.test', profesionales: false, empresas: true }))
+    const NEW_ID = '66666666-6666-4666-8666-666666666666'
+    expect(fake.perfiles[NEW_ID]).toMatchObject({ acceso_profesionales: false, acceso_empresas: true })
+  })
+
+  it('volver a dar de alta a alguien no le devuelve las partes que se le habían quitado', async () => {
+    fake.perfiles[ANA].acceso_empresas = false
+    await handleAdmin(req('tok_admin', { action: 'add', email: 'ana@x.test' }))
+    expect(fake.perfiles[ANA].acceso_empresas).toBe(false)
   })
 })

@@ -715,5 +715,13 @@
   "mfa.settings.enabledNow": "Listo: la verificación en dos pasos quedó activada.",
   "mfa.settings.disabledNow": "La verificación en dos pasos quedó desactivada.",
   "mfa.settings.error": "No pudimos completar la acción. Inténtalo de nuevo.",
-  "mfa.settings.needsCode": "Para desactivarla, primero verifica tu identidad con el código de tu app."
+  "mfa.settings.needsCode": "Para desactivarla, primero verifica tu identidad con el código de tu app.",
+  "srv.noArea": "Tu cuenta no tiene habilitada esta parte de Bivio. Si la necesitas, pídesela a quien administra el servicio.",
+  "admin.areas.legend": "Qué puede usar",
+  "admin.area.profesionales": "Para profesionales",
+  "admin.area.empresas": "Para empresas",
+  "admin.areaAria": "{area} para {email}",
+  "admin.audit.areas": "{actor} cambió las áreas habilitadas de {target}",
+  "nav.noAreas.title": "Tu cuenta todavía no tiene partes habilitadas",
+  "nav.noAreas.body": "Tu cuenta existe, pero quien administra Bivio aún no te habilitó ninguna parte del servicio (ni “Para profesionales” ni “Para empresas”). Escríbele para pedirla."
 }

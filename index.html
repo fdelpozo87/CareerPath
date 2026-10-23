@@ -1,12 +1,56 @@
 <!doctype html>
-<html lang="es">
+<html lang="__LANG__">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="canonical" href="__SITE_URL__/__LANG__/" />
+    <link rel="alternate" hreflang="es" href="__SITE_URL__/es/" />
+    <link rel="alternate" hreflang="en" href="__SITE_URL__/en/" />
+    <link rel="alternate" hreflang="x-default" href="__SITE_URL__/es/" />
     <!-- interactive-widget=resizes-content: en Chrome del celular, el teclado achica la página (y el chat) en lugar de taparla. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
-    <meta name="description" content="Bivio - Tu próximo paso de carrera, pensado con vos. Coach de carrera IA disponible para profesionales y empresas." />
+    <meta name="description" content="__DESCRIPTION__" />
     <meta name="theme-color" content="#6a3fc1" />
+
+    <!-- Al compartir el enlace (WhatsApp, LinkedIn, Slack, X) se ve una tarjeta con la marca. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bivio" />
+    <meta property="og:locale" content="__OG_LOCALE__" />
+    <meta property="og:locale:alternate" content="__OG_LOCALE_ALT__" />
+    <meta property="og:title" content="__TITLE__" />
+    <meta property="og:description" content="__DESCRIPTION__" />
+    <meta property="og:url" content="__SITE_URL__/__LANG__/" />
+    <meta property="og:image" content="__SITE_URL__/__OG_IMAGE__" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="__OG_ALT__" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="__TITLE__" />
+    <meta name="twitter:description" content="__DESCRIPTION__" />
+    <meta name="twitter:image" content="__SITE_URL__/__OG_IMAGE__" />
+
+    <!-- Datos estructurados para buscadores y asistentes de IA (es un bloque de datos: no lo toca la CSP). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "Organization", "@id": "__SITE_URL__/#org", "name": "Bivio", "url": "__SITE_URL__/", "logo": "__SITE_URL__/icon-512.png" },
+          {
+            "@type": "WebApplication",
+            "name": "Bivio",
+            "url": "__SITE_URL__/__LANG__/",
+            "applicationCategory": "BusinessApplication",
+            "inLanguage": "__LANG__",
+            "description": "__DESCRIPTION__",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "ARS" },
+            "publisher": { "@id": "__SITE_URL__/#org" }
+          }
+        ]
+      }
+    </script>
 
     <!-- Apariencia e idioma: se resuelven antes del primer dibujado (sin destello claro, y con el lang correcto). Misma regla que src/lib/theme.ts y src/lib/i18n.ts. Archivo propio, no en línea, por la CSP. -->
     <script src="/prepaint.js"></script>
@@ -16,10 +60,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <title>Bivio - Tu próximo paso de carrera</title>
+    <title>__TITLE__</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Contenido de la portada en el HTML inicial (lo leen buscadores, asistentes de IA y quien tenga el JavaScript apagado); React lo reemplaza al arrancar. -->
+    <div id="root">__STATIC__</div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

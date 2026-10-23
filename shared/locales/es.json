@@ -917,5 +917,12 @@
   "eval.build.pickSearch": "Buscar por email",
   "eval.build.pickNone": "No hay cuentas que coincidan.",
   "eval.build.createdNotified": "Se le creó la cuenta y se le envió el enlace para entrar.",
-  "eval.build.createdNoMail": "Se le creó la cuenta y se le asignó la evaluación. No se envió ningún mail: avísale tú."
+  "eval.build.createdNoMail": "Se le creó la cuenta y se le asignó la evaluación. No se envió ningún mail: avísale tú.",
+  "meta.title.coach": "Tu proceso · Bivio",
+  "meta.title.company": "Para empresas · Bivio",
+  "meta.title.evaluaciones": "Evaluaciones de desempeño · Bivio",
+  "meta.title.admin": "Administración · Bivio",
+  "meta.title.privacidad": "Política de privacidad · Bivio",
+  "meta.title.login": "Entrar · Bivio",
+  "app.loading": "Cargando…"
 }

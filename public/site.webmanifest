@@ -1,0 +1,22 @@
+{
+  "name": "Bivio",
+  "short_name": "Bivio",
+  "description": "Coach de carrera con IA para profesionales y empresas.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf9fc",
+  "theme_color": "#6a3fc1",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

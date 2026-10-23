@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { abrir, enviar, guardar, NIVEL_KEYS, type Abierta, type Respuesta, type Respuestas } from '../../lib/evaluaciones'
-import { tr } from '../../lib/i18n'
+import { abrir, enviar, guardar, NIVEL_KEYS, puntuar, SCORE_KEYS, type Abierta, type Puntajes, type Respuesta, type Respuestas } from '../../lib/evaluaciones'
+import { getLang, tr } from '../../lib/i18n'
 import ConfirmDialog from '../ConfirmDialog'
 import { InformeView } from './InformeView'
 
@@ -16,12 +16,16 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(false)
+  // El puntaje de quien evalúa (lo escribe quien creó la evaluación, después de que la persona la envía).
+  const [scores, setScores] = useState<Puntajes>({})
+  const [confirmScore, setConfirmScore] = useState(false)
 
   const load = useCallback(async () => {
     try {
       const d = await abrir(id)
       setData(d)
       setAnswers(d.respuestas)
+      setScores(d.puntajes ?? {})
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : tr('cloud.error'))
@@ -50,6 +54,11 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
   const get = (cid: string): Respuesta => (typeof answers[cid] === 'object' ? (answers[cid] as Respuesta) : { evidencia: '' })
   const set = (cid: string, patch: Partial<Respuesta>) => setAnswers((a) => ({ ...a, [cid]: { ...get(cid), ...patch } }))
   const missing = ev.competencias.find((c) => !get(c.id).nivel || get(c.id).evidencia.trim().length < MIN_EVIDENCIA)
+  // Puntuar: solo quien creó la evaluación, y cuando la persona ya la envió.
+  const canScore = data.rol === 'creador' && data.estado === 'completada' && ev.tipo === 'asignada'
+  const sc = (cid: string) => scores[cid] ?? { puntaje: 0, comentario: '' }
+  const setSc = (cid: string, patch: Partial<{ puntaje: number; comentario: string }>) => setScores((x) => ({ ...x, [cid]: { ...sc(cid), ...patch } }))
+  const missingScore = ev.competencias.find((c) => !sc(c.id).puntaje)
 
   const run = async (fn: () => Promise<unknown>, done?: string) => {
     setBusy(true)
@@ -83,6 +92,12 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
             : tr('eval.who.sees', { who: data.creadaPor })}
       </p>
 
+      {data.rol === 'responde' && data.puntajes && (
+        <p role="status" className="mb-6 rounded-xl border border-border-color p-4 text-sm leading-relaxed text-foreground" style={{ borderLeft: '3px solid var(--color-accent)' }}>
+          {tr('eval.score.seen', { who: data.creadaPor })}
+        </p>
+      )}
+
       {data.rol === 'creador' && data.estado !== 'completada' && (
         <p role="status" className="rounded-xl border border-border-color p-4 text-sm text-text-muted">
           {tr('eval.creator.waiting', { email: data.email })}
@@ -110,7 +125,8 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
               {ev.competencias.map((c) => {
                 const r = get(c.id)
                 return (
-                  <fieldset key={c.id} disabled={!canAnswer} className="card">
+                  <div key={c.id} className="card">
+                    <fieldset disabled={!canAnswer} className="m-0 min-w-0 border-0 p-0">
                     <legend className="sr-only">{c.nombre}</legend>
                     <h4 className="text-base font-semibold">{c.nombre}</h4>
                     {c.descripcion && <p className="mb-3 text-sm text-text-muted">{c.descripcion}</p>}
@@ -120,7 +136,7 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
                       ))}
                     </ul>
 
-                    <p className="mb-1.5 text-sm font-medium text-foreground">{tr('eval.level.label')}</p>
+                    <p className="mb-1.5 text-sm font-medium text-foreground">{tr(data.rol === 'creador' ? 'eval.level.labelOther' : 'eval.level.label')}</p>
                     <div role="radiogroup" aria-label={`${tr('eval.level.label')}: ${c.nombre}`} className="mb-4 flex flex-wrap gap-2">
                       {NIVEL_KEYS.map((k, i) => {
                         const n = i + 1
@@ -141,7 +157,7 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
                     </div>
 
                     <label htmlFor={`ev-${c.id}`} className="mb-1 block text-sm font-medium text-foreground">
-                      {tr('eval.evidence.label')}
+                      {tr(data.rol === 'creador' ? 'eval.evidence.labelOther' : 'eval.evidence.label')}
                     </label>
                     <textarea
                       id={`ev-${c.id}`}
@@ -152,7 +168,54 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
                       placeholder={tr('eval.evidence.placeholder')}
                       className="w-full resize-y rounded-xl border border-border-color bg-background p-3 text-sm text-foreground outline-none focus:border-primary"
                     />
-                  </fieldset>
+
+                    </fieldset>
+
+                    {/* Puntaje de quien evalúa: lo escribe quien creó la evaluación y la persona lo ve al guardarse. */}
+                    {(canScore || data.puntajes) && (
+                      <div className="mt-4 rounded-xl bg-secondary p-4">
+                        <p className="mb-2 text-sm font-semibold text-foreground">{canScore ? tr('eval.score.mine') : tr('eval.score.from', { who: data.creadaPor })}</p>
+                        {canScore ? (
+                          <>
+                            <div role="radiogroup" aria-label={`${tr('eval.score.label')}: ${c.nombre}`} className="mb-3 flex flex-wrap gap-2">
+                              {SCORE_KEYS.map((k, i) => {
+                                const selected = sc(c.id).puntaje === i + 1
+                                return (
+                                  <button
+                                    key={k}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={selected}
+                                    onClick={() => setSc(c.id, { puntaje: i + 1 })}
+                                    className={`rounded-full border px-3.5 py-1.5 text-sm transition ${selected ? 'border-accent bg-accent-soft font-semibold text-foreground' : 'border-border-color bg-card text-text-muted hover:bg-card/70'}`}
+                                  >
+                                    {i + 1} · {tr(k)}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <label htmlFor={`sc-${c.id}`} className="mb-1 block text-xs font-medium text-text-muted">{tr('eval.score.comment')}</label>
+                            <textarea
+                              id={`sc-${c.id}`}
+                              rows={2}
+                              maxLength={500}
+                              value={sc(c.id).comentario}
+                              onChange={(e) => setSc(c.id, { comentario: e.target.value })}
+                              className="w-full resize-y rounded-xl border border-border-color bg-background p-3 text-sm text-foreground outline-none focus:border-primary"
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm text-foreground">
+                              <span className="mr-2 inline-block rounded-full border border-accent bg-accent-soft px-3 py-0.5 font-semibold">{sc(c.id).puntaje}</span>
+                              {sc(c.id).puntaje >= 1 && tr(SCORE_KEYS[sc(c.id).puntaje - 1])}
+                            </p>
+                            {sc(c.id).comentario && <p className="mt-2 text-sm italic leading-relaxed text-text-muted">“{sc(c.id).comentario}”</p>}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
 
@@ -171,6 +234,23 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
                 />
               </div>
             </div>
+
+            {canScore && (
+              <div className="mt-6">
+                <p role="alert" className="min-h-6 text-sm text-danger">
+                  {error}
+                </p>
+                <p role="status" className="min-h-6 text-sm text-text-muted">
+                  {notice ?? (data.puntuadaAt ? tr('eval.score.sharedOn', { date: new Date(data.puntuadaAt).toLocaleDateString(getLang() === 'en' ? 'en-US' : 'es') }) : '')}
+                </p>
+                <div className="flex justify-end">
+                  <button disabled={busy || Boolean(missingScore)} onClick={() => setConfirmScore(true)} className="btn-advance px-6 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40">
+                    {busy ? tr('login.sending') : data.puntuadaAt ? tr('eval.score.update') : tr('eval.score.save')}
+                  </button>
+                </div>
+                {missingScore && <p className="mt-2 text-right text-xs text-text-muted">{tr('eval.score.missing', { name: missingScore.nombre })}</p>}
+              </div>
+            )}
 
             {canAnswer && (
               <div className="mt-6">
@@ -204,6 +284,23 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
           {error}
         </p>
       )}
+
+      <ConfirmDialog
+        open={confirmScore}
+        title={tr('eval.score.confirm.title')}
+        body={tr('eval.score.confirm.body', { email: data.email })}
+        confirmLabel={tr('eval.score.confirm.action')}
+        onCancel={() => setConfirmScore(false)}
+        onConfirm={() => {
+          setConfirmScore(false)
+          void run(async () => {
+            await puntuar(id, scores)
+            onChanged()
+            await load()
+            setNotice(tr('eval.score.saved', { email: data.email }))
+          })
+        }}
+      />
 
       <ConfirmDialog
         open={confirm}

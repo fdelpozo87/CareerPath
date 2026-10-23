@@ -140,6 +140,7 @@ export function EvaluacionesPage({ canCreate, canSelf, onBack, onNavigate, onPen
                         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
                           <span className={`rounded-full px-2.5 py-0.5 font-medium ${BADGE[m.estado]}`}>{tr(`eval.estado.${m.estado}` as Key)}</span>
                           <span>{m.tipo === 'directa' ? tr('eval.mine.self') : tr('eval.mine.by', { who: m.creadaPor })}</span>
+                          {m.conPuntaje && <span className="rounded-full border border-accent bg-accent-soft px-2.5 py-0.5 font-medium text-foreground">{tr('eval.mine.scored')}</span>}
                           <span>{fmt(m.asignadaAt)}</span>
                         </p>
                       </div>
@@ -179,9 +180,14 @@ export function EvaluacionesPage({ canCreate, canSelf, onBack, onNavigate, onPen
                               <span className="flex items-center gap-3">
                                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${BADGE[a.estado]}`}>{tr(`eval.estado.${a.estado}` as Key)}</span>
                                 {a.estado === 'completada' && (
-                                  <button onClick={() => setView({ kind: 'open', id: a.id })} className="text-xs font-semibold text-primary underline underline-offset-2">
-                                    {tr('eval.mine.view')}
-                                  </button>
+                                  <>
+                                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${a.puntuada ? 'border border-accent bg-accent-soft text-foreground' : 'border border-dashed border-text-muted/60 text-text-muted'}`}>
+                                      {tr(a.puntuada ? 'eval.score.done' : 'eval.score.pending')}
+                                    </span>
+                                    <button onClick={() => setView({ kind: 'open', id: a.id })} className="text-xs font-semibold text-primary underline underline-offset-2">
+                                      {tr(a.puntuada ? 'eval.mine.view' : 'eval.created.view')}
+                                    </button>
+                                  </>
                                 )}
                               </span>
                             </li>

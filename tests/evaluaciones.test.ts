@@ -11,7 +11,7 @@ vi.mock('@google/generative-ai', () => ({
 }))
 
 import { resetAuthCache } from '../server/auth'
-import { buildAssignedMail, cleanRespuestas, handleEvaluaciones, normalizeCompetencias, normalizeInforme } from '../server/evaluaciones'
+import { buildAssignedMail, buildScoredMail, cleanPuntajes, cleanRespuestas, handleEvaluaciones, normalizeCompetencias, normalizeInforme } from '../server/evaluaciones'
 import { resetRateLimits } from '../server/guard'
 
 const JEFA = '11111111-1111-4111-8111-111111111111'
@@ -327,7 +327,95 @@ describe('evaluaciones: responder, informe y quién ve qué', () => {
   })
 })
 
+describe('evaluaciones: el puntaje de 1 a 5 de quien evalúa', () => {
+  async function completada() {
+    await call('tok_jefa', evalBody())
+    const id = Object.keys(db.asignaciones)[0]
+    const comp = (Object.values(db.evaluaciones)[0] as any).competencias as { id: string }[]
+    gemini.generateContent.mockResolvedValue(modelReply({ resumen: 'ok' }))
+    await call('tok_ana', { action: 'enviar', id, respuestas: answers(comp) })
+    db.mails.length = 0
+    return { id, comp }
+  }
+  const scores = (comp: { id: string }[], n = 4) => Object.fromEntries(comp.map((c) => [c.id, { puntaje: n, comentario: 'Buen trabajo en el trimestre.' }]))
+
+  it('quien creó la evaluación puntúa cada competencia y la persona lo ve apenas se guarda', async () => {
+    const { id, comp } = await completada()
+    expect(((await call('tok_ana', { action: 'abrir', id })).body as any).puntajes).toBeNull()
+    expect((await call('tok_jefa', { action: 'abrir', id })).body).toMatchObject({ puntajes: null })
+
+    const res = await call('tok_jefa', { action: 'puntuar', id, puntajes: scores(comp, 4) })
+    expect(res.status).toBe(200)
+    const suya = (await call('tok_ana', { action: 'abrir', id })).body as any
+    expect(suya.puntajes.c1).toEqual({ puntaje: 4, comentario: 'Buen trabajo en el trimestre.' })
+    expect((await call('tok_jefa', { action: 'abrir', id })).body).toMatchObject({ puntajes: { c1: { puntaje: 4 } } })
+    // La IA no interviene: ni el puntaje ni los comentarios pasan por el modelo después de la autoevaluación.
+    expect(gemini.generateContent).toHaveBeenCalledTimes(1)
+  })
+
+  it('le avisa por email a la persona; sin email igual queda guardado', async () => {
+    const { id, comp } = await completada()
+    await call('tok_jefa', { action: 'puntuar', id, puntajes: scores(comp) })
+    expect(db.mails).toEqual([{ to: 'ana@x.test', subject: 'Cargaron el puntaje de tu evaluación en Bivio' }])
+    vi.stubEnv('RESEND_API_KEY', '')
+    const again = await call('tok_jefa', { action: 'puntuar', id, puntajes: scores(comp, 5) })
+    expect(again.status).toBe(200)
+    expect((db.asignaciones[id] as any).puntajes.c1.puntaje).toBe(5)
+  })
+
+  it('solo se puede puntuar después de que la persona envió su autoevaluación', async () => {
+    await call('tok_jefa', evalBody())
+    const id = Object.keys(db.asignaciones)[0]
+    const comp = (Object.values(db.evaluaciones)[0] as any).competencias as { id: string }[]
+    expect((await call('tok_jefa', { action: 'puntuar', id, puntajes: scores(comp) })).status).toBe(403)
+  })
+
+  it('los puntajes tienen que ser enteros de 1 a 5 y de todas las competencias', async () => {
+    const { id, comp } = await completada()
+    for (const n of [0, 6, 3.5, -1]) expect((await call('tok_jefa', { action: 'puntuar', id, puntajes: scores(comp, n) })).status).toBe(400)
+    expect((await call('tok_jefa', { action: 'puntuar', id, puntajes: { c1: { puntaje: 3, comentario: '' } } })).status).toBe(400)
+    expect((await call('tok_jefa', { action: 'puntuar', id, puntajes: 'x' })).status).toBe(400)
+    expect((db.asignaciones[id] as any).puntajes ?? null).toBeNull()
+  })
+
+  it('la persona evaluada no se puntúa a sí misma ni un tercero puede puntuar', async () => {
+    const { id, comp } = await completada()
+    expect((await call('tok_ana', { action: 'puntuar', id, puntajes: scores(comp) })).status).toBe(403)
+    expect((await call('tok_luis', { action: 'puntuar', id, puntajes: scores(comp) })).status).toBe(404)
+  })
+
+  it('una evaluación propia (directa) no tiene puntaje de otra persona', async () => {
+    await call('tok_ana', evalBody({ modo: 'propia', emails: [] }))
+    const id = Object.keys(db.asignaciones)[0]
+    const ev = Object.values(db.evaluaciones)[0] as any
+    ;(db.asignaciones[id] as any).estado = 'completada'
+    expect((await call('tok_ana', { action: 'puntuar', id, puntajes: scores(ev.competencias) })).status).toBe(403)
+  })
+
+  it('las listas marcan qué falta puntuar y qué ya tiene puntaje', async () => {
+    const { id, comp } = await completada()
+    expect(((await call('tok_jefa', { action: 'creadas' })).body as any).items[0].asignaciones[0].puntuada).toBe(false)
+    expect(((await call('tok_ana', { action: 'mias' })).body as any).items[0].conPuntaje).toBe(false)
+    await call('tok_jefa', { action: 'puntuar', id, puntajes: scores(comp) })
+    expect(((await call('tok_jefa', { action: 'creadas' })).body as any).items[0].asignaciones[0].puntuada).toBe(true)
+    expect(((await call('tok_ana', { action: 'mias' })).body as any).items[0].conPuntaje).toBe(true)
+  })
+})
+
 describe('evaluaciones: piezas puras', () => {
+  it('cleanPuntajes acepta 1 a 5 y recorta los comentarios', () => {
+    const comp = [{ id: 'c1', nombre: 'A', descripcion: '', preguntas: ['p'] }]
+    expect(cleanPuntajes({ c1: { puntaje: 5, comentario: '  hola  ' } }, comp)).toEqual({ c1: { puntaje: 5, comentario: 'hola' } })
+    expect((cleanPuntajes({ c1: { puntaje: 1, comentario: 'x'.repeat(900) } }, comp) as any).c1.comentario).toHaveLength(500)
+    expect(cleanPuntajes({ c1: { puntaje: '3' } }, comp)).toBeNull()
+  })
+
+  it('el mail del puntaje dice quién lo cargó y escapa el HTML', () => {
+    const m = buildScoredMail('es', 'Eval <b>2026</b>', 'jefa@x.test', 'https://app.example')
+    expect(m.text).toContain('jefa@x.test')
+    expect(m.html).toContain('Eval &lt;b&gt;2026&lt;/b&gt;')
+  })
+
   it('normalizeCompetencias descarta lo inservible y numera', () => {
     expect(normalizeCompetencias([{ nombre: 'A', preguntas: ['p'] }, { nombre: '', preguntas: ['p'] }, { nombre: 'B', preguntas: ['q', '', 5] }])?.map((c) => [c.id, c.preguntas.length])).toEqual([['c1', 1], ['c2', 1]])
     expect(normalizeCompetencias([{ nombre: 'sola', preguntas: ['p'] }])).toBeNull()

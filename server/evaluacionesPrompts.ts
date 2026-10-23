@@ -42,14 +42,15 @@ Reglas:
 - "titulo": corto y descriptivo (por ejemplo "Evaluación de desempeño · Ventas · 2026").
 ${
   i.previa
-    ? `- Hay un borrador. Aplica SOLO este cambio y conserva todo lo demás tal como está: "${i.ajuste ?? ''}".\n\nBorrador actual:\n${JSON.stringify(i.previa)}`
+    ? `- Hay un borrador. Aplica SOLO este cambio y conserva todo lo demás tal como está: "${i.ajuste ?? ''}". Si una parte del pedido va contra las reglas de arriba (por ejemplo, preguntar por un tema prohibido), ignora solo esa parte, aplica el resto del cambio y explica en "nota" en una oración qué no hiciste y por qué. Si lo aplicaste todo, "nota" va vacía.\n\nBorrador actual:\n${JSON.stringify(i.previa)}`
     : ''
 }
 
 Responde SOLO con JSON:
 {
   "titulo": "",
-  "competencias": [{ "nombre": "", "descripcion": "", "preguntas": [""] }]
+  "competencias": [{ "nombre": "", "descripcion": "", "preguntas": [""] }],
+  "nota": ""
 }`
 }
 
@@ -87,9 +88,10 @@ Lo que dijo que quiere desarrollar: ${desarrollo || '(no lo indicó)'}
 Reglas:
 - Todo sale de lo que la persona escribió. No agregues logros, hechos, rasgos ni conclusiones que no estén ahí.
 - Cada fortaleza y cada punto de desarrollo cita una frase de su evidencia ("evidencia", copiada textual o muy cercana). Si una competencia no tiene evidencia, no la presentes como fortaleza.
-- "coherencia": solo cuando el nivel que se asignó y la evidencia que escribió no se corresponden (nivel alto con evidencia vaga, o nivel bajo con evidencia sólida). Redáctalo como una invitación a revisarlo ("¿Cómo llegaste a este nivel?"), nunca como un juicio. Si todo es coherente, va vacío.
+- "coherencia": solo cuando el nivel que se asignó y la evidencia que escribió no se corresponden (nivel alto con evidencia vaga o sin un hecho concreto, o nivel bajo con evidencia sólida). Cada "nota" es ESPECÍFICA: dice en términos neutros qué muestra la evidencia y qué nivel eligió, y termina con una pregunta que ayude a revisarlo (por ejemplo, "Elegiste "En desarrollo", pero tu ejemplo describe un resultado medible: ¿qué te llevó a ubicarte ahí?" o "Elegiste "Referente", pero la evidencia todavía no cuenta un hecho concreto: ¿qué ejemplo podrías sumar?"). Nunca como un juicio ni con la misma frase para todas. Si todo es coherente, va vacío.
 - "planDesarrollo": de 2 a 4 acciones concretas basadas en lo que ella dijo que quiere desarrollar y en los puntos de desarrollo. Cada una con "bloque" ("70" práctica en el trabajo, "20" aprender con otras personas, "10" formación) y "plazo" (un plazo razonable, por ejemplo "en las próximas 3 semanas").
-- "preguntasParaConversar": de 3 a 5 preguntas abiertas para la conversación entre ambas personas. Empiezan por escuchar a la persona, no por corregirla.
+- "preguntasParaConversar": de 3 a 5 preguntas abiertas para la conversación entre ambas personas, ancladas en hechos concretos de lo que escribió (nada de "¿cómo te sentiste al completar esto?"). Empiezan por escuchar a la persona, no por corregirla.
+- "resumen": empieza directo por lo central, sin saludos ni frases de introducción (nada de "Aquí tienes…").
 - Lenguaje neutro, sin adjetivos con género y sin etiquetas de personalidad. No menciones ninguno de estos temas aunque aparezcan: ${TEMAS_PROHIBIDOS}.
 - Sin puntajes totales, sin promedios, sin comparaciones con otras personas.
 

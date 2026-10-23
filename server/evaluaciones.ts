@@ -95,7 +95,8 @@ const s = (v: unknown, max = 400) => (typeof v === 'string' ? v.trim().slice(0, 
 export function normalizeInforme(raw: Record<string, unknown>): Informe {
   const item = (x: Record<string, unknown>) => (s(x.texto) ? { competencia: s(x.competencia, 80), texto: s(x.texto), evidencia: s(x.evidencia) } : null)
   return {
-    resumen: s(raw.resumen, 900),
+    // Si el modelo abre con una frase de introducción ("Aquí tienes el resumen…"), se la saca: el resumen empieza por lo central.
+    resumen: s(raw.resumen, 900).replace(/^(Aquí tienes|Aquí está|Este es|Here is|Here’s|Here's)[^.]*\.\s*/i, '') || s(raw.resumen, 900),
     fortalezas: list(raw.fortalezas, item, 6),
     desarrollo: list(raw.desarrollo, item, 6),
     coherencia: list(raw.coherencia, (x) => (s(x.nota) ? { competencia: s(x.competencia, 80), nota: s(x.nota) } : null), 6),
@@ -201,10 +202,10 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
         const prevC = normalizeCompetencias((body.previa as { competencias?: unknown } | undefined)?.competencias)
         const previa = prevC && ajuste ? { titulo: str((body.previa as { titulo?: unknown }).titulo, MAX_TEXT) ?? '', competencias: prevC } : undefined
         if (!apiKey) return { status: 200, body: { demo: true, borrador: { titulo: `— DEMO — Evaluación · ${area}`, competencias: DEMO_COMPETENCIAS } } }
-        const out = await askModel<{ titulo?: unknown; competencias?: unknown }>(apiKey, buildGeneratePrompt({ area, rol, periodo, foco: foco || undefined, previa, ajuste: ajuste || undefined, lang }), 0.5)
+        const out = await askModel<{ titulo?: unknown; competencias?: unknown; nota?: unknown }>(apiKey, buildGeneratePrompt({ area, rol, periodo, foco: foco || undefined, previa, ajuste: ajuste || undefined, lang }), 0.5)
         const competencias = normalizeCompetencias(out.competencias)
         if (!competencias) return fail(502, 'srv.upstream')
-        return { status: 200, body: { borrador: { titulo: str(out.titulo, MAX_TEXT) ?? `${area}`, competencias } } }
+        return { status: 200, body: { borrador: { titulo: str(out.titulo, MAX_TEXT) ?? `${area}`, competencias }, nota: typeof out.nota === 'string' ? out.nota.trim().slice(0, 300) : '' } }
       }
 
       case 'crear': {

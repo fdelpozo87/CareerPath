@@ -7,6 +7,8 @@ import { CompanyFlow } from './components/CompanyFlow'
 import AccessGate from './components/AccessGate'
 import { AccountStatus, LoginGate, MfaGate, SetPasswordScreen } from './components/LoginGate'
 import { AdminPanel } from './components/AdminPanel'
+import { EvaluacionesPage } from './components/evaluaciones/EvaluacionesPage'
+import { mias as listMias } from './lib/evaluaciones'
 import PasswordDialog from './components/PasswordDialog'
 import MfaSettingsDialog from './components/MfaSettingsDialog'
 import ConfirmDialog from './components/ConfirmDialog'
@@ -21,10 +23,11 @@ import type { AccountInfo } from './components/AccountMenu'
 import { trackEvent } from './lib/tracking'
 import { tr, trn, useLang } from './lib/i18n'
 
-type View = 'landing' | 'coach' | 'company' | 'privacidad' | 'admin'
+type View = 'landing' | 'coach' | 'company' | 'privacidad' | 'admin' | 'evaluaciones'
 
 const isPrivacyHash = () => window.location.hash === '#privacidad'
 const isAdminHash = () => window.location.hash === '#admin'
+const isEvalHash = () => window.location.hash === '#evaluaciones'
 
 type Pending = { kind: 'deleteAll' } | { kind: 'deleteOne'; id: string } | { kind: 'deleteAccount' }
 
@@ -40,13 +43,15 @@ type Access =
 function App() {
   // Se vuelve a dibujar cuando cambia el idioma (y con él, todo lo que cuelga de acá).
   useLang()
-  const [view, setView] = useState<View>(() => (isPrivacyHash() ? 'privacidad' : isAdminHash() ? 'admin' : 'landing'))
+  const [view, setView] = useState<View>(() => (isPrivacyHash() ? 'privacidad' : isAdminHash() ? 'admin' : isEvalHash() ? 'evaluaciones' : 'landing'))
   const [isAdmin, setIsAdmin] = useState(false)
   // Qué partes del servicio tiene habilitadas la cuenta (sin dato: las dos).
   const [areas, setAreas] = useState<{ profesionales: boolean; empresas: boolean }>({ profesionales: true, empresas: true })
   // Contraseña (opcional): el diálogo del menú y la pantalla de "olvidé mi contraseña".
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [mfaSettingsOpen, setMfaSettingsOpen] = useState(false)
+  // Evaluaciones de desempeño: cuántas tiene pendientes de responder la persona.
+  const [evalPending, setEvalPending] = useState(0)
   const [recovery, setRecovery] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [access, setAccess] = useState<Access>({ state: 'checking' })
@@ -97,6 +102,18 @@ function App() {
       off()
     }
   }, [accessOpen])
+
+  // Con la cuenta activa, se pregunta cuántas evaluaciones tiene pendientes (para el aviso del menú).
+  useEffect(() => {
+    if (!accessOpen || !cloudUser) return
+    let alive = true
+    listMias()
+      .then((m) => alive && setEvalPending(m.pendientes))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [accessOpen, cloudUser])
 
   // Acceso: pregunta al servidor si hace falta código o cuenta y si lo que hay sirve. En local, sin
   // ACCESS_CODES ni Supabase, responde "no requerido" y no se muestra nada. Con cuentas, entra solo
@@ -161,6 +178,9 @@ function App() {
       } else if (isAdminHash()) {
         setView('admin')
         window.scrollTo(0, 0)
+      } else if (isEvalHash()) {
+        setView('evaluaciones')
+        window.scrollTo(0, 0)
       }
     }
     window.addEventListener('hashchange', onHash)
@@ -198,6 +218,14 @@ function App() {
   const account: AccountInfo = {
     label: cloudUser?.email ?? label,
     canLogout: getAccessCode() !== null,
+    onEvaluaciones: cloudUser
+      ? () => {
+          window.location.hash = '#evaluaciones'
+          setView('evaluaciones')
+          window.scrollTo(0, 0)
+        }
+      : undefined,
+    evalPending,
     onAdmin: isAdmin
       ? () => {
           window.location.hash = '#admin'
@@ -329,6 +357,21 @@ function App() {
     return <AccountStatus kind={access.state === 'pending' ? 'pendiente' : 'desactivado'} onRecheck={() => void refreshAccess()} />
   }
 
+  // Evaluaciones de desempeño (solo con cuenta): el servidor decide qué puede hacer cada persona.
+  if (view === 'evaluaciones' && cloudUser) {
+    return (
+      <EvaluacionesPage
+        canCreate={isAdmin || areas.empresas}
+        canSelf={isAdmin || areas.empresas || areas.profesionales}
+        onPending={setEvalPending}
+        onBack={() => {
+          history.replaceState(null, '', window.location.pathname)
+          setView('landing')
+        }}
+      />
+    )
+  }
+
   // El panel de usuarios existe solo para quien administra (el servidor lo verifica en cada pedido).
   if (view === 'admin') {
     if (isAdmin) {
@@ -390,7 +433,20 @@ function App() {
           }}
           onDelete={(id) => setPending({ kind: 'deleteOne', id })}
         />
-        {areas.empresas && <CompanySection onStart={() => setView('company')} />}
+        {areas.empresas && (
+          <CompanySection
+            onStart={() => setView('company')}
+            onEvaluaciones={
+              cloudUser
+                ? () => {
+                    window.location.hash = '#evaluaciones'
+                    setView('evaluaciones')
+                    window.scrollTo(0, 0)
+                  }
+                : undefined
+            }
+          />
+        )}
       </main>
       <Footer areas={areas} />
       {confirmDialog}

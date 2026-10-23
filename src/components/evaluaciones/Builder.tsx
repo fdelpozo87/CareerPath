@@ -1,0 +1,218 @@
+import { useId, useState, type FormEvent } from 'react'
+import { crear, generar, mias, type Borrador, type Competencia, type ResultadoAsignacion } from '../../lib/evaluaciones'
+import { tr } from '../../lib/i18n'
+
+// Armar una evaluación con ayuda de la IA: describir el área → revisar y editar la propuesta → asignar.
+// "jefe": se asigna a emails de cuentas de Bivio. "propia": la persona se la arma a sí misma.
+
+type Step = 'form' | 'draft' | 'assign' | 'done'
+
+const inputCls = 'w-full rounded-xl border border-border-color bg-background p-3 text-sm text-foreground outline-none focus:border-primary'
+
+export function Builder({ modo, onBack, onOpen }: { modo: 'jefe' | 'propia'; onBack: () => void; onOpen: (asignacionId: string) => void }) {
+  const [step, setStep] = useState<Step>('form')
+  const [area, setArea] = useState('')
+  const [rol, setRol] = useState('')
+  const [periodo, setPeriodo] = useState('')
+  const [foco, setFoco] = useState('')
+  const [borrador, setBorrador] = useState<Borrador | null>(null)
+  const [ajuste, setAjuste] = useState('')
+  const [emails, setEmails] = useState('')
+  const [notify, setNotify] = useState(true)
+  const [resultados, setResultados] = useState<ResultadoAsignacion[]>([])
+  const [error, setError] = useState<string | null>(null)
+  // Si la IA no aplicó una parte del pedido (por ejemplo, un tema prohibido en una evaluación), lo explica acá.
+  const [aiNote, setAiNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const ids = { area: useId(), rol: useId(), periodo: useId(), foco: useId(), ajuste: useId(), emails: useId() }
+
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true)
+    setError(null)
+    try {
+      await fn()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tr('cloud.error'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const propose = (e?: FormEvent, change?: string) => {
+    e?.preventDefault()
+    if (!area.trim() || busy) return
+    void run(async () => {
+      const r = await generar({ modo, area: area.trim(), rol: rol.trim(), periodo: periodo.trim(), foco: foco.trim(), ...(change && borrador ? { ajuste: change, previa: borrador } : {}) })
+      setBorrador(r.borrador)
+      setAiNote(r.nota ?? '')
+      setAjuste('')
+      setStep('draft')
+    })
+  }
+
+  const updateComp = (i: number, patch: Partial<Competencia>) => setBorrador((b) => (b ? { ...b, competencias: b.competencias.map((c, k) => (k === i ? { ...c, ...patch } : c)) } : b))
+  const cleanDraft = (): Borrador | null => {
+    if (!borrador) return null
+    const competencias = borrador.competencias
+      .map((c, i) => ({ ...c, id: `c${i + 1}`, nombre: c.nombre.trim(), preguntas: c.preguntas.map((p) => p.trim()).filter(Boolean) }))
+      .filter((c) => c.nombre && c.preguntas.length > 0)
+    return competencias.length >= 2 && borrador.titulo.trim() ? { titulo: borrador.titulo.trim(), competencias } : null
+  }
+  const draftOk = cleanDraft() !== null
+
+  const create = () => {
+    const d = cleanDraft()
+    if (!d || busy) return
+    const list = [...new Set(emails.split(/[\s,;]+/).map((x) => x.trim().toLowerCase()).filter(Boolean))]
+    if (modo === 'jefe' && list.length === 0) return setError(tr('eval.build.emailsRequired'))
+    void run(async () => {
+      const r = await crear({ modo, titulo: d.titulo, area: area.trim(), rol: rol.trim(), periodo: periodo.trim(), competencias: d.competencias, ...(modo === 'jefe' ? { emails: list, notify } : {}) })
+      if (modo === 'propia') {
+        // Se abre la evaluación recién creada para empezar a responderla.
+        const m = await mias()
+        if (m.items[0]) return onOpen(m.items[0].id)
+        return onBack()
+      }
+      setResultados(r.resultados)
+      setStep('done')
+    })
+  }
+
+  const problemText = (p: ResultadoAsignacion['problema']) => tr(p === 'sin_cuenta' ? 'eval.build.noAccount' : 'eval.build.inactive')
+
+  return (
+    <div>
+      <button onClick={onBack} className="mb-4 text-sm text-text-muted underline underline-offset-2 hover:text-foreground">
+        ← {tr('eval.back')}
+      </button>
+      <h2 className="mb-1 text-2xl">{tr(modo === 'jefe' ? 'eval.build.titleBoss' : 'eval.build.titleSelf')}</h2>
+      <p className="mb-6 text-sm text-text-muted">{tr(modo === 'jefe' ? 'eval.build.ledeBoss' : 'eval.build.ledeSelf')}</p>
+
+      {step === 'form' && (
+        <form onSubmit={propose} className="card space-y-4">
+          <div>
+            <label htmlFor={ids.area} className="mb-1 block text-sm font-medium">{tr('eval.build.area')}</label>
+            <input id={ids.area} required value={area} onChange={(e) => setArea(e.target.value)} maxLength={200} placeholder={tr('eval.build.areaPh')} className={inputCls} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor={ids.rol} className="mb-1 block text-sm font-medium">{tr('eval.build.role')}</label>
+              <input id={ids.rol} value={rol} onChange={(e) => setRol(e.target.value)} maxLength={200} placeholder={tr('eval.build.rolePh')} className={inputCls} />
+            </div>
+            <div>
+              <label htmlFor={ids.periodo} className="mb-1 block text-sm font-medium">{tr('eval.build.period')}</label>
+              <input id={ids.periodo} value={periodo} onChange={(e) => setPeriodo(e.target.value)} maxLength={80} placeholder={tr('eval.build.periodPh')} className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label htmlFor={ids.foco} className="mb-1 block text-sm font-medium">{tr('eval.build.focus')}</label>
+            <textarea id={ids.foco} rows={3} value={foco} onChange={(e) => setFoco(e.target.value)} maxLength={600} placeholder={tr('eval.build.focusPh')} className={`${inputCls} resize-y`} />
+          </div>
+          <p className="text-xs text-text-muted">{tr('eval.build.noNames')}</p>
+          <p role="alert" className="min-h-5 text-sm text-danger">{error}</p>
+          <button type="submit" disabled={busy || !area.trim()} className="btn-primary w-full py-3 disabled:opacity-50">
+            {busy ? tr('eval.build.generating') : tr('eval.build.generate')}
+          </button>
+        </form>
+      )}
+
+      {step === 'draft' && borrador && (
+        <div className="space-y-4">
+          <div className="card">
+            <label htmlFor="ev-title" className="mb-1 block text-sm font-medium">{tr('eval.build.docTitle')}</label>
+            <input id="ev-title" value={borrador.titulo} onChange={(e) => setBorrador({ ...borrador, titulo: e.target.value })} maxLength={200} className={inputCls} />
+          </div>
+
+          {borrador.competencias.map((c, i) => (
+            <div key={i} className="card space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <label htmlFor={`c-n-${i}`} className="mb-1 block text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('eval.build.competency', { n: i + 1 })}</label>
+                  <input id={`c-n-${i}`} value={c.nombre} onChange={(e) => updateComp(i, { nombre: e.target.value })} maxLength={80} className={inputCls} />
+                </div>
+                <button type="button" onClick={() => setBorrador({ ...borrador, competencias: borrador.competencias.filter((_, k) => k !== i) })} className="mt-6 text-sm text-text-muted underline underline-offset-2 hover:text-foreground">
+                  {tr('eval.build.remove')}
+                </button>
+              </div>
+              <div>
+                <label htmlFor={`c-d-${i}`} className="mb-1 block text-sm font-medium">{tr('eval.build.description')}</label>
+                <textarea id={`c-d-${i}`} rows={2} value={c.descripcion} onChange={(e) => updateComp(i, { descripcion: e.target.value })} maxLength={300} className={`${inputCls} resize-y`} />
+              </div>
+              <div>
+                <label htmlFor={`c-p-${i}`} className="mb-1 block text-sm font-medium">{tr('eval.build.questions')}</label>
+                <textarea id={`c-p-${i}`} rows={3} value={c.preguntas.join('\n')} onChange={(e) => updateComp(i, { preguntas: e.target.value.split('\n') })} className={`${inputCls} resize-y`} />
+                <p className="mt-1 text-xs text-text-muted">{tr('eval.build.questionsHint')}</p>
+              </div>
+            </div>
+          ))}
+
+          <button type="button" onClick={() => setBorrador({ ...borrador, competencias: [...borrador.competencias, { id: '', nombre: '', descripcion: '', preguntas: [''] }] })} className="btn-secondary px-5 py-2.5 text-sm">
+            + {tr('eval.build.add')}
+          </button>
+
+          {aiNote && (
+            <p role="status" className="rounded-xl border border-border-color bg-secondary p-3 text-sm leading-relaxed text-foreground" style={{ borderLeft: '3px solid var(--color-accent)' }}>
+              {aiNote}
+            </p>
+          )}
+          <div className="card">
+            <label htmlFor={ids.ajuste} className="mb-1 block text-sm font-medium">{tr('eval.build.adjust')}</label>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input id={ids.ajuste} value={ajuste} onChange={(e) => setAjuste(e.target.value)} maxLength={400} placeholder={tr('eval.build.adjustPh')} className={inputCls} />
+              <button type="button" disabled={busy || !ajuste.trim()} onClick={() => propose(undefined, ajuste.trim())} className="btn-secondary shrink-0 px-5 py-2.5 text-sm disabled:opacity-50">
+                {busy ? tr('eval.build.generating') : tr('eval.build.apply')}
+              </button>
+            </div>
+          </div>
+
+          <p role="alert" className="min-h-5 text-sm text-danger">{error}</p>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setStep('form')} className="btn-secondary px-5 py-2.5 text-sm">{tr('eval.build.backToForm')}</button>
+            <button type="button" disabled={!draftOk} onClick={() => (modo === 'jefe' ? setStep('assign') : create())} className="btn-primary px-6 py-2.5 text-sm disabled:opacity-50">
+              {busy ? tr('login.sending') : tr(modo === 'jefe' ? 'eval.build.continue' : 'eval.build.startSelf')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 'assign' && (
+        <div className="card space-y-4">
+          <div>
+            <label htmlFor={ids.emails} className="mb-1 block text-sm font-medium">{tr('eval.build.emails')}</label>
+            <textarea id={ids.emails} rows={3} value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="persona@empresa.com" className={`${inputCls} resize-y`} />
+            <p className="mt-1 text-xs text-text-muted">{tr('eval.build.emailsHint')}</p>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="accent-primary" />
+            {tr('eval.build.notify')}
+          </label>
+          <p className="rounded-xl bg-primary-soft p-3 text-xs leading-relaxed text-foreground">{tr('eval.build.visibility')}</p>
+          <p role="alert" className="min-h-5 text-sm text-danger">{error}</p>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setStep('draft')} className="btn-secondary px-5 py-2.5 text-sm">{tr('eval.build.backToDraft')}</button>
+            <button type="button" disabled={busy || !emails.trim()} onClick={create} className="btn-advance px-6 py-2.5 text-sm disabled:opacity-50">
+              {busy ? tr('login.sending') : tr('eval.build.assign')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 'done' && (
+        <div className="card space-y-3">
+          <h3 className="text-lg">{tr('eval.build.doneTitle')}</h3>
+          <ul className="space-y-2 text-sm">
+            {resultados.map((r) => (
+              <li key={r.email} className="flex flex-col gap-0.5 rounded-xl border border-border-color p-3">
+                <span className="font-semibold text-foreground">{r.email}</span>
+                <span className="text-text-muted">{r.problema ? problemText(r.problema) : r.avisado ? tr('eval.build.assignedNotified') : tr('eval.build.assignedNoMail')}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex justify-end">
+            <button onClick={onBack} className="btn-primary px-6 py-2.5 text-sm">{tr('eval.build.finish')}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -187,6 +187,12 @@ describe('evaluaciones: generar', () => {
     expect(prompt).toContain('Agrega una competencia de liderazgo')
   })
 
+  it('si la IA no aplicó una parte del pedido, la nota llega a la pantalla', async () => {
+    gemini.generateContent.mockResolvedValue(modelReply({ ...modelDraft, nota: 'No agregué la pregunta sobre la edad: una evaluación solo trata sobre el trabajo.' }))
+    const res = await call('tok_jefa', { action: 'generar', modo: 'jefe', area: 'Ventas', ajuste: 'Pregunta por la edad', previa: { titulo: 'T', competencias: modelDraft.competencias } })
+    expect((res.body as any).nota).toMatch(/edad/)
+  })
+
   it('sin sesión no entra, y sin API key responde en modo demo', async () => {
     expect((await call(null, { action: 'generar', area: 'x' })).status).toBe(401)
     const demo = await call('tok_jefa', { action: 'generar', modo: 'jefe', area: 'Ventas' }, null)
@@ -319,6 +325,11 @@ describe('evaluaciones: piezas puras', () => {
     expect(normalizeCompetencias([{ nombre: 'A', preguntas: ['p'] }, { nombre: '', preguntas: ['p'] }, { nombre: 'B', preguntas: ['q', '', 5] }])?.map((c) => [c.id, c.preguntas.length])).toEqual([['c1', 1], ['c2', 1]])
     expect(normalizeCompetencias([{ nombre: 'sola', preguntas: ['p'] }])).toBeNull()
     expect(normalizeCompetencias('x')).toBeNull()
+  })
+
+  it('normalizeInforme saca la frase de introducción del resumen', () => {
+    expect(normalizeInforme({ resumen: 'Aquí tienes el resumen de tu autoevaluación. Mostraste resultados concretos en ventas.' }).resumen).toBe('Mostraste resultados concretos en ventas.')
+    expect(normalizeInforme({ resumen: 'Mostraste resultados concretos.' }).resumen).toBe('Mostraste resultados concretos.')
   })
 
   it('normalizeInforme tolera cualquier forma del modelo', () => {

@@ -42,7 +42,7 @@ Component privacyPolicy({required void Function() onBack}) {
         ]),
         _section(_p('s2.title'), [el('p', null, [t(_p('s2.body'))])]),
         _section(_p('s3.title'), [
-          el('ul', 'space-y-2', [for (final x in ['a', 'b', 'c', 'd', 'e']) _item('s3.$x')]),
+          el('ul', 'space-y-2', [for (final x in ['a', 'b', 'c', 'd', 'e', 'f']) _item('s3.$x')]),
         ]),
         _section(_p('s4.title'), [
           el('p', null, [t(_p('s4.intro'))]),

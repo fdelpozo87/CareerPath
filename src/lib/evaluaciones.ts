@@ -88,6 +88,8 @@ export interface Abierta {
 export interface ResultadoAsignacion {
   email: string
   problema: 'sin_cuenta' | 'cuenta_inactiva' | null
+  /** Quien administra la dio de alta al asignarle la evaluación. */
+  creada?: boolean
   avisado: boolean
 }
 
@@ -118,6 +120,7 @@ export const generar = (p: { modo: 'jefe' | 'propia'; area: string; rol: string;
 export const crear = (p: { modo: 'jefe' | 'propia'; titulo: string; area: string; rol: string; periodo: string; competencias: Competencia[]; emails?: string[]; notify?: boolean }) =>
   call<{ ok: true; id: string; resultados: ResultadoAsignacion[] }>({ action: 'crear', ...p })
 
+export const cuentas = () => call<{ emails: string[] }>({ action: 'cuentas' })
 export const mias = () => call<{ items: ItemMia[]; pendientes: number }>({ action: 'mias' })
 export const creadas = () => call<{ items: ItemCreada[] }>({ action: 'creadas' })
 export const abrir = (id: string) => call<Abierta>({ action: 'abrir', id })

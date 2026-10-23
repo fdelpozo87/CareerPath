@@ -18,6 +18,8 @@ const JEFA = '11111111-1111-4111-8111-111111111111'
 const ANA = '22222222-2222-4222-8222-222222222222'
 const LUIS = '33333333-3333-4333-8333-333333333333'
 const INACTIVO = '44444444-4444-4444-8444-444444444444'
+const ADMIN = '55555555-5555-4555-8555-555555555555'
+const NUEVA = '77777777-7777-4777-8777-777777777777'
 
 interface Db {
   users: Record<string, { id: string; email: string }>
@@ -25,6 +27,7 @@ interface Db {
   evaluaciones: Record<string, any>
   asignaciones: Record<string, any>
   mails: { to: string; subject: string }[]
+  auditoria: { action: string; target_email: string; detail: unknown }[]
   compartidas: { asignacion_id: string; user_id: string; email: string; created_at: string }[]
   seq: number
 }
@@ -44,20 +47,36 @@ function fakeSupabase(db: Db) {
       const u = db.users[String((init?.headers as Record<string, string>).Authorization).slice(7)]
       return u ? json({ id: u.id, email: u.email, email_confirmed_at: '2026-10-01T00:00:00Z', factors: [] }) : json({}, 401)
     }
+    if (url.includes('/auth/v1/admin/users') && method === 'POST') {
+      db.users[`tok_${body.email}`] = { id: NUEVA, email: body.email }
+      db.perfiles[NUEVA] = { estado: 'pendiente', acceso_profesionales: true, acceso_empresas: true }
+      return json({ id: NUEVA, email: body.email })
+    }
+    if (url.includes('/auth/v1/admin/generate_link')) return json({ action_link: 'https://x.supabase.co/auth/v1/verify?token=abc' })
+    if (url.includes('/rest/v1/bivio_auditoria')) {
+      db.auditoria.push(body)
+      return new Response(null, { status: 201 })
+    }
     const perfil = (id: string) => {
       const u = Object.values(db.users).find((x) => x.id === id)
       const p = db.perfiles[id]
       return u && p ? { user_id: id, email: u.email, created_at: '2026-10-01T00:00:00Z', last_seen_at: new Date().toISOString(), ...p } : null
     }
     if (url.includes('/rest/v1/bivio_perfiles')) {
-      if (method === 'PATCH') return new Response(null, { status: 204 })
+      if (method === 'POST') return new Response(null, { status: 201 })
+      if (method === 'PATCH') {
+        const id = /user_id=eq\.([^&]+)/.exec(url)?.[1] ?? ''
+        if (db.perfiles[id]) Object.assign(db.perfiles[id], body)
+        return new Response(null, { status: 204 })
+      }
       const byEmail = /email=eq\.([^&]+)/.exec(url)?.[1]
       const byId = /user_id=eq\.([^&]+)/.exec(url)?.[1]
       if (byEmail) {
         const u = Object.values(db.users).find((x) => x.email === decodeURIComponent(byEmail))
         return json(u && perfil(u.id) ? [perfil(u.id)] : [])
       }
-      return json(byId && perfil(byId) ? [perfil(byId)] : [])
+      if (!byId) return json(Object.keys(db.perfiles).map(perfil).filter(Boolean))
+      return json(perfil(byId) ? [perfil(byId)] : [])
     }
     if (url.includes('/rest/v1/bivio_evaluaciones')) {
       if (method === 'POST') {
@@ -159,16 +178,19 @@ beforeEach(() => {
       tok_ana: { id: ANA, email: 'ana@x.test' },
       tok_luis: { id: LUIS, email: 'luis@x.test' },
       tok_inactivo: { id: INACTIVO, email: 'inactivo@x.test' },
+      tok_admin: { id: ADMIN, email: 'admin@bivio.test' },
     },
     perfiles: {
       [JEFA]: { estado: 'activo', acceso_profesionales: false, acceso_empresas: true },
       [ANA]: { estado: 'activo', acceso_profesionales: true, acceso_empresas: false },
       [LUIS]: { estado: 'activo', acceso_profesionales: false, acceso_empresas: false },
       [INACTIVO]: { estado: 'desactivado', acceso_profesionales: true, acceso_empresas: true },
+      [ADMIN]: { estado: 'activo', acceso_profesionales: true, acceso_empresas: true },
     },
     evaluaciones: {},
     asignaciones: {},
     mails: [],
+    auditoria: [],
     compartidas: [],
     seq: 0,
   }
@@ -236,7 +258,7 @@ describe('evaluaciones: crear y asignar', () => {
   it('asigna a una cuenta activa y le manda el aviso por email', async () => {
     const res = await call('tok_jefa', evalBody())
     expect(res.status).toBe(200)
-    expect((res.body as any).resultados).toEqual([{ email: 'ana@x.test', problema: null, avisado: true }])
+    expect((res.body as any).resultados).toEqual([{ email: 'ana@x.test', problema: null, creada: false, avisado: true }])
     expect(db.mails).toEqual([{ to: 'ana@x.test', subject: 'Te asignaron una evaluación en Bivio' }])
     expect(Object.values(db.asignaciones)).toHaveLength(1)
   })
@@ -246,6 +268,28 @@ describe('evaluaciones: crear y asignar', () => {
     const r = (res.body as any).resultados
     expect(r.map((x: any) => [x.email, x.problema])).toEqual([['ana@x.test', null], ['nadie@x.test', 'sin_cuenta'], ['inactivo@x.test', 'cuenta_inactiva']])
     expect(Object.values(db.asignaciones)).toHaveLength(1)
+  })
+
+  it('quien administra puede asignar a un email sin cuenta: se la da de alta y le llega el enlace con la evaluación', async () => {
+    const res = await call('tok_admin', evalBody({ emails: ['ana@x.test', 'nueva@x.test'] }))
+    expect(res.status).toBe(200)
+    expect((res.body as any).resultados.map((r: any) => [r.email, r.problema, r.creada, r.avisado])).toEqual([['ana@x.test', null, false, true], ['nueva@x.test', null, true, true]])
+    expect(db.perfiles[NUEVA]).toMatchObject({ estado: 'activo', acceso_profesionales: true, acceso_empresas: false })
+    expect(Object.values(db.asignaciones).map((a: any) => a.email).sort()).toEqual(['ana@x.test', 'nueva@x.test'])
+    expect(db.mails.find((m) => m.to === 'nueva@x.test')?.subject).toBe('Te dieron acceso a Bivio')
+    expect(db.auditoria).toEqual([{ actor_email: 'admin@bivio.test', action: 'alta', target_email: 'nueva@x.test', detail: { creada: true, origen: 'evaluacion' } }])
+  })
+
+  it('quien no administra no puede dar de alta cuentas desde acá', async () => {
+    const res = await call('tok_jefa', evalBody({ emails: ['nueva@x.test'] }))
+    expect(res.status).toBe(422)
+    expect(db.users['tok_nueva@x.test']).toBeUndefined()
+  })
+
+  it('solo quien administra ve la lista de cuentas para elegir', async () => {
+    expect((await call('tok_jefa', { action: 'cuentas' })).status).toBe(403)
+    const res = await call('tok_admin', { action: 'cuentas' })
+    expect((res.body as any).emails).toEqual(['ana@x.test', 'jefa@x.test', 'luis@x.test'])
   })
 
   it('si ningún destinatario tiene cuenta, no se guarda nada', async () => {

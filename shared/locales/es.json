@@ -910,5 +910,12 @@
   "mail.access.intro": "Quien administra Bivio te dio acceso. Toca el botón para entrar por primera vez; después podrás entrar con un enlace como este o elegir una contraseña desde el menú de tu cuenta.",
   "mail.access.cta": "Entrar a Bivio",
   "mail.access.note": "Si el botón no funciona, copia y pega este enlace en tu navegador: {url}",
-  "mail.access.footer": "Si no esperabas este mensaje, puedes ignorarlo. El enlace vence en una hora y solo sirve una vez."
+  "mail.access.footer": "Si no esperabas este mensaje, puedes ignorarlo. El enlace vence en una hora y solo sirve una vez.",
+  "mail.access.eval": "{who} te asignó una evaluación de desempeño en Bivio: “{title}”. Al entrar la encuentras en “Mis evaluaciones”.",
+  "eval.build.emailsHintAdmin": "Separados por coma o por línea. Si un email todavía no tiene cuenta, se la damos de alta y le llega un enlace para entrar.",
+  "eval.build.pick": "Elegir entre las cuentas existentes",
+  "eval.build.pickSearch": "Buscar por email",
+  "eval.build.pickNone": "No hay cuentas que coincidan.",
+  "eval.build.createdNotified": "Se le creó la cuenta y se le envió el enlace para entrar.",
+  "eval.build.createdNoMail": "Se le creó la cuenta y se le asignó la evaluación. No se envió ningún mail: avísale tú."
 }

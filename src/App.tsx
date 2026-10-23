@@ -371,6 +371,7 @@ function App() {
       <EvaluacionesPage
         canCreate={isAdmin || areas.empresas}
         canSelf={isAdmin || areas.empresas || areas.profesionales}
+        isAdmin={isAdmin}
         onPending={setEvalPending}
         account={account}
         areas={areas}

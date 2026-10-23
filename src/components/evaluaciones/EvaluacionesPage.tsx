@@ -26,6 +26,8 @@ const BADGE: Record<EstadoAsignacion, string> = {
 interface EvaluacionesPageProps {
   canCreate: boolean
   canSelf: boolean
+  /** Quien administra puede elegir entre las cuentas existentes y dar de alta emails nuevos al asignar. */
+  isAdmin?: boolean
   /** Vuelve a la home. */
   onBack: () => void
   /** Vuelve a la home y baja a esa parte ("Para profesionales" o "Para empresas"). */
@@ -35,7 +37,7 @@ interface EvaluacionesPageProps {
   areas: { profesionales: boolean; empresas: boolean }
 }
 
-export function EvaluacionesPage({ canCreate, canSelf, onBack, onNavigate, onPending, account, areas }: EvaluacionesPageProps) {
+export function EvaluacionesPage({ canCreate, canSelf, isAdmin = false, onBack, onNavigate, onPending, account, areas }: EvaluacionesPageProps) {
   const [view, setView] = useState<View>({ kind: 'home' })
   const [mine, setMine] = useState<ItemMia[] | null>(null)
   const [created, setCreated] = useState<ItemCreada[]>([])
@@ -97,7 +99,7 @@ export function EvaluacionesPage({ canCreate, canSelf, onBack, onNavigate, onPen
       </header>
 
       <main className="section-container max-w-3xl flex-1 py-10">
-        {view.kind === 'builder' && view.modo === 'jefe' && <Builder onBack={home} />}
+        {view.kind === 'builder' && view.modo === 'jefe' && <Builder onBack={home} isAdmin={isAdmin} />}
         {view.kind === 'builder' && view.modo === 'propia' && <SelfStart onBack={home} onOpen={(id) => setView({ kind: 'open', id })} />}
         {view.kind === 'open' && <AnswerView id={view.id} onBack={home} onChanged={() => void load()} />}
 

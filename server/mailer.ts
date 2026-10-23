@@ -1,13 +1,22 @@
 // Envío de emails (Resend). Si faltan RESEND_API_KEY o REMINDER_FROM no se manda nada y quien llama lo sabe:
 // las funciones de la app tienen que seguir funcionando sin email (la notificación también aparece dentro de Bivio).
 
+import { renderEmailHtml, renderEmailText, type EmailContent } from '../shared/emailLayout.js'
+
 export interface Mail {
   subject: string
   html: string
   text: string
 }
 
-export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+export { esc } from '../shared/emailLayout.js'
+
+/** Un email con el diseño de la marca (ver shared/emailLayout.ts). */
+export function brandedMail(subject: string, content: EmailContent, assetsUrl = appUrl()): Mail {
+  return { subject, html: renderEmailHtml([content], assetsUrl), text: renderEmailText([content]) }
+}
+
+export const appUrl = (): string => process.env.APP_URL ?? 'https://career-path-ruby.vercel.app'
 
 export function mailerConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.REMINDER_FROM)

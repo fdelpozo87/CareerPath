@@ -129,3 +129,12 @@ pantalla muestra “Verifica que eres tú”. Para el administrador sigue siendo
 - La versión Jaspr (`web_jaspr/`) sigue con el acceso por código y no funciona con el acceso por cuenta.
 - Cualquiera puede registrarse; sin aprobación no usa el servicio, pero sí crea una cuenta pendiente. Si molesta,
   desactivar los registros nuevos en Supabase (Authentication → Providers → Email) y crear las cuentas a mano.
+
+## Emails con el diseño de Bivio
+
+- **Altas desde el panel de administración:** si `RESEND_API_KEY` y `REMINDER_FROM` están configuradas, el aviso sale por Resend con el
+  diseño de Bivio (el enlace se genera con `generate_link` de Supabase). Si no, o si el envío falla, sale el mail estándar de Supabase.
+- **Mails de Supabase (enlace de ingreso, recuperar contraseña, etc.):** las plantillas ya diseñadas están en `supabase/email-templates/`
+  (generadas con `node scripts/gen-email-templates.mjs`). Se pegan una vez en Supabase → Authentication → Emails → Templates; el
+  README de esa carpeta trae el asunto de cada una. Requiere el **Site URL** bien configurado y `public/email/logo.png` desplegado.
+- **Recordatorios y avisos de evaluaciones:** usan el mismo diseño (`shared/emailLayout.ts`, `server/mailer.ts#brandedMail`).

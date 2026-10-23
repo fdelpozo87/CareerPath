@@ -896,5 +896,19 @@
   "eval.who.reader": "{email} shared this self-evaluation with you. You can read it but not change it.",
   "eval.shared.title": "Shared with me",
   "eval.shared.lede": "Self-evaluations other people chose to show you. They’re read-only.",
-  "eval.shared.from": "Shared by {who}"
+  "eval.shared.from": "Shared by {who}",
+  "eval.print.kicker": "Performance self-evaluation",
+  "eval.print.person": "Person: {email}",
+  "eval.print.sent": "Submitted on {date}",
+  "eval.print.by": "Evaluation created by {who}",
+  "eval.read.questions": "Questions",
+  "eval.read.level": "Level you placed yourself at",
+  "eval.read.none": "(No answer)",
+  "mail.eval.note": "Sign in to Bivio with your account and look for “My evaluations” in the menu.",
+  "mail.access.subject": "You’ve been given access to Bivio",
+  "mail.access.heading": "You’ve been given access to Bivio",
+  "mail.access.intro": "Whoever runs Bivio gave you access. Tap the button to sign in for the first time; afterwards you can sign in with a link like this one or choose a password from your account menu.",
+  "mail.access.cta": "Sign in to Bivio",
+  "mail.access.note": "If the button doesn’t work, copy and paste this link into your browser: {url}",
+  "mail.access.footer": "If you weren’t expecting this message, you can ignore it. The link expires in one hour and works only once."
 }

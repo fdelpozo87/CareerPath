@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { abrir, compartir, dejarDeCompartir, enviar, guardar, NIVEL_KEYS, puntuar, SCORE_KEYS, type Abierta, type Puntajes, type Respuesta, type Respuestas } from '../../lib/evaluaciones'
+import { abrir, compartir, dejarDeCompartir, enviar, guardar, NIVEL_KEYS, puntuar, SCORE_KEYS, type Abierta, type Competencia, type Puntajes, type Respuesta, type Respuestas } from '../../lib/evaluaciones'
 import { getLang, tr } from '../../lib/i18n'
 import { useId } from 'react'
+import Logo from '../Logo'
 import ConfirmDialog from '../ConfirmDialog'
 import { InformeView } from './InformeView'
 
@@ -82,16 +83,30 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
 
   return (
     <div>
-      <button onClick={onBack} className="mb-4 text-sm text-text-muted underline underline-offset-2 hover:text-foreground">
+      <button onClick={onBack} className="mb-4 text-sm text-text-muted underline underline-offset-2 hover:text-foreground print:hidden">
         ← {tr('eval.back')}
       </button>
-      <h2 className="mb-1 text-2xl">{ev.titulo}</h2>
-      <p className="mb-4 text-sm text-text-muted">
+
+      {/* Al imprimir o guardar en PDF, el documento empieza con su propio encabezado (no con la pantalla de la app). */}
+      <div className="mb-6 hidden border-b border-border-color pb-4 print:block">
+        <Logo />
+        <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-primary">{tr('eval.print.kicker')}</p>
+        <h1 className="mt-1 text-2xl">{ev.titulo}</h1>
+        <p className="mt-1 text-sm text-text-muted">{[ev.area, ev.rol, ev.periodo].filter(Boolean).join(' · ')}</p>
+        <p className="mt-3 text-sm text-foreground">
+          {tr('eval.print.person', { email: data.email })}
+          {data.completadaAt && ` · ${tr('eval.print.sent', { date: new Date(data.completadaAt).toLocaleDateString(getLang() === 'en' ? 'en-US' : 'es') })}`}
+          {ev.tipo === 'asignada' && ` · ${tr('eval.print.by', { who: data.creadaPor })}`}
+        </p>
+      </div>
+
+      <h2 className="mb-1 text-2xl print:hidden">{ev.titulo}</h2>
+      <p className="mb-4 text-sm text-text-muted print:hidden">
         {[ev.area, ev.rol, ev.periodo].filter(Boolean).join(' · ')}
       </p>
 
       {/* Transparencia: quién va a leer lo que se escriba, antes de escribirlo. */}
-      <p className="mb-6 rounded-xl bg-primary-soft p-4 text-sm leading-relaxed text-foreground">
+      <p className="mb-6 rounded-xl bg-primary-soft p-4 text-sm leading-relaxed text-foreground print:hidden">
         {data.rol === 'lector'
           ? tr('eval.who.reader', { email: data.email })
           : data.rol === 'creador'
@@ -102,13 +117,13 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
       </p>
 
       {data.rol === 'responde' && data.puntajes && (
-        <p role="status" className="mb-6 rounded-xl border border-border-color p-4 text-sm leading-relaxed text-foreground" style={{ borderLeft: '3px solid var(--color-accent)' }}>
+        <p role="status" className="mb-6 rounded-xl border border-border-color p-4 text-sm leading-relaxed text-foreground print:hidden" style={{ borderLeft: '3px solid var(--color-accent)' }}>
           {tr('eval.score.seen', { who: data.creadaPor })}
         </p>
       )}
 
       {data.rol === 'creador' && data.estado !== 'completada' && (
-        <p role="status" className="rounded-xl border border-border-color p-4 text-sm text-text-muted">
+        <p role="status" className="rounded-xl border border-border-color p-4 text-sm text-text-muted print:hidden">
           {tr('eval.creator.waiting', { email: data.email })}
         </p>
       )}
@@ -116,7 +131,7 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
       {canAnswer || data.estado === 'completada' ? (
         <>
           {canShare && (
-            <section aria-labelledby="compartir-titulo" className="mb-8 card">
+            <section aria-labelledby="compartir-titulo" className="mb-8 card print:hidden">
               <h3 id="compartir-titulo" className="mb-1 text-base">
                 {tr('eval.share.title')}
               </h3>
@@ -168,7 +183,7 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
 
           {data.informe && data.estado === 'completada' && (
             <section aria-labelledby="informe-titulo" className="mb-8">
-              <h3 id="informe-titulo" className="mb-3 text-xl">
+              <h3 id="informe-titulo" className="mb-3 text-xl print:break-after-avoid">
                 {tr('eval.report.title')}
               </h3>
               <InformeView informe={data.informe} />
@@ -177,13 +192,26 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
 
           <section aria-labelledby="resp-titulo">
             {data.estado === 'completada' && (
-              <h3 id="resp-titulo" className="mb-3 text-xl">
+              <h3 id="resp-titulo" className="mb-3 text-xl print:break-after-avoid">
                 {tr('eval.answers.title')}
               </h3>
             )}
             <div className="space-y-5">
               {ev.competencias.map((c) => {
                 const r = get(c.id)
+                if (!canAnswer) {
+                  return (
+                    <ReadCard
+                      key={c.id}
+                      c={c}
+                      r={r}
+                      other={data.rol !== 'responde'}
+                      who={data.creadaPor}
+                      saved={data.puntajes?.[c.id]}
+                      scoring={canScore ? { value: sc(c.id), set: (patch) => setSc(c.id, patch) } : undefined}
+                    />
+                  )
+                }
                 return (
                   <div key={c.id} className="card">
                     <fieldset disabled={!canAnswer} className="m-0 min-w-0 border-0 p-0">
@@ -279,6 +307,12 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
                 )
               })}
 
+              {!canAnswer ? (
+                <div className="card break-inside-avoid">
+                  <p className="mb-1 text-sm font-medium text-foreground">{tr('eval.develop.label')}</p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{typeof answers.desarrollo === 'string' && answers.desarrollo.trim() ? answers.desarrollo : tr('eval.read.none')}</p>
+                </div>
+              ) : (
               <div className="card">
                 <label htmlFor="ev-desarrollo" className="mb-1 block text-sm font-medium text-foreground">
                   {tr('eval.develop.label')}
@@ -293,10 +327,11 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
                   className="w-full resize-y rounded-xl border border-border-color bg-background p-3 text-sm text-foreground outline-none focus:border-primary"
                 />
               </div>
+              )}
             </div>
 
             {canScore && (
-              <div className="mt-6">
+              <div className="mt-6 print:hidden">
                 <p role="alert" className="min-h-6 text-sm text-danger">
                   {error}
                 </p>
@@ -313,7 +348,7 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
             )}
 
             {canAnswer && (
-              <div className="mt-6">
+              <div className="mt-6 print:hidden">
                 <p role="alert" className="min-h-6 text-sm text-danger">
                   {error}
                 </p>
@@ -396,6 +431,100 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
           })
         }}
       />
+    </div>
+  )
+}
+
+// ── Modo lectura ──────────────────────────────────────────────────────────────
+// La autoevaluación ya enviada se muestra como un documento: el texto completo (no cajas con scroll), el nivel
+// como una escala y, si hay, el puntaje de quien evalúa. Es lo que se imprime o se guarda en PDF.
+
+function ReadCard({
+  c,
+  r,
+  other,
+  who,
+  saved,
+  scoring,
+}: {
+  c: Competencia
+  r: Respuesta
+  /** Lo lee alguien que no es quien respondió: las etiquetas hablan de "la persona". */
+  other: boolean
+  who: string
+  saved?: { puntaje: number; comentario: string }
+  scoring?: { value: { puntaje: number; comentario: string }; set: (patch: Partial<{ puntaje: number; comentario: string }>) => void }
+}) {
+  const n = r.nivel ?? 0
+  return (
+    <div className="card break-inside-avoid print:p-5 print:shadow-none">
+      <h4 className="text-base font-semibold">{c.nombre}</h4>
+      {c.descripcion && <p className="mb-3 text-sm text-text-muted">{c.descripcion}</p>}
+
+      <p className="mb-1 mt-3 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('eval.read.questions')}</p>
+      <ul className="mb-4 list-disc space-y-1 pl-5 text-xs leading-relaxed text-text-muted">
+        {c.preguntas.map((p, i) => (
+          <li key={i}>{p}</li>
+        ))}
+      </ul>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <p className="text-sm font-medium text-foreground">{tr(other ? 'eval.level.labelOther' : 'eval.read.level')}</p>
+        <div className="flex items-center gap-2">
+          <span className="flex gap-1" aria-hidden="true">
+            {NIVEL_KEYS.map((_, i) => (
+              <span key={i} className={`h-2 w-6 rounded-full ${i < n ? 'bg-accent' : 'bg-border-color'}`} />
+            ))}
+          </span>
+          <span className="rounded-full border border-accent bg-accent-soft px-3 py-0.5 text-sm font-semibold text-foreground">{n >= 1 ? tr(NIVEL_KEYS[n - 1]) : '—'}</span>
+        </div>
+      </div>
+
+      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr(other ? 'eval.evidence.labelOther' : 'eval.evidence.label')}</p>
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{r.evidencia.trim() || tr('eval.read.none')}</p>
+
+      {/* Puntaje de quien evalúa: se edita en pantalla (no se imprime) y, una vez guardado, se muestra como parte del documento. */}
+      {scoring && (
+        <div className="mt-4 rounded-xl bg-secondary p-4 print:hidden">
+          <p className="mb-2 text-sm font-semibold text-foreground">{tr('eval.score.mine')}</p>
+          <div role="radiogroup" aria-label={`${tr('eval.score.label')}: ${c.nombre}`} className="mb-3 flex flex-wrap gap-2">
+            {SCORE_KEYS.map((k, i) => {
+              const selected = scoring.value.puntaje === i + 1
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => scoring.set({ puntaje: i + 1 })}
+                  className={`rounded-full border px-3.5 py-1.5 text-sm transition ${selected ? 'border-accent bg-accent-soft font-semibold text-foreground' : 'border-border-color bg-card text-text-muted hover:bg-card/70'}`}
+                >
+                  {i + 1} · {tr(k)}
+                </button>
+              )
+            })}
+          </div>
+          <label htmlFor={`sc-${c.id}`} className="mb-1 block text-xs font-medium text-text-muted">{tr('eval.score.comment')}</label>
+          <textarea
+            id={`sc-${c.id}`}
+            rows={2}
+            maxLength={500}
+            value={scoring.value.comentario}
+            onChange={(e) => scoring.set({ comentario: e.target.value })}
+            className="w-full resize-y rounded-xl border border-border-color bg-background p-3 text-sm text-foreground outline-none focus:border-primary"
+          />
+        </div>
+      )}
+      {saved && (
+        <div className={`mt-4 rounded-xl bg-secondary p-4 ${scoring ? 'hidden print:block' : ''}`}>
+          <p className="mb-1 text-sm font-semibold text-foreground">{tr('eval.score.from', { who })}</p>
+          <p className="text-sm text-foreground">
+            <span className="mr-2 inline-block rounded-full border border-accent bg-accent-soft px-3 py-0.5 font-semibold">{saved.puntaje}</span>
+            {saved.puntaje >= 1 && tr(SCORE_KEYS[saved.puntaje - 1])}
+          </p>
+          {saved.comentario && <p className="mt-2 text-sm italic leading-relaxed text-text-muted">“{saved.comentario}”</p>}
+        </div>
+      )}
     </div>
   )
 }

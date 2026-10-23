@@ -896,5 +896,19 @@
   "eval.who.reader": "{email} compartió contigo esta autoevaluación. Puedes leerla, pero no modificarla.",
   "eval.shared.title": "Compartidas conmigo",
   "eval.shared.lede": "Autoevaluaciones que otras personas decidieron mostrarte. Son de solo lectura.",
-  "eval.shared.from": "Compartida por {who}"
+  "eval.shared.from": "Compartida por {who}",
+  "eval.print.kicker": "Autoevaluación de desempeño",
+  "eval.print.person": "Persona: {email}",
+  "eval.print.sent": "Enviada el {date}",
+  "eval.print.by": "Evaluación creada por {who}",
+  "eval.read.questions": "Preguntas",
+  "eval.read.level": "Nivel con el que te ubicaste",
+  "eval.read.none": "(Sin respuesta)",
+  "mail.eval.note": "Entra a Bivio con tu cuenta y busca “Mis evaluaciones” en el menú.",
+  "mail.access.subject": "Te dieron acceso a Bivio",
+  "mail.access.heading": "Te dieron acceso a Bivio",
+  "mail.access.intro": "Quien administra Bivio te dio acceso. Toca el botón para entrar por primera vez; después podrás entrar con un enlace como este o elegir una contraseña desde el menú de tu cuenta.",
+  "mail.access.cta": "Entrar a Bivio",
+  "mail.access.note": "Si el botón no funciona, copia y pega este enlace en tu navegador: {url}",
+  "mail.access.footer": "Si no esperabas este mensaje, puedes ignorarlo. El enlace vence en una hora y solo sirve una vez."
 }

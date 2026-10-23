@@ -1,7 +1,7 @@
 import { translate, type Lang } from '../shared/i18n.js'
 import { cloudEnv, dueReminders, emailOf, markReminderSent, type CloudEnv, type DueReminder } from './cloud.js'
 import { logEvent } from './guard.js'
-import { esc, mailerConfigured, sendMail } from './mailer.js'
+import { brandedMail, mailerConfigured, sendMail } from './mailer.js'
 
 // Recordatorio de check-in: un email, una sola vez, a quien lo pidió al guardar sus compromisos.
 // Lo dispara un cron de Vercel (api/reminders.ts). Si falta RESEND_API_KEY no se manda nada.
@@ -19,30 +19,18 @@ export function buildReminderMail(r: DueReminder, appUrl: string): ReminderMail 
   const informe = r.bivio_informes.informe
   const chosen = (r.bivio_informes.compromisos ?? []).map((i) => informe.acciones?.[i]?.texto).filter((x): x is string => Boolean(x))
   const checkIn = informe.checkIn?.trim()
-  const items = chosen.length > 0 ? chosen : []
-
-  const text = [
-    t('mail.reminder.hello'),
-    '',
-    items.length > 0 ? t('mail.reminder.intro') : t('mail.reminder.introNone'),
-    ...items.map((x) => `- ${x}`),
-    ...(checkIn ? ['', t('mail.reminder.checkin', { text: checkIn })] : []),
-    '',
-    t('mail.reminder.cta', { url: appUrl }),
-    '',
-    t('mail.reminder.footer'),
-  ].join('\n')
-
-  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f1533;line-height:1.5">
-<p>${esc(t('mail.reminder.hello'))}</p>
-<p>${esc(items.length > 0 ? t('mail.reminder.intro') : t('mail.reminder.introNone'))}</p>
-${items.length > 0 ? `<ul>${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-${checkIn ? `<p>${esc(t('mail.reminder.checkin', { text: checkIn }))}</p>` : ''}
-<p><a href="${esc(appUrl)}" style="color:#6a3fc1">${esc(t('mail.reminder.link'))}</a></p>
-<p style="font-size:12px;color:#5e566d">${esc(t('mail.reminder.footer'))}</p>
-</div>`
-
-  return { subject: t('mail.reminder.subject'), html, text }
+  return brandedMail(
+    t('mail.reminder.subject'),
+    {
+      heading: t('mail.reminder.subject'),
+      preheader: chosen.length > 0 ? t('mail.reminder.intro') : t('mail.reminder.introNone'),
+      paragraphs: [t('mail.reminder.hello'), chosen.length > 0 ? t('mail.reminder.intro') : t('mail.reminder.introNone'), ...(checkIn ? [t('mail.reminder.checkin', { text: checkIn })] : [])],
+      bullets: chosen,
+      cta: { label: t('mail.reminder.link'), url: appUrl },
+      footer: t('mail.reminder.footer'),
+    },
+    appUrl,
+  )
 }
 
 export interface RemindersResult {

@@ -308,3 +308,18 @@
     }
   }
 }
+
+/* ── Impresión y PDF ───────────────────────────────────────────────────────── */
+/* Los documentos (informes, evaluaciones) salen con márgenes razonables, sin sombras y sin cortar una tarjeta a la mitad. */
+@page {
+  margin: 14mm 12mm;
+}
+@media print {
+  body {
+    background: #ffffff;
+  }
+  .card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}

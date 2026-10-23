@@ -7,7 +7,7 @@ import { buildGeneratePrompt, buildReportPrompt, type Competencia } from './eval
 import { generateJson, responseText } from './gemini.js'
 import { RATE_RULES, clientIp, ipTag, isAllowedOrigin, logEvent, publicError, requestLang } from './guard.js'
 import { durableLimit } from './limits.js'
-import { esc, sendMail, type Mail } from './mailer.js'
+import { brandedMail, sendMail, type Mail } from './mailer.js'
 
 // POST /api/evaluaciones — evaluaciones de desempeño (ver docs/EVALUACIONES.md).
 //
@@ -122,38 +122,50 @@ const DEMO_INFORME: Informe = {
 
 export function buildScoredMail(lang: Lang, titulo: string, creadaPor: string, appUrl: string): Mail {
   const t = (k: Parameters<typeof translate>[1], v?: Record<string, string | number>) => translate(lang, k, v)
-  const text = [t('mail.score.hello'), '', t('mail.score.intro', { who: creadaPor, title: titulo }), '', t('mail.eval.cta', { url: appUrl }), '', t('mail.eval.footer')].join('\n')
-  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f1533;line-height:1.5">
-<p>${esc(t('mail.score.hello'))}</p>
-<p>${esc(t('mail.score.intro', { who: creadaPor, title: titulo }))}</p>
-<p><a href="${esc(appUrl)}" style="color:#6a3fc1">${esc(t('mail.eval.link'))}</a></p>
-<p style="font-size:12px;color:#5e566d">${esc(t('mail.eval.footer'))}</p>
-</div>`
-  return { subject: t('mail.score.subject'), html, text }
+  return brandedMail(
+    t('mail.score.subject'),
+    {
+      heading: t('mail.score.subject'),
+      preheader: t('mail.score.intro', { who: creadaPor, title: titulo }),
+      paragraphs: [t('mail.score.hello'), t('mail.score.intro', { who: creadaPor, title: titulo })],
+      cta: { label: t('mail.eval.link'), url: appUrl },
+      note: t('mail.eval.note'),
+      footer: t('mail.eval.footer'),
+    },
+    appUrl,
+  )
 }
 
 export function buildSharedMail(lang: Lang, titulo: string, de: string, appUrl: string): Mail {
   const t = (k: Parameters<typeof translate>[1], v?: Record<string, string | number>) => translate(lang, k, v)
-  const text = [t('mail.share.hello'), '', t('mail.share.intro', { who: de, title: titulo }), '', t('mail.eval.cta', { url: appUrl }), '', t('mail.eval.footer')].join('\n')
-  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f1533;line-height:1.5">
-<p>${esc(t('mail.share.hello'))}</p>
-<p>${esc(t('mail.share.intro', { who: de, title: titulo }))}</p>
-<p><a href="${esc(appUrl)}" style="color:#6a3fc1">${esc(t('mail.eval.link'))}</a></p>
-<p style="font-size:12px;color:#5e566d">${esc(t('mail.eval.footer'))}</p>
-</div>`
-  return { subject: t('mail.share.subject'), html, text }
+  return brandedMail(
+    t('mail.share.subject'),
+    {
+      heading: t('mail.share.subject'),
+      preheader: t('mail.share.intro', { who: de, title: titulo }),
+      paragraphs: [t('mail.share.hello'), t('mail.share.intro', { who: de, title: titulo })],
+      cta: { label: t('mail.eval.link'), url: appUrl },
+      note: t('mail.eval.note'),
+      footer: t('mail.eval.footer'),
+    },
+    appUrl,
+  )
 }
 
 export function buildAssignedMail(lang: Lang, titulo: string, creadaPor: string, appUrl: string): Mail {
   const t = (k: Parameters<typeof translate>[1], v?: Record<string, string | number>) => translate(lang, k, v)
-  const text = [t('mail.eval.hello'), '', t('mail.eval.intro', { who: creadaPor, title: titulo }), '', t('mail.eval.cta', { url: appUrl }), '', t('mail.eval.footer')].join('\n')
-  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f1533;line-height:1.5">
-<p>${esc(t('mail.eval.hello'))}</p>
-<p>${esc(t('mail.eval.intro', { who: creadaPor, title: titulo }))}</p>
-<p><a href="${esc(appUrl)}" style="color:#6a3fc1">${esc(t('mail.eval.link'))}</a></p>
-<p style="font-size:12px;color:#5e566d">${esc(t('mail.eval.footer'))}</p>
-</div>`
-  return { subject: t('mail.eval.subject'), html, text }
+  return brandedMail(
+    t('mail.eval.subject'),
+    {
+      heading: t('mail.eval.subject'),
+      preheader: t('mail.eval.intro', { who: creadaPor, title: titulo }),
+      paragraphs: [t('mail.eval.hello'), t('mail.eval.intro', { who: creadaPor, title: titulo })],
+      cta: { label: t('mail.eval.link'), url: appUrl },
+      note: t('mail.eval.note'),
+      footer: t('mail.eval.footer'),
+    },
+    appUrl,
+  )
 }
 
 // ── Acceso a datos (solo servidor) ─────────────────────────────────────────────────────────────────────

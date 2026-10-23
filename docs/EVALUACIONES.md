@@ -83,3 +83,9 @@ bloque 70-20-10 y plazo, y preguntas para la conversación. Sin puntaje total, p
 - No hay todavía ciclos periódicos ni vista por equipo, ni un puntaje general (hoy es por competencia).
 - La versión Jaspr no tiene esta sección.
 - Ver los puntos legales pendientes en docs/LEGAL_PENDIENTES.md antes de ofrecerlo a empresas reales.
+
+## Impresión / PDF
+
+Al imprimir una evaluación (o guardarla como PDF) se oculta la interfaz y sale un documento con el logo, el título, la persona, la
+fecha de envío y quien la asignó; las respuestas se muestran completas (sin cuadros de texto cortados), con la escala de nivel, el
+ejemplo y el puntaje de la jefatura, y las tarjetas no se parten entre páginas.

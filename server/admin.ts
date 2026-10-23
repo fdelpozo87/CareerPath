@@ -1,9 +1,30 @@
 import type { IncomingMessage } from 'node:http'
 import { translate, type Lang } from '../shared/i18n.js'
 import { adminMfaRequired, authorize, resetAuthCache } from './auth.js'
-import { ESTADOS, cloudEnv, createUser, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, sendAccessLink, setAreas, setEstado, type AuditAction, type Estado } from './cloud.js'
+import { ESTADOS, cloudEnv, createUser, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, generateLink, listPerfiles, logAudit, sendAccessLink, setAreas, setEstado, type AuditAction, type Estado } from './cloud.js'
 import { RATE_RULES, clientIp, ipTag, isAllowedOrigin, logEvent, requestLang } from './guard.js'
 import { durableLimit } from './limits.js'
+import { brandedMail, mailerConfigured, sendMail, type Mail } from './mailer.js'
+
+/** Mail de acceso con el diseño de Bivio; si no hay envío propio (Resend), sale el mail de Supabase. */
+export function buildAccessMail(link: string, lang: Lang): Mail {
+  const t = (k: Parameters<typeof translate>[1], v?: Record<string, string | number>) => translate(lang, k, v)
+  return brandedMail(t('mail.access.subject'), {
+    heading: t('mail.access.heading'),
+    paragraphs: [t('mail.access.intro')],
+    cta: { label: t('mail.access.cta'), url: link },
+    note: t('mail.access.note', { url: link }),
+    footer: t('mail.access.footer'),
+  })
+}
+
+async function notifyAccess(env: NonNullable<ReturnType<typeof cloudEnv>>, email: string, origin: string, lang: Lang): Promise<boolean> {
+  if (mailerConfigured()) {
+    const link = await generateLink(env, email, origin)
+    if (link && (await sendMail(email, buildAccessMail(link, lang)))) return true
+  }
+  return sendAccessLink(env, email, origin)
+}
 
 // POST /api/admin — panel de administración de cuentas. Solo lo usa quien tenga el email de ADMIN_EMAIL
 // (verificado en el servidor con su token de sesión: el navegador no decide quién es administrador).
@@ -79,7 +100,7 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
       resetAuthCache()
       await audit('alta', email, { creada: created, avisoPedido: body.notify === true, ...areas })
       const origin = typeof req.headers.origin === 'string' ? req.headers.origin : ''
-      const notified = body.notify === true && origin ? await sendAccessLink(env, email, origin).catch(() => false) : false
+      const notified = body.notify === true && origin ? await notifyAccess(env, email, origin, lang).catch(() => false) : false
       logEvent('info', 'admin_alta', { created, notified })
       return { status: 200, body: { ok: true, created, notified } }
     }

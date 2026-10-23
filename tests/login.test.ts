@@ -23,6 +23,8 @@ interface Fake {
   perfiles: Record<string, { estado: Estado; last_seen_at: string | null; acceso_profesionales?: boolean; acceso_empresas?: boolean }>
   calls: string[]
   otpOk?: boolean
+  resendOk?: boolean
+  mails?: { to: string; subject: string; html: string; text: string }[]
   audit: { id: number; at: string; actor_email: string; action: string; target_email: string; detail: unknown }[]
   auditFail?: boolean
 }
@@ -85,6 +87,11 @@ function fakeSupabase(f: Fake) {
       const id = '66666666-6666-4666-8666-666666666666'
       f.users[`tok_${b.email}`] = { id, email: b.email }
       return json({ id, email: b.email })
+    }
+    if (url.includes('/auth/v1/admin/generate_link')) return json({ action_link: 'https://x.supabase.co/auth/v1/verify?token=abc&type=magiclink' })
+    if (url.startsWith('https://api.resend.com/emails')) {
+      f.mails = [...(f.mails ?? []), JSON.parse(String(init?.body))]
+      return f.resendOk === false ? json({}, 500) : json({ id: 'm1' })
     }
     if (url.includes('/auth/v1/otp')) return f.otpOk === false ? json({}, 429) : json({})
     return json({}, 404)
@@ -281,6 +288,26 @@ describe('alta de cuentas por quien administra', () => {
     resetAuthCache()
     fake.otpOk = false
     expect((await add('dos@x.test', true)).body).toMatchObject({ ok: true, notified: false })
+  })
+
+  it('con envío propio (Resend) manda el mail con el diseño de Bivio y no el de Supabase', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test')
+    vi.stubEnv('REMINDER_FROM', 'Bivio <hola@bivio.test>')
+    const res = await add('marca@x.test', true)
+    expect(res.body).toMatchObject({ created: true, notified: true })
+    expect(fake.mails).toHaveLength(1)
+    expect(fake.mails![0].to).toBe('marca@x.test')
+    expect(fake.mails![0].html).toContain('https://x.supabase.co/auth/v1/verify?token=abc')
+    expect(fake.mails![0].html).toContain('#f28c38')
+    expect(fake.calls.some((c) => c.includes('/auth/v1/otp'))).toBe(false)
+  })
+
+  it('si el envío propio falla, vuelve al mail de Supabase', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test')
+    vi.stubEnv('REMINDER_FROM', 'Bivio <hola@bivio.test>')
+    fake.resendOk = false
+    expect((await add('cae@x.test', true)).body).toMatchObject({ created: true, notified: true })
+    expect(fake.calls.some((c) => c.includes('/auth/v1/otp'))).toBe(true)
   })
 
   it('sin aviso no manda ningún mail', async () => {

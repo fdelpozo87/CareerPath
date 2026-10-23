@@ -218,3 +218,14 @@ export async function sendAccessLink(env: CloudEnv, email: string, redirectTo: s
   })
   return res.ok
 }
+
+/** Genera el enlace de ingreso sin mandar ningún mail (para enviarlo con el diseño de Bivio). */
+export async function generateLink(env: CloudEnv, email: string, redirectTo: string): Promise<string | null> {
+  const res = await call(env, '/auth/v1/admin/generate_link', {
+    method: 'POST',
+    body: JSON.stringify({ type: 'magiclink', email, redirect_to: redirectTo }),
+  })
+  if (!res.ok) return null
+  const body = (await res.json().catch(() => ({}))) as { action_link?: string }
+  return typeof body.action_link === 'string' && body.action_link.startsWith('https://') ? body.action_link : null
+}

@@ -837,5 +837,13 @@
   "eval.self.rolePh": "Por ejemplo: Analista de datos, Jefa de proyectos…",
   "eval.self.start": "Empezar mi evaluación",
   "eval.self.building": "Armando tu evaluación a tu medida: puede tardar unos segundos…",
-  "eval.self.private": "Es solo tuya: nadie más ve lo que escribas ni el informe. No uses nombres ni datos personales de otras personas."
+  "eval.self.private": "Es solo tuya: nadie más ve lo que escribas ni el informe. No uses nombres ni datos personales de otras personas.",
+  "chat.stage0.label": "Etapa 0 · Antes de empezar",
+  "chat.stage0.next": "Después: Etapa 1 · Diagnóstico",
+  "flow.stage0": "Antes de empezar",
+  "company.card.diag.tag": "Diagnóstico",
+  "company.card.eval.tag": "Evaluaciones",
+  "company.card.eval.button": "Abrir evaluaciones",
+  "company.card.diag.title": "Diagnóstico de un colaborador",
+  "eval.nav": "Secciones"
 }

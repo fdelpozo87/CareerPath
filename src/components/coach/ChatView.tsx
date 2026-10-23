@@ -201,6 +201,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
 function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'session' | 'docStatus' | 'onAttachDoc'>) {
   const [docsOpen, setDocsOpen] = useState(false)
   const [topicsOpen, setTopicsOpen] = useState(false)
+  const started = session.messages.some((m) => m.role === 'user' && !m.hidden)
   const idx = STAGE_ORDER.indexOf(session.stage)
   const objetivos = objectivesFor(session.stage, session.path)
   const cubiertos = session.cubiertos[session.stage]
@@ -238,65 +239,79 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
 
       {session.perfil && <ProfileRecap perfil={session.perfil} />}
 
-      {/* Dónde estás: etapa, qué se hace ahora y qué viene después. */}
-      <div className="mt-2.5">
-        <div className="flex items-baseline justify-between gap-3 text-xs">
-          <p className="font-semibold text-primary">
-            {tr('chat.stageOf', { n: idx + 1, total: STAGE_ORDER.length, stage: stageLabel(session.stage) })}
-          </p>
-          <p className="hidden text-text-muted sm:block">{tr('chat.after', { next: intro.despues })}</p>
+      {/* Antes de la primera respuesta es la etapa 0 ("Antes de empezar"); al empezar, la etapa 1. */}
+      {!started ? (
+        <div className="mt-2.5">
+          <div className="flex items-baseline justify-between gap-3 text-xs">
+            <p className="font-semibold text-primary">{tr('chat.stage0.label')}</p>
+            <p className="hidden text-text-muted sm:block">{tr('chat.stage0.next')}</p>
+          </div>
+          <div className="mt-2 flex gap-1.5" aria-hidden="true">
+            {STAGE_ORDER.map((s) => (
+              <span key={s} className="h-1.5 flex-1 rounded-full bg-secondary" />
+            ))}
+          </div>
         </div>
-        <div className="mt-2 flex gap-1.5" aria-hidden="true">
-          {STAGE_ORDER.map((s, i) => (
-            <span key={s} className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-              <span
-                className={`block h-full rounded-full transition-all duration-500 ${i === idx ? 'bg-accent' : 'bg-primary'}`}
-                style={{ width: i < idx ? '100%' : i === idx ? `${Math.max(fraction * 100, 8)}%` : '0%' }}
-              />
-            </span>
-          ))}
-        </div>
-        <p className="mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden">{tr('chat.now', { what: intro.queHacemos })}</p>
+      ) : (
+        <div className="mt-2.5">
+          <div className="flex items-baseline justify-between gap-3 text-xs">
+            <p className="font-semibold text-primary">
+              {tr('chat.stageOf', { n: idx + 1, total: STAGE_ORDER.length, stage: stageLabel(session.stage) })}
+            </p>
+            <p className="hidden text-text-muted sm:block">{tr('chat.after', { next: intro.despues })}</p>
+          </div>
+          <div className="mt-2 flex gap-1.5" aria-hidden="true">
+            {STAGE_ORDER.map((s, i) => (
+              <span key={s} className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                <span
+                  className={`block h-full rounded-full transition-all duration-500 ${i === idx ? 'bg-accent' : 'bg-primary'}`}
+                  style={{ width: i < idx ? '100%' : i === idx ? `${Math.max(fraction * 100, 8)}%` : '0%' }}
+                />
+              </span>
+            ))}
+          </div>
+          <p className="mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden">{tr('chat.now', { what: intro.queHacemos })}</p>
 
-        {/* Con poca altura (teclado abierto, celular horizontal) se deja más lugar a la conversación. */}
-        {/* En pantallas angostas los temas quedan plegados: el encabezado ocupaba un tercio de la pantalla. */}
-        <button
-          type="button"
-          onClick={() => setTopicsOpen((o) => !o)}
-          aria-expanded={topicsOpen}
-          aria-controls="temas-etapa"
-          className="mt-1.5 text-xs text-text-muted underline underline-offset-2 sm:hidden"
-        >
-          {tr(topicsOpen ? 'chat.topics.hide' : 'chat.topics.show', { done: cubiertos.length, total: objetivos.length })}
-        </button>
-        <ul id="temas-etapa" role="list" aria-label={tr('chat.topics')} className={`mt-1.5 flex-wrap gap-1.5 sm:flex [@media(max-height:560px)]:hidden ${topicsOpen ? 'flex' : 'hidden'}`}>
-          {objetivos.map((o) => {
-            const done = cubiertos.includes(o.id)
-            const dejado = !done && omitidos.includes(o.id)
-            // El tema por el que el coach está preguntando ahora (y que todavía no se contestó).
-            const enFoco = !done && !dejado && session.foco === o.id
-            const style = done
-              ? 'bg-primary-soft font-medium text-primary'
-              : dejado
-                ? 'border border-dashed border-text-muted/60 text-text-muted'
-                : enFoco
-                ? 'border border-accent bg-accent-soft font-medium text-accent-ink'
-                : 'border border-border-color text-text-muted'
-            return (
-              <li key={o.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${style}`}>
-                {done && <CheckIcon />}
-                {enFoco && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />}
-                {objectiveLabel(o.id, getLang())}
-                {dejado && <span aria-hidden="true">{tr('chat.topic.laterTag')}</span>}
-                {/* El estado no puede depender solo del color o del ícono. */}
-                <span className="sr-only">
-                  {done ? tr('chat.topic.done') : dejado ? tr('chat.topic.later') : enFoco ? tr('chat.topic.focus') : tr('chat.topic.pending')}
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-      </div>
+          {/* Con poca altura (teclado abierto, celular horizontal) se deja más lugar a la conversación. */}
+          {/* En pantallas angostas los temas quedan plegados: el encabezado ocupaba un tercio de la pantalla. */}
+          <button
+            type="button"
+            onClick={() => setTopicsOpen((o) => !o)}
+            aria-expanded={topicsOpen}
+            aria-controls="temas-etapa"
+            className="mt-1.5 text-xs text-text-muted underline underline-offset-2 sm:hidden"
+          >
+            {tr(topicsOpen ? 'chat.topics.hide' : 'chat.topics.show', { done: cubiertos.length, total: objetivos.length })}
+          </button>
+          <ul id="temas-etapa" role="list" aria-label={tr('chat.topics')} className={`mt-1.5 flex-wrap gap-1.5 sm:flex [@media(max-height:560px)]:hidden ${topicsOpen ? 'flex' : 'hidden'}`}>
+            {objetivos.map((o) => {
+              const done = cubiertos.includes(o.id)
+              const dejado = !done && omitidos.includes(o.id)
+              // El tema por el que el coach está preguntando ahora (y que todavía no se contestó).
+              const enFoco = !done && !dejado && session.foco === o.id
+              const style = done
+                ? 'bg-primary-soft font-medium text-primary'
+                : dejado
+                  ? 'border border-dashed border-text-muted/60 text-text-muted'
+                  : enFoco
+                  ? 'border border-accent bg-accent-soft font-medium text-accent-ink'
+                  : 'border border-border-color text-text-muted'
+              return (
+                <li key={o.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${style}`}>
+                  {done && <CheckIcon />}
+                  {enFoco && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />}
+                  {objectiveLabel(o.id, getLang())}
+                  {dejado && <span aria-hidden="true">{tr('chat.topic.laterTag')}</span>}
+                  {/* El estado no puede depender solo del color o del ícono. */}
+                  <span className="sr-only">
+                    {done ? tr('chat.topic.done') : dejado ? tr('chat.topic.later') : enFoco ? tr('chat.topic.focus') : tr('chat.topic.pending')}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
     </header>
   )
 }

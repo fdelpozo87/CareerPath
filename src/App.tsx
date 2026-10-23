@@ -187,6 +187,14 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
+  // Vuelve a la home; con `anchor`, baja a esa parte ("Para profesionales" o "Para empresas").
+  const goLanding = (anchor?: 'profesional' | 'empresa') => {
+    history.replaceState(null, '', window.location.pathname)
+    setView('landing')
+    window.scrollTo(0, 0)
+    if (anchor) setTimeout(() => document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth' }), 80)
+  }
+
   // Empezar un camino nunca borra los otros procesos: se suma a la lista.
   const startPath = (path: Path) => {
     trackEvent('path_selected', { path })
@@ -364,10 +372,10 @@ function App() {
         canCreate={isAdmin || areas.empresas}
         canSelf={isAdmin || areas.empresas || areas.profesionales}
         onPending={setEvalPending}
-        onBack={() => {
-          history.replaceState(null, '', window.location.pathname)
-          setView('landing')
-        }}
+        account={account}
+        areas={areas}
+        onBack={() => goLanding()}
+        onNavigate={(anchor) => goLanding(anchor)}
       />
     )
   }

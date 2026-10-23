@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { creadas, eliminar, mias, type EstadoAsignacion, type ItemCreada, type ItemMia } from '../../lib/evaluaciones'
 import { getLang, tr, type Key } from '../../lib/i18n'
 import ConfirmDialog from '../ConfirmDialog'
+import AccountMenu, { type AccountInfo } from '../AccountMenu'
 import LanguageToggle from '../LanguageToggle'
 import Logo from '../Logo'
 import ThemeToggle from '../ThemeToggle'
@@ -22,7 +23,19 @@ const BADGE: Record<EstadoAsignacion, string> = {
   completada: 'bg-primary-soft text-primary',
 }
 
-export function EvaluacionesPage({ canCreate, canSelf, onBack, onPending }: { canCreate: boolean; canSelf: boolean; onBack: () => void; onPending: (n: number) => void }) {
+interface EvaluacionesPageProps {
+  canCreate: boolean
+  canSelf: boolean
+  /** Vuelve a la home. */
+  onBack: () => void
+  /** Vuelve a la home y baja a esa parte ("Para profesionales" o "Para empresas"). */
+  onNavigate: (anchor: 'profesional' | 'empresa') => void
+  onPending: (n: number) => void
+  account: AccountInfo
+  areas: { profesionales: boolean; empresas: boolean }
+}
+
+export function EvaluacionesPage({ canCreate, canSelf, onBack, onNavigate, onPending, account, areas }: EvaluacionesPageProps) {
   const [view, setView] = useState<View>({ kind: 'home' })
   const [mine, setMine] = useState<ItemMia[] | null>(null)
   const [created, setCreated] = useState<ItemCreada[]>([])
@@ -53,14 +66,30 @@ export function EvaluacionesPage({ canCreate, canSelf, onBack, onPending }: { ca
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans">
-      <header className="border-b border-border-color">
-        <div className="section-container flex items-center justify-between py-4">
-          <button onClick={onBack} className="flex items-center gap-3" aria-label={tr('eval.backToHome')}>
-            <Logo />
+      <header className="sticky top-0 z-50 border-b border-border-color bg-background/90 backdrop-blur-sm print:hidden">
+        <div className="section-container flex items-center gap-4 py-4">
+          <button onClick={onBack} className="text-sm text-text-muted transition-colors hover:text-foreground">
+            {tr('common.home')}
           </button>
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
-            <ThemeToggle />
+          <Logo />
+          <div className="ml-auto flex items-center gap-4">
+            <nav className="hidden gap-6 md:flex" aria-label={tr('eval.nav')}>
+              {areas.profesionales && (
+                <button onClick={() => onNavigate('profesional')} className="text-sm text-text-muted transition-colors hover:text-foreground">
+                  {tr('nav.professionals')}
+                </button>
+              )}
+              {areas.empresas && (
+                <button onClick={() => onNavigate('empresa')} className="text-sm text-text-muted transition-colors hover:text-foreground">
+                  {tr('nav.companies')}
+                </button>
+              )}
+            </nav>
+            <div className="flex items-center gap-2">
+              <LanguageToggle />
+              <ThemeToggle />
+              <AccountMenu account={account} />
+            </div>
           </div>
         </div>
       </header>
@@ -72,9 +101,6 @@ export function EvaluacionesPage({ canCreate, canSelf, onBack, onPending }: { ca
 
         {view.kind === 'home' && (
           <>
-            <button onClick={onBack} className="mb-4 text-sm text-text-muted underline underline-offset-2 hover:text-foreground">
-              ← {tr('eval.backToHome')}
-            </button>
             <h1 className="mb-1 text-2xl md:text-3xl">{tr('eval.title')}</h1>
             <p className="mb-6 text-sm text-text-muted">{tr('eval.lede')}</p>
 

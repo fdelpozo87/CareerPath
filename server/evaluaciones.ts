@@ -20,6 +20,8 @@ import { esc, sendMail, type Mail } from './mailer.js'
 //   crear     → guarda la evaluación y la asigna (o la asigna a sí mismo, en modo "propia")
 //   mias      → lo que me asignaron      creadas → lo que creé, con el estado de cada asignación
 //   abrir     → una asignación completa   guardar → borrador de respuestas   enviar → completar y generar el informe
+//   compartir → quien se autoevaluó por su cuenta ("Evaluarme") la comparte, en solo lectura, con otra cuenta de Bivio;
+//               dejarDeCompartir la retira; compartidas lista lo que otras personas compartieron conmigo
 //   puntuar   → quien creó la evaluación le pone a cada competencia un puntaje de 1 a 5 (con comentario); la persona lo ve
 //   eliminar  → borra una evaluación que creé (y con ella las respuestas)
 
@@ -33,6 +35,7 @@ export interface EvalResult {
 const MAX_TEXT = 200
 const MAX_EVIDENCIA = 2_000
 const MAX_EMAILS = 20
+const MAX_COMPARTIDAS = 5
 const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -127,6 +130,18 @@ export function buildScoredMail(lang: Lang, titulo: string, creadaPor: string, a
 <p style="font-size:12px;color:#5e566d">${esc(t('mail.eval.footer'))}</p>
 </div>`
   return { subject: t('mail.score.subject'), html, text }
+}
+
+export function buildSharedMail(lang: Lang, titulo: string, de: string, appUrl: string): Mail {
+  const t = (k: Parameters<typeof translate>[1], v?: Record<string, string | number>) => translate(lang, k, v)
+  const text = [t('mail.share.hello'), '', t('mail.share.intro', { who: de, title: titulo }), '', t('mail.eval.cta', { url: appUrl }), '', t('mail.eval.footer')].join('\n')
+  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f1533;line-height:1.5">
+<p>${esc(t('mail.share.hello'))}</p>
+<p>${esc(t('mail.share.intro', { who: de, title: titulo }))}</p>
+<p><a href="${esc(appUrl)}" style="color:#6a3fc1">${esc(t('mail.eval.link'))}</a></p>
+<p style="font-size:12px;color:#5e566d">${esc(t('mail.eval.footer'))}</p>
+</div>`
+  return { subject: t('mail.share.subject'), html, text }
 }
 
 export function buildAssignedMail(lang: Lang, titulo: string, creadaPor: string, appUrl: string): Mail {
@@ -304,19 +319,24 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
         // Quien no es parte de esta evaluación no se entera de que existe.
         const isRecipient = a?.user_id === me.id
         const isOwner = a?.bivio_evaluaciones.owner_id === me.id
-        if (!a || (!isRecipient && !isOwner)) return { status: 404, body: { error: 'Not found' } }
+        // Una autoevaluación propia que su autora compartió con esta cuenta: se puede leer, no tocar.
+        const shares = a ? await db<{ user_id: string; email: string }[]>(env, `/rest/v1/bivio_compartidas?asignacion_id=eq.${a.id}&select=user_id,email`) : []
+        const isReader = !isRecipient && !isOwner && shares.some((x) => x.user_id === me.id)
+        if (!a || (!isRecipient && !isOwner && !isReader)) return { status: 404, body: { error: 'Not found' } }
         const ev = a.bivio_evaluaciones
         const creadaPor = isOwner ? me.email : ((await getPerfil(env, ev.owner_id))?.email ?? '')
 
         if (action === 'abrir') {
           // Quien creó la evaluación ve las respuestas y el informe solo cuando la persona ya los envió.
-          const visible = isRecipient || a.estado === 'completada'
+          const visible = isRecipient || isReader || a.estado === 'completada'
           return {
             status: 200,
             body: {
               id: a.id,
               estado: a.estado,
-              rol: isRecipient ? 'responde' : 'creador',
+              rol: isRecipient ? 'responde' : isReader ? 'lector' : 'creador',
+              // Con quién compartió su autoevaluación quien la hizo (solo ella lo ve).
+              compartidoCon: isRecipient && ev.tipo === 'directa' ? shares.map((x) => x.email) : [],
               evaluacion: { titulo: ev.titulo, area: ev.area, rol: ev.rol, periodo: ev.periodo, tipo: ev.tipo, competencias: ev.competencias },
               creadaPor,
               email: a.email,
@@ -345,6 +365,7 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
         }
 
         // Guardar y enviar son solo de quien responde, y solo mientras no esté completada.
+        if (isReader) return fail(403, 'srv.evalLocked')
         if (!isRecipient || a.estado === 'completada') return fail(403, 'srv.evalLocked')
         const respuestas = cleanRespuestas(body.respuestas, ev.competencias)
         if (!respuestas) return fail(400, 'srv.badPayload')
@@ -362,6 +383,45 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
         await db(env, `/rest/v1/bivio_asignaciones?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ respuestas, informe, estado: 'completada', completada_at: new Date().toISOString() }) })
         logEvent('info', 'evaluacion_completada', { tipo: ev.tipo })
         return { status: 200, body: { ok: true, informe } }
+      }
+
+      case 'compartir':
+      case 'dejarDeCompartir': {
+        const id = typeof body.id === 'string' && UUID.test(body.id) ? body.id : null
+        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+        if (!id || email.length > 254 || !EMAIL.test(email)) return fail(400, 'srv.badEmail')
+        const [a] = await db<AsignacionRow[]>(env, `/rest/v1/bivio_asignaciones?id=eq.${id}&select=*,bivio_evaluaciones(*)&limit=1`)
+        // Solo quien hizo su propia autoevaluación decide con quién compartirla.
+        if (!a || a.user_id !== me.id || a.bivio_evaluaciones.tipo !== 'directa') return { status: 404, body: { error: 'Not found' } }
+
+        if (action === 'dejarDeCompartir') {
+          await db(env, `/rest/v1/bivio_compartidas?asignacion_id=eq.${id}&email=eq.${encodeURIComponent(email)}`, { method: 'DELETE' })
+          return { status: 200, body: { ok: true } }
+        }
+
+        if (a.estado !== 'completada') return fail(403, 'srv.shareNotReady')
+        if (email === me.email.toLowerCase()) return fail(400, 'srv.shareSelf')
+        const target = await findPerfilByEmail(env, email)
+        if (!target || target.estado !== 'activo') return { status: 422, body: { error: msg('srv.shareNoAccount'), problema: !target ? 'sin_cuenta' : 'cuenta_inactiva' } }
+        const current = await db<{ user_id: string }[]>(env, `/rest/v1/bivio_compartidas?asignacion_id=eq.${id}&select=user_id`)
+        const already = current.some((x) => x.user_id === target.user_id)
+        if (!already && current.length >= MAX_COMPARTIDAS) return fail(400, 'srv.shareLimit')
+        let avisado = false
+        if (!already) {
+          await db(env, '/rest/v1/bivio_compartidas', { method: 'POST', body: JSON.stringify({ asignacion_id: id, user_id: target.user_id, email }) })
+          const appUrl = process.env.APP_URL ?? 'https://career-path-ruby.vercel.app'
+          avisado = await sendMail(email, buildSharedMail(a.bivio_evaluaciones.lang, a.bivio_evaluaciones.titulo, me.email, appUrl))
+        }
+        logEvent('info', 'evaluacion_compartida', { yaEstaba: already, avisado })
+        return { status: 200, body: { ok: true, avisado } }
+      }
+
+      case 'compartidas': {
+        const rows = await db<{ asignacion_id: string; created_at: string; bivio_asignaciones: { email: string; bivio_evaluaciones: { titulo: string; area: string } } }[]>(
+          env,
+          `/rest/v1/bivio_compartidas?user_id=eq.${me.id}&select=asignacion_id,created_at,bivio_asignaciones(email,bivio_evaluaciones(titulo,area))&order=created_at.desc&limit=100`,
+        )
+        return { status: 200, body: { items: rows.map((r) => ({ id: r.asignacion_id, de: r.bivio_asignaciones.email, titulo: r.bivio_asignaciones.bivio_evaluaciones.titulo, area: r.bivio_asignaciones.bivio_evaluaciones.area, compartidaAt: r.created_at })) } }
       }
 
       case 'eliminar': {

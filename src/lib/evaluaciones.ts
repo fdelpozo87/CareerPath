@@ -58,16 +58,27 @@ export interface ItemCreada {
   asignaciones: { id: string; email: string; estado: EstadoAsignacion; completadaAt: string | null; puntuada: boolean }[]
 }
 
+export interface ItemCompartida {
+  id: string
+  /** Quién la compartió. */
+  de: string
+  titulo: string
+  area: string
+  compartidaAt: string
+}
+
 export interface Abierta {
   id: string
   estado: EstadoAsignacion
   /** 'responde': es quien se autoevalúa. 'creador': es quien la creó (ve respuestas e informe solo si ya se enviaron). */
-  rol: 'responde' | 'creador'
+  rol: 'responde' | 'creador' | 'lector'
   evaluacion: { titulo: string; area: string; rol: string; periodo: string; tipo: 'asignada' | 'directa'; competencias: Competencia[] }
   creadaPor: string
   email: string
   respuestas: Respuestas
   informe: Informe | null
+  /** Con quién compartió su autoevaluación quien la hizo (solo lo ve ella). */
+  compartidoCon: string[]
   /** El puntaje de quien creó la evaluación, visible para las dos personas una vez guardado. */
   puntajes: Puntajes | null
   puntuadaAt: string | null
@@ -113,6 +124,9 @@ export const abrir = (id: string) => call<Abierta>({ action: 'abrir', id })
 export const guardar = (id: string, respuestas: Respuestas) => call<{ ok: true }>({ action: 'guardar', id, respuestas })
 export const enviar = (id: string, respuestas: Respuestas) => call<{ ok: true; informe: Informe }>({ action: 'enviar', id, respuestas })
 export const puntuar = (id: string, puntajes: Puntajes) => call<{ ok: true; avisada: boolean }>({ action: 'puntuar', id, puntajes })
+export const compartir = (id: string, email: string) => call<{ ok: true; avisado: boolean }>({ action: 'compartir', id, email })
+export const dejarDeCompartir = (id: string, email: string) => call<{ ok: true }>({ action: 'dejarDeCompartir', id, email })
+export const compartidas = () => call<{ items: ItemCompartida[] }>({ action: 'compartidas' })
 export const eliminar = (id: string) => call<{ ok: true }>({ action: 'eliminar', id })
 
 export const SCORE_KEYS = ['eval.score.1', 'eval.score.2', 'eval.score.3', 'eval.score.4', 'eval.score.5'] as const

@@ -13,7 +13,7 @@ preparar la conversación con un informe. La decisión sobre la persona es siemp
    informe.
 2. **Propia ("Evaluarme")** — cualquier cuenta con “Para profesionales” o “Para empresas” escribe su **área y su cargo**
    y empieza: la IA le arma la autoevaluación a medida y pasa directo a responderla, sin revisar una propuesta antes.
-   Al enviar recibe el informe. Es solo suya: nadie más la ve.
+   Al enviar recibe el informe. **Es solo suya por defecto**; ella puede decidir compartirla (ver abajo).
 
 ## El puntaje de quien evalúa (1 a 5)
 
@@ -30,6 +30,16 @@ bueno)**, con un comentario opcional, y lo guarda con “Guardar y compartir pun
   se ven lado a lado. Las evaluaciones propias (“Evaluarme”) no tienen puntaje de otra persona.
 - En “Las que creé” se ve qué falta puntuar. Requiere `supabase/migrations/20261025000000_bivio_puntajes.sql`.
 
+## Compartir una autoevaluación propia
+
+Quien se evaluó por su cuenta (“Evaluarme”) y ya la envió puede **compartirla con otra cuenta de Bivio** (por ejemplo, su
+jefe o jefa): esa persona la lee, con respuestas e informe, **en solo lectura**. La decisión es siempre de ella: nada se
+comparte por defecto, ve con quién la compartió, puede **dejar de compartirla** cuando quiera (el acceso se corta en el
+acto) y se pide confirmación antes de compartir. Máximo 5 personas; cada destinatario necesita una cuenta activa y recibe un
+aviso por email si Resend está configurado. Quien la recibe la encuentra en **“Compartidas conmigo”**. Una evaluación
+**asignada por un jefe** no se puede compartir con terceros. Requiere
+`supabase/migrations/20261026000000_bivio_compartidas.sql`.
+
 ## Quién ve qué
 
 | | Quien responde | Quien creó la evaluación | Terceros |
@@ -40,6 +50,7 @@ bueno)**, con un comentario opcional, y lo guarda con “Guardar y compartir pun
 | Responder o enviar | sí, hasta enviar | no | no |
 | Puntuar | no | sí, tras el envío | no |
 | Eliminar | no | sí (con las respuestas de todos) | no |
+| Evaluación propia (“Evaluarme”) | solo ella, y a quien ella elija compartirla | — | no (404) |
 
 Antes de escribir, la pantalla le dice a la persona quién va a leer lo que escriba. Todo lo aplica el servidor
 (`server/evaluaciones.ts`): las tablas no son accesibles desde el navegador.

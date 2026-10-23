@@ -25,6 +25,7 @@ interface Db {
   evaluaciones: Record<string, any>
   asignaciones: Record<string, any>
   mails: { to: string; subject: string }[]
+  compartidas: { asignacion_id: string; user_id: string; email: string; created_at: string }[]
   seq: number
 }
 
@@ -71,10 +72,28 @@ function fakeSupabase(db: Db) {
         if (!ev || ev.owner_id !== owner) return json([])
         delete db.evaluaciones[id]
         for (const [k, a] of Object.entries(db.asignaciones)) if ((a as any).evaluacion_id === id) delete db.asignaciones[k]
+        db.compartidas = db.compartidas.filter((c) => db.asignaciones[c.asignacion_id])
         return json([{ id }])
       }
       const owner = /owner_id=eq\.([^&]+)/.exec(url)?.[1]
       return json(Object.values(db.evaluaciones).filter((e: any) => e.owner_id === owner).map((e: any) => ({ ...e, bivio_asignaciones: Object.values(db.asignaciones).filter((a: any) => a.evaluacion_id === e.id) })))
+    }
+    if (url.includes('/rest/v1/bivio_compartidas')) {
+      if (method === 'POST') {
+        db.compartidas.push({ created_at: new Date().toISOString(), ...body })
+        return json([body], 201)
+      }
+      const asig = /asignacion_id=eq\.([^&]+)/.exec(url)?.[1]
+      if (method === 'DELETE') {
+        const email = decodeURIComponent(/email=eq\.([^&]+)/.exec(url)?.[1] ?? '')
+        db.compartidas = db.compartidas.filter((c) => !(c.asignacion_id === asig && c.email === email))
+        return json([])
+      }
+      const uid = /user_id=eq\.([^&]+)/.exec(url)?.[1]
+      if (uid) {
+        return json(db.compartidas.filter((c) => c.user_id === uid).map((c) => ({ ...c, bivio_asignaciones: { email: db.asignaciones[c.asignacion_id].email, bivio_evaluaciones: { titulo: db.evaluaciones[db.asignaciones[c.asignacion_id].evaluacion_id].titulo, area: db.evaluaciones[db.asignaciones[c.asignacion_id].evaluacion_id].area } } })))
+      }
+      return json(db.compartidas.filter((c) => c.asignacion_id === asig))
     }
     if (url.includes('/rest/v1/bivio_asignaciones')) {
       if (method === 'POST') {
@@ -150,6 +169,7 @@ beforeEach(() => {
     evaluaciones: {},
     asignaciones: {},
     mails: [],
+    compartidas: [],
     seq: 0,
   }
   fakeSupabase(db)
@@ -399,6 +419,97 @@ describe('evaluaciones: el puntaje de 1 a 5 de quien evalúa', () => {
     await call('tok_jefa', { action: 'puntuar', id, puntajes: scores(comp) })
     expect(((await call('tok_jefa', { action: 'creadas' })).body as any).items[0].asignaciones[0].puntuada).toBe(true)
     expect(((await call('tok_ana', { action: 'mias' })).body as any).items[0].conPuntaje).toBe(true)
+  })
+})
+
+describe('evaluaciones: compartir una autoevaluación propia', () => {
+  /** Ana se evalúa a sí misma ("Evaluarme") y la envía. */
+  async function propiaCompletada() {
+    await call('tok_ana', evalBody({ modo: 'propia', emails: [] }))
+    const id = Object.keys(db.asignaciones)[0]
+    const comp = (Object.values(db.evaluaciones)[0] as any).competencias as { id: string }[]
+    gemini.generateContent.mockResolvedValue(modelReply({ resumen: 'ok' }))
+    await call('tok_ana', { action: 'enviar', id, respuestas: answers(comp) })
+    db.mails.length = 0
+    return { id }
+  }
+
+  it('por defecto la autoevaluación propia es solo de quien la hizo: nadie más la ve', async () => {
+    const { id } = await propiaCompletada()
+    expect((await call('tok_jefa', { action: 'abrir', id })).status).toBe(404)
+    expect((await call('tok_luis', { action: 'abrir', id })).status).toBe(404)
+  })
+
+  it('quien se evaluó la comparte con otra cuenta y esa persona la ve en solo lectura, con aviso por email', async () => {
+    const { id } = await propiaCompletada()
+    const res = await call('tok_ana', { action: 'compartir', id, email: 'jefa@x.test' })
+    expect(res.status).toBe(200)
+    expect(db.mails).toEqual([{ to: 'jefa@x.test', subject: 'Compartieron una autoevaluación contigo en Bivio' }])
+
+    const lector = (await call('tok_jefa', { action: 'abrir', id })).body as any
+    expect(lector.rol).toBe('lector')
+    expect(lector.respuestas.c1.nivel).toBe(3)
+    expect(lector.informe).toBeTruthy()
+    expect(lector.compartidoCon).toEqual([])
+    // Ella ve con quién la compartió.
+    expect(((await call('tok_ana', { action: 'abrir', id })).body as any).compartidoCon).toEqual(['jefa@x.test'])
+    // Una tercera persona sigue sin verla.
+    expect((await call('tok_luis', { action: 'abrir', id })).status).toBe(404)
+  })
+
+  it('quien la lee no puede modificarla, enviarla, puntuarla ni volver a compartirla', async () => {
+    const { id } = await propiaCompletada()
+    await call('tok_ana', { action: 'compartir', id, email: 'jefa@x.test' })
+    const comp = (Object.values(db.evaluaciones)[0] as any).competencias as { id: string }[]
+    expect((await call('tok_jefa', { action: 'guardar', id, respuestas: answers(comp) })).status).toBe(403)
+    expect((await call('tok_jefa', { action: 'puntuar', id, puntajes: Object.fromEntries(comp.map((c) => [c.id, { puntaje: 5, comentario: '' }])) })).status).toBe(403)
+    expect((await call('tok_jefa', { action: 'compartir', id, email: 'luis@x.test' })).status).toBe(404)
+  })
+
+  it('dejar de compartir le quita el acceso en el acto', async () => {
+    const { id } = await propiaCompletada()
+    await call('tok_ana', { action: 'compartir', id, email: 'jefa@x.test' })
+    expect((await call('tok_jefa', { action: 'abrir', id })).status).toBe(200)
+    expect((await call('tok_ana', { action: 'dejarDeCompartir', id, email: 'jefa@x.test' })).status).toBe(200)
+    expect((await call('tok_jefa', { action: 'abrir', id })).status).toBe(404)
+    expect((await call('tok_jefa', { action: 'dejarDeCompartir', id, email: 'jefa@x.test' })).status).toBe(404)
+  })
+
+  it('"Compartidas conmigo" lista lo que otras personas compartieron', async () => {
+    const { id } = await propiaCompletada()
+    expect(((await call('tok_jefa', { action: 'compartidas' })).body as any).items).toEqual([])
+    await call('tok_ana', { action: 'compartir', id, email: 'jefa@x.test' })
+    const items = ((await call('tok_jefa', { action: 'compartidas' })).body as any).items
+    expect(items).toHaveLength(1)
+    expect(items[0]).toMatchObject({ id, de: 'ana@x.test' })
+  })
+
+  it('reglas: antes de enviar no se comparte, no a sí misma, solo cuentas activas y con tope', async () => {
+    await call('tok_ana', evalBody({ modo: 'propia', emails: [] }))
+    const id = Object.keys(db.asignaciones)[0]
+    expect((await call('tok_ana', { action: 'compartir', id, email: 'jefa@x.test' })).status).toBe(403) // sin enviar
+    ;(db.asignaciones[id] as any).estado = 'completada'
+    expect((await call('tok_ana', { action: 'compartir', id, email: 'ana@x.test' })).status).toBe(400)
+    expect((await call('tok_ana', { action: 'compartir', id, email: 'nadie@x.test' })).status).toBe(422)
+    expect((await call('tok_ana', { action: 'compartir', id, email: 'inactivo@x.test' })).status).toBe(422)
+    expect((await call('tok_ana', { action: 'compartir', id, email: 'no-es-email' })).status).toBe(400)
+    db.compartidas.push(...Array.from({ length: 5 }, (_, i) => ({ asignacion_id: id, user_id: `9${i}`, email: `x${i}@x.test`, created_at: '' })))
+    expect((await call('tok_ana', { action: 'compartir', id, email: 'jefa@x.test' })).status).toBe(400)
+  })
+
+  it('compartir de nuevo con la misma persona no duplica ni vuelve a mandar el mail', async () => {
+    const { id } = await propiaCompletada()
+    await call('tok_ana', { action: 'compartir', id, email: 'jefa@x.test' })
+    await call('tok_ana', { action: 'compartir', id, email: 'jefa@x.test' })
+    expect(db.compartidas).toHaveLength(1)
+    expect(db.mails).toHaveLength(1)
+  })
+
+  it('una evaluación asignada por un jefe no se puede compartir con terceros (la decisión no es de la persona)', async () => {
+    await call('tok_jefa', evalBody())
+    const id = Object.keys(db.asignaciones)[0]
+    ;(db.asignaciones[id] as any).estado = 'completada'
+    expect((await call('tok_ana', { action: 'compartir', id, email: 'luis@x.test' })).status).toBe(404)
   })
 })
 

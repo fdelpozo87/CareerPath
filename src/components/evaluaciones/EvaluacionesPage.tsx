@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { creadas, eliminar, mias, type EstadoAsignacion, type ItemCreada, type ItemMia } from '../../lib/evaluaciones'
+import { compartidas, creadas, eliminar, mias, type EstadoAsignacion, type ItemCompartida, type ItemCreada, type ItemMia } from '../../lib/evaluaciones'
 import { getLang, tr, type Key } from '../../lib/i18n'
 import ConfirmDialog from '../ConfirmDialog'
 import AccountMenu, { type AccountInfo } from '../AccountMenu'
@@ -39,6 +39,7 @@ export function EvaluacionesPage({ canCreate, canSelf, onBack, onNavigate, onPen
   const [view, setView] = useState<View>({ kind: 'home' })
   const [mine, setMine] = useState<ItemMia[] | null>(null)
   const [created, setCreated] = useState<ItemCreada[]>([])
+  const [shared, setShared] = useState<ItemCompartida[]>([])
   const [error, setError] = useState<string | null>(null)
   const [toDelete, setToDelete] = useState<ItemCreada | null>(null)
 
@@ -48,6 +49,7 @@ export function EvaluacionesPage({ canCreate, canSelf, onBack, onNavigate, onPen
       setMine(m.items)
       onPending(m.pendientes)
       if (canCreate) setCreated((await creadas()).items)
+      setShared((await compartidas()).items)
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : tr('cloud.error'))
@@ -152,6 +154,28 @@ export function EvaluacionesPage({ canCreate, canSelf, onBack, onNavigate, onPen
                 </ul>
               )}
             </section>
+
+            {shared.length > 0 && (
+              <section aria-labelledby="compartidas" className="mb-10">
+                <h2 id="compartidas" className="mb-1 text-lg">
+                  {tr('eval.shared.title')}
+                </h2>
+                <p className="mb-3 text-sm text-text-muted">{tr('eval.shared.lede')}</p>
+                <ul className="divide-y divide-border-color rounded-2xl border border-border-color bg-card">
+                  {shared.map((c) => (
+                    <li key={c.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">{c.titulo}</p>
+                        <p className="text-xs text-text-muted">{tr('eval.shared.from', { who: c.de })} · {fmt(c.compartidaAt)}</p>
+                      </div>
+                      <button onClick={() => setView({ kind: 'open', id: c.id })} className="btn-secondary shrink-0 px-5 py-2.5 text-sm">
+                        {tr('eval.mine.view')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {canCreate && (
               <section aria-labelledby="creadas">

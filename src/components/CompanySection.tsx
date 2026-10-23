@@ -1,6 +1,6 @@
 import { tr, type Key } from '../lib/i18n'
 
-export default function CompanySection({ onStart }: { onStart?: () => void }) {
+export default function CompanySection({ onStart, onEvaluaciones }: { onStart?: () => void; onEvaluaciones?: () => void }) {
   const useCases = [
     {
       icon: '↘',
@@ -97,6 +97,19 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
             </div>
           ))}
         </div>
+
+        {/* Evaluaciones de desempeño: autoevaluaciones asignadas por email (solo con cuenta). */}
+        {onEvaluaciones && (
+          <div className="mb-10 rounded-2xl border border-border-color bg-card p-8 md:p-10" style={{ boxShadow: 'var(--shadow-soft)' }}>
+            <div className="mx-auto max-w-xl text-center">
+              <h3 className="mb-3">{tr('eval.section.cta')}</h3>
+              <p className="mb-6 text-text-muted">{tr('eval.section.body')}</p>
+              <button className="btn-advance px-8 py-3.5 text-base" onClick={onEvaluaciones}>
+                {tr('eval.section.cta')}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* CTA block */}
         <div

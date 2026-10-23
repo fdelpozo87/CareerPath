@@ -62,7 +62,7 @@ export default function PrivacyPolicy({ onBack }: { onBack: () => void }) {
           <section>
             <h2>{t('s3.title')}</h2>
             <ul className="space-y-2">
-              {['a', 'b', 'c', 'd', 'e'].map((x) => (
+              {['a', 'b', 'c', 'd', 'e', 'f'].map((x) => (
                 <Item key={x} base={`s3.${x}`} />
               ))}
             </ul>

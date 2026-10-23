@@ -9,11 +9,13 @@ interface ConfirmDialogProps {
   title: string
   body: string
   confirmLabel: string
+  /** Acción que no se puede deshacer: el botón de confirmar se ve distinto del habitual. */
+  destructive?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
 
-export default function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onCancel }: ConfirmDialogProps) {
+export default function ConfirmDialog({ open, title, body, confirmLabel, destructive, onConfirm, onCancel }: ConfirmDialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -47,7 +49,11 @@ export default function ConfirmDialog({ open, title, body, confirmLabel, onConfi
         <button type="button" autoFocus onClick={onCancel} className="btn-secondary px-5 py-2.5 text-sm">
           {tr('confirm.cancel')}
         </button>
-        <button type="button" onClick={onConfirm} className="btn-primary px-5 py-2.5 text-sm">
+        <button
+          type="button"
+          onClick={onConfirm}
+          className={destructive ? 'inline-flex items-center justify-center rounded-full bg-danger px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:opacity-90 active:scale-[0.98]' : 'btn-primary px-5 py-2.5 text-sm'}
+        >
           {confirmLabel}
         </button>
       </div>

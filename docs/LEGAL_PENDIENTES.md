@@ -14,6 +14,7 @@ Los textos viven en `shared/locales/es.json` y `en.json` (claves `privacy.*`); d
 | Condiciones de retención y uso de datos del plan de Gemini | `privacy.s4.g.rest` |
 | Región del proyecto de Supabase y condiciones vigentes | `privacy.s4.sb.rest` |
 | Condiciones vigentes de Resend | `privacy.s4.r.rest` |
+| Evaluaciones de desempeño: rol de cada parte y plazo de conservación | `privacy.s3.f.rest` |
 
 ## Revisión legal
 
@@ -30,6 +31,21 @@ Los textos viven en `shared/locales/es.json` y `en.json` (claves `privacy.*`); d
 - Las contraseñas las guarda Supabase Auth con hash; no pasan por nuestro servidor ni por los logs.
 - Los límites de uso guardan una huella de la IP, no la IP; los logs identifican a la persona por etiqueta, no por dato personal.
 - La búsqueda de datos de mercado usa una consulta genérica, sin datos personales.
+
+## Evaluaciones de desempeño: puntos legales específicos
+
+Tratan datos de personas en una relación de trabajo, con quien evalúa y quien es evaluado como partes distintas. Antes de
+ofrecerlas a empresas reales:
+
+- Definir si **la empresa es responsable** de los datos de sus empleados y Rubika Tech es **encargada del tratamiento**, y
+  firmar el acuerdo que corresponda. Hoy la política no lo dice.
+- **Consentimiento y transparencia:** la pantalla avisa a quien responde, antes de escribir, quién va a leer sus respuestas;
+  falta el texto legal definitivo.
+- **Sin decisiones automatizadas:** el producto no pone notas ni recomienda sanciones, ascensos ni despidos (ver Ley 25.326
+  sobre decisiones basadas únicamente en tratamiento automatizado). Mantener esa regla en cualquier cambio futuro.
+- **Temas prohibidos** en las preguntas y los informes (edad, género, salud, embarazo, religión, afiliación, etc.): están
+  en el prompt, pero conviene que el equipo legal revise la lista.
+- Plazo de conservación de las evaluaciones y de los informes, y qué pasa cuando alguien deja la empresa.
 
 ## Decisiones de producto que tocan privacidad (a definir)
 

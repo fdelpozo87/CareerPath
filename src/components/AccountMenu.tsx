@@ -17,6 +17,10 @@ export interface AccountInfo {
   onExport: () => void
   /** Solo para quien administra: abre el panel de usuarios. */
   onAdmin?: () => void
+  /** Evaluaciones de desempeño (solo con cuenta): abre "Mis evaluaciones". */
+  onEvaluaciones?: () => void
+  /** Cuántas evaluaciones tiene pendientes de responder. */
+  evalPending?: number
   /** Cuenta opcional (guardar el informe con email). Solo si hay una sesión iniciada. */
   cloud?: { email: string; onSignOut: () => void; onDeleteAccount: () => void; onPassword: () => void; onMfa: () => void }
 }
@@ -125,6 +129,20 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
             </div>
           )}
           <ul className="mt-2 space-y-0.5">
+            {account.onEvaluaciones && (
+              <li>
+                <button
+                  type="button"
+                  className={ITEM}
+                  onClick={() => {
+                    setOpen(false)
+                    account.onEvaluaciones?.()
+                  }}
+                >
+                  {(account.evalPending ?? 0) > 0 ? tr('eval.menu.pending', { n: account.evalPending ?? 0 }) : tr('eval.menu')}
+                </button>
+              </li>
+            )}
             {account.onAdmin && (
               <li>
                 <button

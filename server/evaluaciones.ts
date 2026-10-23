@@ -2,7 +2,8 @@ import type { IncomingMessage } from 'node:http'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { translate, type Lang } from '../shared/i18n.js'
 import { authorize } from './auth.js'
-import { cloudEnv, findPerfilByEmail, getPerfil, rest, type CloudEnv } from './cloud.js'
+import { notifyAccess } from './accessMail.js'
+import { cloudEnv, createUser, ensurePerfil, findPerfilByEmail, getPerfil, listPerfiles, logAudit, rest, setAreas, setEstado, type CloudEnv } from './cloud.js'
 import { buildGeneratePrompt, buildReportPrompt, type Competencia } from './evaluacionesPrompts.js'
 import { generateJson, responseText } from './gemini.js'
 import { RATE_RULES, clientIp, ipTag, isAllowedOrigin, logEvent, publicError, requestLang } from './guard.js'
@@ -18,6 +19,7 @@ import { brandedMail, sendMail, type Mail } from './mailer.js'
 //
 //   generar   → propone competencias y preguntas (no guarda nada)
 //   crear     → guarda la evaluación y la asigna (o la asigna a sí mismo, en modo "propia")
+//   cuentas   → (solo administración) emails de las cuentas activas, para elegir a quién asignar
 //   mias      → lo que me asignaron      creadas → lo que creé, con el estado de cada asignación
 //   abrir     → una asignación completa   guardar → borrador de respuestas   enviar → completar y generar el informe
 //   compartir → quien se autoevaluó por su cuenta ("Evaluarme") la comparte, en solo lectura, con otra cuenta de Bivio;
@@ -269,13 +271,27 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
         if (emails.length === 0 || emails.length > MAX_EMAILS || emails.some((e) => e.length > 254 || !EMAIL.test(e))) return fail(400, 'srv.badEmail')
 
         // Cada destinatario tiene que tener una cuenta activa de Bivio: se resuelve ANTES de guardar nada.
-        const resolved: { email: string; userId?: string; problema?: 'sin_cuenta' | 'cuenta_inactiva' }[] = []
+        // Quien administra además puede nombrar un email sin cuenta: se le da de alta ahí mismo (solo ella o él puede).
+        const resolved: { email: string; userId?: string; creada?: boolean; problema?: 'sin_cuenta' | 'cuenta_inactiva' }[] = []
         for (const email of emails) {
           if (modo === 'propia') {
             resolved.push({ email, userId: me.id })
             continue
           }
           const p = await findPerfilByEmail(env, email)
+          if (!p && gate.isAdmin) {
+            const made = await createUser(env, email)
+            if (made.ok) {
+              await ensurePerfil(env, { id: made.id, email, confirmed: true })
+              if ((await setEstado(env, made.id, 'activo')) && (await setAreas(env, made.id, { profesionales: true, empresas: false }))) {
+                await logAudit(env, { actor_email: me.email, action: 'alta', target_email: email, detail: { creada: true, origen: 'evaluacion' } }).catch(() => false)
+                resolved.push({ email, userId: made.id, creada: true })
+                continue
+              }
+            }
+            resolved.push({ email, problema: 'sin_cuenta' })
+            continue
+          }
           resolved.push(!p ? { email, problema: 'sin_cuenta' } : p.estado !== 'activo' ? { email, problema: 'cuenta_inactiva' } : { email, userId: p.user_id })
         }
         const ok = resolved.filter((r) => r.userId)
@@ -290,10 +306,23 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
         const appUrl = process.env.APP_URL ?? 'https://career-path-ruby.vercel.app'
         const notified: Record<string, boolean> = {}
         if (modo === 'jefe' && body.notify !== false) {
-          for (const r of ok) notified[r.email] = await sendMail(r.email, buildAssignedMail(lang, titulo, me.email, appUrl))
+          const origin = typeof req.headers.origin === 'string' ? req.headers.origin : appUrl
+          for (const r of ok) {
+            notified[r.email] = r.creada
+              ? await notifyAccess(env, r.email, origin, lang, { who: me.email, title: titulo }).catch(() => false)
+              : await sendMail(r.email, buildAssignedMail(lang, titulo, me.email, appUrl))
+          }
         }
         logEvent('info', 'evaluacion_creada', { modo, asignadas: ok.length, sinCuenta: resolved.length - ok.length })
-        return { status: 200, body: { ok: true, id: ev.id, resultados: resolved.map(({ email, problema }) => ({ email, problema: problema ?? null, avisado: notified[email] ?? false })) } }
+        return { status: 200, body: { ok: true, id: ev.id, resultados: resolved.map(({ email, problema, creada }) => ({ email, problema: problema ?? null, creada: creada ?? false, avisado: notified[email] ?? false })) } }
+      }
+
+      case 'cuentas': {
+        // Para elegir a quién asignar: solo quien administra ve la lista de cuentas.
+        if (!gate.isAdmin) return fail(403, 'srv.noArea', { reason: 'sin_area' })
+        const perfiles = await listPerfiles(env)
+        const emails = perfiles.filter((p) => p.estado === 'activo' && p.user_id !== me.id).map((p) => p.email).sort((a, b) => a.localeCompare(b))
+        return { status: 200, body: { emails } }
       }
 
       case 'mias': {

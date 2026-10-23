@@ -89,3 +89,13 @@ bloque 70-20-10 y plazo, y preguntas para la conversación. Sin puntaje total, p
 Al imprimir una evaluación (o guardarla como PDF) se oculta la interfaz y sale un documento con el logo, el título, la persona, la
 fecha de envío y quien la asignó; las respuestas se muestran completas (sin cuadros de texto cortados), con la escala de nivel, el
 ejemplo y el puntaje de la jefatura, y las tarjetas no se parten entre páginas.
+
+## Asignar como administrador
+
+Quien administra (`ADMIN_EMAIL`) tiene dos ayudas extra al asignar una evaluación:
+
+- **Elegir entre las cuentas existentes:** un selector con búsqueda (acción `cuentas`, solo para administración).
+- **Emails sin cuenta:** se le da de alta ahí mismo (activa, con "Para profesionales" y sin "Para empresas"), queda en el registro de
+  actividad (`origen: evaluacion`) y, si se pidió avisar, recibe el mail de acceso con el diseño de Bivio mencionando la evaluación.
+
+Las demás cuentas con "Para empresas" siguen asignando solo a cuentas activas; no pueden crear cuentas.

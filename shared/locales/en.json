@@ -910,5 +910,12 @@
   "mail.access.intro": "Whoever runs Bivio gave you access. Tap the button to sign in for the first time; afterwards you can sign in with a link like this one or choose a password from your account menu.",
   "mail.access.cta": "Sign in to Bivio",
   "mail.access.note": "If the button doesn’t work, copy and paste this link into your browser: {url}",
-  "mail.access.footer": "If you weren’t expecting this message, you can ignore it. The link expires in one hour and works only once."
+  "mail.access.footer": "If you weren’t expecting this message, you can ignore it. The link expires in one hour and works only once.",
+  "mail.access.eval": "{who} assigned you a performance evaluation in Bivio: “{title}”. Once you sign in, you’ll find it under “My evaluations”.",
+  "eval.build.emailsHintAdmin": "Separated by commas or new lines. If an email doesn’t have an account yet, we create it and send a link to sign in.",
+  "eval.build.pick": "Pick from existing accounts",
+  "eval.build.pickSearch": "Search by email",
+  "eval.build.pickNone": "No matching accounts.",
+  "eval.build.createdNotified": "Their account was created and a sign-in link was sent.",
+  "eval.build.createdNoMail": "Their account was created and the evaluation assigned. No email was sent: let them know yourself."
 }

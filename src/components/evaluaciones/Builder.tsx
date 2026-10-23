@@ -1,5 +1,5 @@
-import { useId, useState, type FormEvent } from 'react'
-import { crear, generar, type Borrador, type Competencia, type ResultadoAsignacion } from '../../lib/evaluaciones'
+import { useEffect, useId, useState, type FormEvent } from 'react'
+import { crear, cuentas, generar, type Borrador, type Competencia, type ResultadoAsignacion } from '../../lib/evaluaciones'
 import { tr } from '../../lib/i18n'
 
 // Armar una evaluación con ayuda de la IA: describir el área → revisar y editar la propuesta → asignar.
@@ -12,7 +12,7 @@ const inputCls = 'w-full rounded-xl border border-border-color bg-background p-3
 
 const modo = 'jefe' as const
 
-export function Builder({ onBack }: { onBack: () => void }) {
+export function Builder({ onBack, isAdmin = false }: { onBack: () => void; isAdmin?: boolean }) {
   const [step, setStep] = useState<Step>('form')
   const [area, setArea] = useState('')
   const [rol, setRol] = useState('')
@@ -21,12 +21,32 @@ export function Builder({ onBack }: { onBack: () => void }) {
   const [borrador, setBorrador] = useState<Borrador | null>(null)
   const [ajuste, setAjuste] = useState('')
   const [emails, setEmails] = useState('')
+  const [existentes, setExistentes] = useState<string[]>([])
+  const [buscar, setBuscar] = useState('')
   const [notify, setNotify] = useState(true)
   const [resultados, setResultados] = useState<ResultadoAsignacion[]>([])
   const [error, setError] = useState<string | null>(null)
   // Si la IA no aplicó una parte del pedido (por ejemplo, un tema prohibido en una evaluación), lo explica acá.
   const [aiNote, setAiNote] = useState('')
   const [busy, setBusy] = useState(false)
+  // Quien administra elige entre las cuentas activas (el servidor solo le da la lista a ella o a él).
+  useEffect(() => {
+    if (!isAdmin) return
+    let alive = true
+    cuentas().then((r) => alive && setExistentes(r.emails)).catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [isAdmin])
+  const elegidos = new Set(emails.split(/[\s,;]+/).map((x) => x.trim().toLowerCase()).filter(Boolean))
+  const toggle = (email: string) => {
+    const next = new Set(elegidos)
+    if (next.has(email)) next.delete(email)
+    else next.add(email)
+    setEmails([...next].join('\n'))
+  }
+  const visibles = existentes.filter((e) => e.includes(buscar.trim().toLowerCase()))
+
   const ids = { area: useId(), rol: useId(), periodo: useId(), foco: useId(), ajuste: useId(), emails: useId() }
 
   const run = async (fn: () => Promise<void>) => {
@@ -177,8 +197,25 @@ export function Builder({ onBack }: { onBack: () => void }) {
           <div>
             <label htmlFor={ids.emails} className="mb-1 block text-sm font-medium">{tr('eval.build.emails')}</label>
             <textarea id={ids.emails} rows={3} value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="persona@empresa.com" className={`${inputCls} resize-y`} />
-            <p className="mt-1 text-xs text-text-muted">{tr('eval.build.emailsHint')}</p>
+            <p className="mt-1 text-xs text-text-muted">{tr(isAdmin ? 'eval.build.emailsHintAdmin' : 'eval.build.emailsHint')}</p>
           </div>
+          {isAdmin && existentes.length > 0 && (
+            <details className="rounded-xl border border-border-color p-3">
+              <summary className="cursor-pointer text-sm font-medium">{tr('eval.build.pick')}</summary>
+              <input type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder={tr('eval.build.pickSearch')} aria-label={tr('eval.build.pickSearch')} className={`${inputCls} mt-3`} />
+              <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+                {visibles.map((e) => (
+                  <li key={e}>
+                    <label className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-primary-soft">
+                      <input type="checkbox" checked={elegidos.has(e)} onChange={() => toggle(e)} className="accent-primary" />
+                      {e}
+                    </label>
+                  </li>
+                ))}
+                {visibles.length === 0 && <li className="px-2 py-1 text-sm text-text-muted">{tr('eval.build.pickNone')}</li>}
+              </ul>
+            </details>
+          )}
           <label className="flex items-center gap-2 text-sm text-foreground">
             <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="accent-primary" />
             {tr('eval.build.notify')}
@@ -201,7 +238,7 @@ export function Builder({ onBack }: { onBack: () => void }) {
             {resultados.map((r) => (
               <li key={r.email} className="flex flex-col gap-0.5 rounded-xl border border-border-color p-3">
                 <span className="font-semibold text-foreground">{r.email}</span>
-                <span className="text-text-muted">{r.problema ? problemText(r.problema) : r.avisado ? tr('eval.build.assignedNotified') : tr('eval.build.assignedNoMail')}</span>
+                <span className="text-text-muted">{r.problema ? problemText(r.problema) : r.creada ? tr(r.avisado ? 'eval.build.createdNotified' : 'eval.build.createdNoMail') : r.avisado ? tr('eval.build.assignedNotified') : tr('eval.build.assignedNoMail')}</span>
               </li>
             ))}
           </ul>

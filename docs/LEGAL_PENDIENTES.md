@@ -45,6 +45,9 @@ ofrecerlas a empresas reales:
   sobre decisiones basadas únicamente en tratamiento automatizado). Mantener esa regla en cualquier cambio futuro.
 - **Temas prohibidos** en las preguntas y los informes (edad, género, salud, embarazo, religión, afiliación, etc.): están
   en el prompt, pero conviene que el equipo legal revise la lista.
+- **El puntaje de 1 a 5** lo pone una persona (quien evalúa) y la persona evaluada lo ve apenas se guarda; si esa calificación
+  se usa para decisiones sobre la persona, es una decisión humana, pero conviene revisar con el equipo legal cómo se
+  informa, cómo se puede cuestionar y cuánto se conserva.
 - Plazo de conservación de las evaluaciones y de los informes, y qué pasa cuando alguien deja la empresa.
 
 ## Decisiones de producto que tocan privacidad (a definir)

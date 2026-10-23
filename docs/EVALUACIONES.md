@@ -15,13 +15,30 @@ preparar la conversación con un informe. La decisión sobre la persona es siemp
    y empieza: la IA le arma la autoevaluación a medida y pasa directo a responderla, sin revisar una propuesta antes.
    Al enviar recibe el informe. Es solo suya: nadie más la ve.
 
+## El puntaje de quien evalúa (1 a 5)
+
+Cuando la persona envía su autoevaluación, **quien creó la evaluación puntúa cada competencia de 1 (muy malo) a 5 (muy
+bueno)**, con un comentario opcional, y lo guarda con “Guardar y compartir puntajes”. Reglas:
+
+- **Lo decide una persona, nunca el modelo:** la IA no ve ni calcula puntajes, y no se muestran promedios ni totales.
+- **Todas las competencias** deben tener puntaje; solo puede puntuar quien creó la evaluación, y solo después de que la
+  persona la envió. Se puede actualizar cuando se quiera.
+- **La persona lo ve apenas se guarda**, debajo de cada competencia, junto a su propio nivel y su ejemplo, y recibe un
+  aviso por email si Resend está configurado. Antes de compartir, la pantalla le avisa a quien evalúa que la otra persona
+  lo verá.
+- La escala de la persona (Aún no / En desarrollo / Sólido / Referente) se mantiene aparte: son dos miradas distintas que
+  se ven lado a lado. Las evaluaciones propias (“Evaluarme”) no tienen puntaje de otra persona.
+- En “Las que creé” se ve qué falta puntuar. Requiere `supabase/migrations/20261025000000_bivio_puntajes.sql`.
+
 ## Quién ve qué
 
 | | Quien responde | Quien creó la evaluación | Terceros |
 |---|---|---|---|
 | Contenido de la evaluación | sí | sí | no (404) |
 | Respuestas e informe | siempre | **solo cuando la persona los envía** | no (404) |
+| Puntaje de 1 a 5 y comentarios | sí, apenas se guardan | sí (es quien puntúa) | no (404) |
 | Responder o enviar | sí, hasta enviar | no | no |
+| Puntuar | no | sí, tras el envío | no |
 | Eliminar | no | sí (con las respuestas de todos) | no |
 
 Antes de escribir, la pantalla le dice a la persona quién va a leer lo que escriba. Todo lo aplica el servidor
@@ -52,6 +69,6 @@ bloque 70-20-10 y plazo, y preguntas para la conversación. Sin puntaje total, p
 
 - Cada destinatario necesita cuenta de Bivio (alta por el administrador).
 - Hay un tope diario de generaciones e informes por persona (`RATE_RULES.evaluaciones`).
-- No hay todavía evaluación del jefe para comparar lado a lado, ciclos periódicos ni vista por equipo.
+- No hay todavía ciclos periódicos ni vista por equipo, ni un puntaje general (hoy es por competencia).
 - La versión Jaspr no tiene esta sección.
 - Ver los puntos legales pendientes en docs/LEGAL_PENDIENTES.md antes de ofrecerlo a empresas reales.

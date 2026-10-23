@@ -20,6 +20,7 @@ import { esc, sendMail, type Mail } from './mailer.js'
 //   crear     → guarda la evaluación y la asigna (o la asigna a sí mismo, en modo "propia")
 //   mias      → lo que me asignaron      creadas → lo que creé, con el estado de cada asignación
 //   abrir     → una asignación completa   guardar → borrador de respuestas   enviar → completar y generar el informe
+//   puntuar   → quien creó la evaluación le pone a cada competencia un puntaje de 1 a 5 (con comentario); la persona lo ve
 //   eliminar  → borra una evaluación que creé (y con ella las respuestas)
 
 type Req = IncomingMessage & { body?: unknown }
@@ -116,6 +117,18 @@ const DEMO_INFORME: Informe = {
 
 // ── Mail de aviso ──────────────────────────────────────────────────────────────────────────────────────
 
+export function buildScoredMail(lang: Lang, titulo: string, creadaPor: string, appUrl: string): Mail {
+  const t = (k: Parameters<typeof translate>[1], v?: Record<string, string | number>) => translate(lang, k, v)
+  const text = [t('mail.score.hello'), '', t('mail.score.intro', { who: creadaPor, title: titulo }), '', t('mail.eval.cta', { url: appUrl }), '', t('mail.eval.footer')].join('\n')
+  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f1533;line-height:1.5">
+<p>${esc(t('mail.score.hello'))}</p>
+<p>${esc(t('mail.score.intro', { who: creadaPor, title: titulo }))}</p>
+<p><a href="${esc(appUrl)}" style="color:#6a3fc1">${esc(t('mail.eval.link'))}</a></p>
+<p style="font-size:12px;color:#5e566d">${esc(t('mail.eval.footer'))}</p>
+</div>`
+  return { subject: t('mail.score.subject'), html, text }
+}
+
 export function buildAssignedMail(lang: Lang, titulo: string, creadaPor: string, appUrl: string): Mail {
   const t = (k: Parameters<typeof translate>[1], v?: Record<string, string | number>) => translate(lang, k, v)
   const text = [t('mail.eval.hello'), '', t('mail.eval.intro', { who: creadaPor, title: titulo }), '', t('mail.eval.cta', { url: appUrl }), '', t('mail.eval.footer')].join('\n')
@@ -145,10 +158,15 @@ interface AsignacionRow {
   estado: 'pendiente' | 'en_curso' | 'completada'
   respuestas: Record<string, unknown>
   informe: Informe | null
+  puntajes: Puntajes | null
+  puntuada_at: string | null
   asignada_at: string
   completada_at: string | null
   bivio_evaluaciones: EvaluacionRow
 }
+/** El puntaje de quien evalúa, por competencia: de 1 (muy malo) a 5 (muy bueno). Lo pone una persona. */
+export type Puntajes = Record<string, { puntaje: number; comentario: string }>
+
 interface EvaluacionRow {
   id: string
   owner_id: string
@@ -252,7 +270,7 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
       }
 
       case 'mias': {
-        const rows = await db<AsignacionRow[]>(env, `/rest/v1/bivio_asignaciones?user_id=eq.${me.id}&select=id,estado,asignada_at,completada_at,bivio_evaluaciones(id,owner_id,tipo,titulo,area,created_at)&order=asignada_at.desc&limit=100`)
+        const rows = await db<AsignacionRow[]>(env, `/rest/v1/bivio_asignaciones?user_id=eq.${me.id}&select=id,estado,asignada_at,completada_at,puntuada_at,bivio_evaluaciones(id,owner_id,tipo,titulo,area,created_at)&order=asignada_at.desc&limit=100`)
         const owners = new Map<string, string>()
         for (const r of rows) {
           const oid = r.bivio_evaluaciones.owner_id
@@ -261,7 +279,7 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
         return {
           status: 200,
           body: {
-            items: rows.map((r) => ({ id: r.id, estado: r.estado, asignadaAt: r.asignada_at, completadaAt: r.completada_at, titulo: r.bivio_evaluaciones.titulo, area: r.bivio_evaluaciones.area, tipo: r.bivio_evaluaciones.tipo, creadaPor: owners.get(r.bivio_evaluaciones.owner_id) ?? '' })),
+            items: rows.map((r) => ({ id: r.id, estado: r.estado, asignadaAt: r.asignada_at, completadaAt: r.completada_at, conPuntaje: Boolean(r.puntuada_at), titulo: r.bivio_evaluaciones.titulo, area: r.bivio_evaluaciones.area, tipo: r.bivio_evaluaciones.tipo, creadaPor: owners.get(r.bivio_evaluaciones.owner_id) ?? '' })),
             pendientes: rows.filter((r) => r.estado !== 'completada').length,
           },
         }
@@ -269,16 +287,17 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
 
       case 'creadas': {
         if (!canCreate) return fail(403, 'srv.noArea', { reason: 'sin_area' })
-        const rows = await db<(EvaluacionRow & { bivio_asignaciones: { id: string; email: string; estado: string; completada_at: string | null }[] })[]>(
+        const rows = await db<(EvaluacionRow & { bivio_asignaciones: { id: string; email: string; estado: string; completada_at: string | null; puntuada_at: string | null }[] })[]>(
           env,
-          `/rest/v1/bivio_evaluaciones?owner_id=eq.${me.id}&tipo=eq.asignada&select=id,titulo,area,rol,periodo,created_at,bivio_asignaciones(id,email,estado,completada_at)&order=created_at.desc&limit=100`,
+          `/rest/v1/bivio_evaluaciones?owner_id=eq.${me.id}&tipo=eq.asignada&select=id,titulo,area,rol,periodo,created_at,bivio_asignaciones(id,email,estado,completada_at,puntuada_at)&order=created_at.desc&limit=100`,
         )
-        return { status: 200, body: { items: rows.map((r) => ({ id: r.id, titulo: r.titulo, area: r.area, rol: r.rol, periodo: r.periodo, createdAt: r.created_at, asignaciones: r.bivio_asignaciones.map((a) => ({ id: a.id, email: a.email, estado: a.estado, completadaAt: a.completada_at })) })) } }
+        return { status: 200, body: { items: rows.map((r) => ({ id: r.id, titulo: r.titulo, area: r.area, rol: r.rol, periodo: r.periodo, createdAt: r.created_at, asignaciones: r.bivio_asignaciones.map((a) => ({ id: a.id, email: a.email, estado: a.estado, completadaAt: a.completada_at, puntuada: Boolean(a.puntuada_at) })) })) } }
       }
 
       case 'abrir':
       case 'guardar':
-      case 'enviar': {
+      case 'enviar':
+      case 'puntuar': {
         const id = typeof body.id === 'string' && UUID.test(body.id) ? body.id : null
         if (!id) return fail(400, 'srv.badPayload')
         const [a] = await db<AsignacionRow[]>(env, `/rest/v1/bivio_asignaciones?id=eq.${id}&select=*,bivio_evaluaciones(*)&limit=1`)
@@ -303,9 +322,26 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
               email: a.email,
               respuestas: visible ? a.respuestas : {},
               informe: visible ? a.informe : null,
+              // El puntaje lo ven las dos personas apenas quien evalúa lo guarda.
+              puntajes: a.puntuada_at ? a.puntajes : null,
+              puntuadaAt: a.puntuada_at,
               completadaAt: a.completada_at,
             },
           }
+        }
+
+        if (action === 'puntuar') {
+          // Puntúa quien creó la evaluación, sobre la autoevaluación de otra persona y una vez que ya la envió.
+          if (!isOwner || isRecipient || ev.tipo !== 'asignada') return fail(403, 'srv.evalLocked')
+          if (a.estado !== 'completada') return fail(403, 'srv.scoreWaiting')
+          const puntajes = cleanPuntajes(body.puntajes, ev.competencias)
+          if (!puntajes) return fail(400, 'srv.scoreIncomplete')
+          await db(env, `/rest/v1/bivio_asignaciones?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ puntajes, puntuada_at: new Date().toISOString() }) })
+          // Aviso a la persona (si hay email configurado); el puntaje igual aparece en su pantalla.
+          const appUrl = process.env.APP_URL ?? 'https://career-path-ruby.vercel.app'
+          const avisada = await sendMail(a.email, buildScoredMail(ev.lang, ev.titulo, me.email, appUrl))
+          logEvent('info', 'evaluacion_puntuada', { avisada })
+          return { status: 200, body: { ok: true, avisada } }
         }
 
         // Guardar y enviar son solo de quien responde, y solo mientras no esté completada.
@@ -345,6 +381,19 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
     logEvent('error', 'evaluaciones_error', { action: String(action), ip: ipTag(clientIp(req)), error: e instanceof Error ? e : String(e) })
     return { status: pub.status, body: { error: pub.message } }
   }
+}
+
+/** Un puntaje entero de 1 a 5 por cada competencia (todas obligatorias) y un comentario acotado. */
+export function cleanPuntajes(raw: unknown, competencias: Competencia[]): Puntajes | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, { puntaje?: unknown; comentario?: unknown } | undefined>
+  const out: Puntajes = {}
+  for (const c of competencias) {
+    const v = r[c.id]
+    if (!v || typeof v.puntaje !== 'number' || !Number.isInteger(v.puntaje) || v.puntaje < 1 || v.puntaje > 5) return null
+    out[c.id] = { puntaje: v.puntaje, comentario: typeof v.comentario === 'string' ? v.comentario.trim().slice(0, 500) : '' }
+  }
+  return out
 }
 
 type ReportRespuestas = Parameters<typeof buildReportPrompt>[0]['respuestas']

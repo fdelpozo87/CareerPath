@@ -21,6 +21,9 @@ export interface Respuesta {
 }
 export type Respuestas = Record<string, Respuesta | string | undefined> & { desarrollo?: string }
 
+/** El puntaje de quien evalúa por competencia: de 1 (muy malo) a 5 (muy bueno). Lo pone una persona, no el modelo. */
+export type Puntajes = Record<string, { puntaje: number; comentario: string }>
+
 export interface Informe {
   resumen: string
   fortalezas: { competencia: string; texto: string; evidencia: string }[]
@@ -41,6 +44,8 @@ export interface ItemMia {
   creadaPor: string
   asignadaAt: string
   completadaAt: string | null
+  /** Quien la creó ya cargó su puntaje. */
+  conPuntaje: boolean
 }
 
 export interface ItemCreada {
@@ -50,7 +55,7 @@ export interface ItemCreada {
   rol: string
   periodo: string
   createdAt: string
-  asignaciones: { id: string; email: string; estado: EstadoAsignacion; completadaAt: string | null }[]
+  asignaciones: { id: string; email: string; estado: EstadoAsignacion; completadaAt: string | null; puntuada: boolean }[]
 }
 
 export interface Abierta {
@@ -63,6 +68,9 @@ export interface Abierta {
   email: string
   respuestas: Respuestas
   informe: Informe | null
+  /** El puntaje de quien creó la evaluación, visible para las dos personas una vez guardado. */
+  puntajes: Puntajes | null
+  puntuadaAt: string | null
   completadaAt: string | null
 }
 
@@ -104,6 +112,8 @@ export const creadas = () => call<{ items: ItemCreada[] }>({ action: 'creadas' }
 export const abrir = (id: string) => call<Abierta>({ action: 'abrir', id })
 export const guardar = (id: string, respuestas: Respuestas) => call<{ ok: true }>({ action: 'guardar', id, respuestas })
 export const enviar = (id: string, respuestas: Respuestas) => call<{ ok: true; informe: Informe }>({ action: 'enviar', id, respuestas })
+export const puntuar = (id: string, puntajes: Puntajes) => call<{ ok: true; avisada: boolean }>({ action: 'puntuar', id, puntajes })
 export const eliminar = (id: string) => call<{ ok: true }>({ action: 'eliminar', id })
 
+export const SCORE_KEYS = ['eval.score.1', 'eval.score.2', 'eval.score.3', 'eval.score.4', 'eval.score.5'] as const
 export const NIVEL_KEYS = ['eval.level.1', 'eval.level.2', 'eval.level.3', 'eval.level.4'] as const

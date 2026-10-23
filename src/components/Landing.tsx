@@ -48,6 +48,8 @@ interface LandingProps {
   processes: Session[]
   onResume: (id: string) => void
   onDelete: (id: string) => void
+  /** Si la cuenta no tiene habilitado "Para profesionales", no se muestran los caminos. */
+  showPaths?: boolean
 }
 
 const statusOf = (s: Session) =>
@@ -59,7 +61,7 @@ const statusOf = (s: Session) =>
         ? tr('process.status.profile')
         : tr('landing.resume.stage', { stage: stageLabel(s.stage) })
 
-export default function Landing({ onChoosePath, processes, onResume, onDelete }: LandingProps) {
+export default function Landing({ onChoosePath, processes, onResume, onDelete, showPaths = true }: LandingProps) {
   return (
     <section id="profesional" className="py-16 md:py-24">
       <div className="section-container">
@@ -101,59 +103,63 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete }:
           </section>
         )}
 
-        <div className="mx-auto mb-12 max-w-3xl text-center">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">{tr('landing.eyebrow')}</p>
-          <h1 className="mb-5 leading-tight">{tr('landing.title')}</h1>
-          <p className="mx-auto max-w-xl text-lg leading-relaxed text-text-muted">
-            {tr('landing.lede')}
-          </p>
-        </div>
-
-        <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {paths().map((p) => (
-            <div key={p.id} className="card flex flex-col p-7">
-              <div className="mb-6 flex items-center justify-between">
-                <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-                  {p.tag}
-                </span>
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-lg text-primary" aria-hidden>
-                  {p.icon}
-                </span>
-              </div>
-              <h2 className="mb-3 text-xl leading-snug">{p.title}</h2>
-              <p className={`${p.note ? 'mb-3' : 'mb-8'} flex-1 text-sm leading-relaxed text-text-muted`}>{p.body}</p>
-              {p.note && <p className="mb-5 text-xs font-semibold text-text-muted">{p.note}</p>}
-              {/* Mismo estilo en los dos: ningún camino se presenta como el recomendado. */}
-              <button onClick={() => onChoosePath(p.id)} className="btn-primary w-full py-3">
-                {tr('landing.start')}
-              </button>
+        {showPaths && (
+          <>
+            <div className="mx-auto mb-12 max-w-3xl text-center">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">{tr('landing.eyebrow')}</p>
+              <h1 className="mb-5 leading-tight">{tr('landing.title')}</h1>
+              <p className="mx-auto max-w-xl text-lg leading-relaxed text-text-muted">
+                {tr('landing.lede')}
+              </p>
             </div>
-          ))}
-        </div>
 
-        <div className="mx-auto mt-14 max-w-4xl">
-          <div className="glass-stage px-5 py-10 text-center sm:px-10 sm:py-12">
-            <p className="glass-kicker mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted">
-              {tr('landing.steps.title')}
-            </p>
-            <ol className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-3">
-              {(['diagnostico', 'discovery', 'plan'] as const).map((s, i) => (
-                <li key={s} className="flex items-center gap-3">
-                  <span className="glass-pill" style={{ animationDelay: `${i * 1.1}s` }}>
-                    <span className="glass-dot" aria-hidden="true">
-                      {i + 1}
+            <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {paths().map((p) => (
+                <div key={p.id} className="card flex flex-col p-7 transition-colors hover:border-accent focus-within:border-accent">
+                  <div className="mb-6 flex items-center justify-between">
+                    <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+                      {p.tag}
                     </span>
-                    <span className="text-sm font-medium">{s === 'discovery' ? tr('landing.steps.discovery') : stageLabel(s)}</span>
-                  </span>
-                  {i < 2 && <span aria-hidden="true" className="glass-link hidden h-px w-6 sm:block" />}
-                </li>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-lg text-primary" aria-hidden>
+                      {p.icon}
+                    </span>
+                  </div>
+                  <h2 className="mb-3 text-xl leading-snug">{p.title}</h2>
+                  <p className={`${p.note ? 'mb-3' : 'mb-8'} flex-1 text-sm leading-relaxed text-text-muted`}>{p.body}</p>
+                  {p.note && <p className="mb-5 text-xs font-semibold text-text-muted">{p.note}</p>}
+                  {/* Mismo estilo en los dos: ningún camino se presenta como el recomendado. */}
+                  <button onClick={() => onChoosePath(p.id)} className="btn-primary w-full py-3">
+                    {tr('landing.start')}
+                  </button>
+                </div>
               ))}
-            </ol>
-            <p className="glass-pill glass-pill--quiet mt-8 text-sm">
-              {tr('landing.steps.note')}
-            </p>
-          </div>
-        </div>
+            </div>
+
+            <div className="mx-auto mt-14 max-w-4xl">
+              <div className="glass-stage px-5 py-10 text-center sm:px-10 sm:py-12">
+                <p className="glass-kicker mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted">
+                  {tr('landing.steps.title')}
+                </p>
+                <ol className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-3">
+                  {(['diagnostico', 'discovery', 'plan'] as const).map((s, i) => (
+                    <li key={s} className="flex items-center gap-3">
+                      <span className="glass-pill" style={{ animationDelay: `${i * 1.1}s` }}>
+                        <span className="glass-dot" aria-hidden="true">
+                          {i + 1}
+                        </span>
+                        <span className="text-sm font-medium">{s === 'discovery' ? tr('landing.steps.discovery') : stageLabel(s)}</span>
+                      </span>
+                      {i < 2 && <span aria-hidden="true" className="glass-link hidden h-px w-6 sm:block" />}
+                    </li>
+                  ))}
+                </ol>
+                <p className="glass-pill glass-pill--quiet mt-8 text-sm">
+                  {tr('landing.steps.note')}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </section>
   )

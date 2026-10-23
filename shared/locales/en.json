@@ -715,5 +715,13 @@
   "mfa.settings.enabledNow": "Done: two-step verification is now on.",
   "mfa.settings.disabledNow": "Two-step verification is now off.",
   "mfa.settings.error": "We couldn’t complete that. Please try again.",
-  "mfa.settings.needsCode": "To turn it off, first verify your identity with the code from your app."
+  "mfa.settings.needsCode": "To turn it off, first verify your identity with the code from your app.",
+  "srv.noArea": "Your account doesn’t have this part of Bivio enabled. If you need it, ask whoever runs the service.",
+  "admin.areas.legend": "What they can use",
+  "admin.area.profesionales": "For professionals",
+  "admin.area.empresas": "For companies",
+  "admin.areaAria": "{area} for {email}",
+  "admin.audit.areas": "{actor} changed the enabled areas of {target}",
+  "nav.noAreas.title": "Your account has no parts enabled yet",
+  "nav.noAreas.body": "Your account exists, but whoever runs Bivio hasn’t enabled any part of the service for you yet (neither “For professionals” nor “For companies”). Write to them to ask for it."
 }

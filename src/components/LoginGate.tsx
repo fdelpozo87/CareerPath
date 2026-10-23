@@ -164,15 +164,15 @@ export function LoginGate({ initialError }: { initialError?: string }) {
 }
 
 /** La cuenta existe pero todavía no puede usar Bivio: pendiente de aprobación o desactivada. */
-export function AccountStatus({ kind, onRecheck }: { kind: 'pendiente' | 'desactivado'; onRecheck: () => void }) {
+export function AccountStatus({ kind, onRecheck }: { kind: 'pendiente' | 'desactivado' | 'sin_areas'; onRecheck: () => void }) {
   return (
     <Shell>
-      <h1 className="mb-3 text-2xl md:text-3xl">{tr(kind === 'pendiente' ? 'login.pending.title' : 'login.disabled.title')}</h1>
+      <h1 className="mb-3 text-2xl md:text-3xl">{tr(kind === 'pendiente' ? 'login.pending.title' : kind === 'sin_areas' ? 'nav.noAreas.title' : 'login.disabled.title')}</h1>
       <p role="status" className="mb-6 text-sm leading-relaxed text-text-muted">
-        {tr(kind === 'pendiente' ? 'login.pending.body' : 'login.disabled.body')}
+        {tr(kind === 'pendiente' ? 'login.pending.body' : kind === 'sin_areas' ? 'nav.noAreas.body' : 'login.disabled.body')}
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
-        {kind === 'pendiente' && (
+        {kind !== 'desactivado' && (
           <button onClick={onRecheck} className="btn-primary px-5 py-2.5 text-sm">
             {tr('login.recheck')}
           </button>

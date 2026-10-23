@@ -1,7 +1,7 @@
 import { tr } from '../lib/i18n'
 import Logo from './Logo'
 
-export default function Footer() {
+export default function Footer({ areas }: { areas?: { profesionales: boolean; empresas: boolean } }) {
   return (
     <footer className="border-t border-border-color py-10 md:py-14">
       <div className="section-container">
@@ -14,8 +14,8 @@ export default function Footer() {
             <p className="mb-3 font-medium text-foreground">{tr('footer.links')}</p>
             <ul className="space-y-2 text-text-muted">
               <li><a href="#" className="transition-colors hover:text-foreground">{tr('footer.home')}</a></li>
-              <li><a href="#profesional" className="transition-colors hover:text-foreground">{tr('nav.professionals')}</a></li>
-              <li><a href="#empresa" className="transition-colors hover:text-foreground">{tr('nav.companies')}</a></li>
+              {areas?.profesionales !== false && <li><a href="#profesional" className="transition-colors hover:text-foreground">{tr('nav.professionals')}</a></li>}
+              {areas?.empresas !== false && <li><a href="#empresa" className="transition-colors hover:text-foreground">{tr('nav.companies')}</a></li>}
               <li><a href="#privacidad" className="transition-colors hover:text-foreground">{tr('footer.privacy')}</a></li>
             </ul>
           </div>

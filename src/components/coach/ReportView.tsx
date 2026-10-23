@@ -136,7 +136,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
         )}
 
         {(report.faltaParaCompletar?.length ?? 0) > 0 && (
-          <div className="card">
+          <div className="card" style={{ borderLeft: '3px solid var(--color-accent)' }}>
             <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('report.gaps.title')}</p>
             <p className="mb-3 text-sm text-text-muted">{tr('report.gaps.lede')}</p>
             <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-foreground">

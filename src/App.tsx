@@ -42,6 +42,8 @@ function App() {
   useLang()
   const [view, setView] = useState<View>(() => (isPrivacyHash() ? 'privacidad' : isAdminHash() ? 'admin' : 'landing'))
   const [isAdmin, setIsAdmin] = useState(false)
+  // Qué partes del servicio tiene habilitadas la cuenta (sin dato: las dos).
+  const [areas, setAreas] = useState<{ profesionales: boolean; empresas: boolean }>({ profesionales: true, empresas: true })
   // Contraseña (opcional): el diálogo del menú y la pantalla de "olvidé mi contraseña".
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [mfaSettingsOpen, setMfaSettingsOpen] = useState(false)
@@ -104,6 +106,7 @@ function App() {
       const s = await checkAccess(getAccessCode() ?? undefined)
       if (s.mode === 'accounts') {
         setIsAdmin(Boolean(s.isAdmin))
+        setAreas(s.areas ?? { profesionales: true, empresas: true })
         if (!cloudEnabled()) setAccess({ state: 'login', error: tr('login.notConfigured') })
         else if (s.ok) setAccess({ state: 'open' })
         else if (s.reason === 'mfa_requerido') setAccess({ state: 'mfa' })
@@ -114,6 +117,7 @@ function App() {
         return
       }
       setIsAdmin(false)
+      setAreas({ profesionales: true, empresas: true })
       setAccess(!s.required || s.ok ? { state: 'open' } : { state: 'locked', error: s.error })
       // Refresca el apodo del código guardado (por ejemplo, si cambió en el servidor).
       const code = getAccessCode()
@@ -314,6 +318,11 @@ function App() {
     )
   }
 
+  // Cuenta activa pero sin ninguna parte habilitada: se le explica en lugar de mostrarle una pantalla vacía.
+  if (access.state === 'open' && !isAdmin && !areas.profesionales && !areas.empresas) {
+    return <AccountStatus kind="sin_areas" onRecheck={() => void refreshAccess()} />
+  }
+
   if (access.state === 'login') return <LoginGate initialError={access.error} />
   if (access.state === 'mfa') return <MfaGate onDone={() => void refreshAccess()} />
   if (access.state === 'pending' || access.state === 'disabled') {
@@ -357,7 +366,7 @@ function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans">
-      <Header account={account} />
+      <Header account={account} areas={areas} />
       <main className="flex-1">
         {notice && (
           <div role="status" className="mx-auto mt-6 flex max-w-6xl items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-sm text-foreground">
@@ -368,6 +377,7 @@ function App() {
           </div>
         )}
         <Landing
+          showPaths={areas.profesionales}
           onChoosePath={startPath}
           processes={processes}
           onResume={(id) => {
@@ -380,9 +390,9 @@ function App() {
           }}
           onDelete={(id) => setPending({ kind: 'deleteOne', id })}
         />
-        <CompanySection onStart={() => setView('company')} />
+        {areas.empresas && <CompanySection onStart={() => setView('company')} />}
       </main>
-      <Footer />
+      <Footer areas={areas} />
       {confirmDialog}
       {passwordDialog}
     </div>

@@ -65,6 +65,19 @@ mismo mail de acceso (si el envío falla, el alta igual queda hecha). Si el emai
 desactivada), se la deja activa. El alta usa la API de administración de Supabase con la service role
 (`createUser` en `server/cloud.ts`) y no guarda ninguna contraseña.
 
+### Qué parte puede usar cada cuenta (profesionales y empresas)
+
+Cada cuenta tiene dos interruptores, que se cambian desde el panel (y al dar de alta una cuenta se eligen):
+
+- **Para profesionales:** el coach (`/api/coach`) y los tres caminos de la home.
+- **Para empresas:** el análisis de Empresas (`/api/analyze`) y su sección.
+
+Por defecto, las dos. El servidor lo exige en cada pedido (`reason: sin_area`, 403) y la pantalla solo muestra las partes
+habilitadas (menú, pie, home); si una cuenta activa no tiene ninguna, ve un aviso. Quien administra usa todo siempre.
+Volver a dar de alta a alguien que ya tenía cuenta no le devuelve las partes que se le habían quitado. Cada cambio queda
+en “Actividad reciente”. Requiere la migración `supabase/migrations/20261023000000_bivio_areas.sql` (sin ella, el
+servidor no puede leer los interruptores: correrla **antes** de desplegar).
+
 ### Contraseña (opcional)
 
 Además del enlace por email, quien ya tiene cuenta puede elegir una contraseña:

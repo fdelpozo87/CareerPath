@@ -70,7 +70,7 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete }:
             </h2>
             <p className="mb-3 text-sm text-text-muted">{tr('process.lede')}</p>
             <ul className="divide-y divide-border-color">
-              {processes.map((p) => {
+              {processes.map((p, i) => {
                 const name = tr(`process.name.${p.path}` as Key)
                 return (
                   <li key={p.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -82,7 +82,8 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete }:
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
-                      <button onClick={() => onResume(p.id)} className="btn-primary px-5 py-2.5 text-sm">
+                      {/* Solo el proceso más reciente lleva el color de "seguir": un único punto de mandarina en la pantalla. */}
+                      <button onClick={() => onResume(p.id)} className={`${i === 0 ? 'btn-advance' : 'btn-primary'} px-5 py-2.5 text-sm`}>
                         {tr('landing.resume.button')}
                       </button>
                       <button

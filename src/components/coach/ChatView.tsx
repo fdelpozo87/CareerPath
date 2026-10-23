@@ -250,7 +250,7 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
           {STAGE_ORDER.map((s, i) => (
             <span key={s} className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
               <span
-                className="block h-full rounded-full bg-primary transition-all duration-500"
+                className={`block h-full rounded-full transition-all duration-500 ${i === idx ? 'bg-accent' : 'bg-primary'}`}
                 style={{ width: i < idx ? '100%' : i === idx ? `${Math.max(fraction * 100, 8)}%` : '0%' }}
               />
             </span>

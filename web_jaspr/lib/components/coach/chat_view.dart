@@ -291,7 +291,7 @@ class _ChatViewState extends State<ChatView> {
         el('div', 'mt-2 flex gap-1.5', [
           for (final s in Stage.values)
             el('span', 'h-1.5 flex-1 overflow-hidden rounded-full bg-secondary', [
-              el('span', 'block h-full rounded-full bg-primary transition-all duration-500', [], attrs: {
+              el('span', 'block h-full rounded-full ${s.index == idx ? 'bg-accent' : 'bg-primary'} transition-all duration-500', [], attrs: {
                 'style': 'width: ${s.index < idx ? 100 : s.index == idx ? math.max(fraction * 100, 8) : 0}%',
               }),
             ]),

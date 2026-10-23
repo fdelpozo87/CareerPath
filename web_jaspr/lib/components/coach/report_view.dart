@@ -142,7 +142,7 @@ class _ReportViewState extends State<ReportView> {
       ]),
       el('div', 'mt-8 flex flex-wrap gap-3 print:hidden', [
         if (editing)
-          btn('btn-primary flex-1 py-3.5 disabled:cursor-not-allowed disabled:opacity-40', [
+          btn('btn-advance flex-1 py-3.5 disabled:cursor-not-allowed disabled:opacity-40', [
             t(selected.isEmpty ? tl('report.take.zero') : tln('report.take.n', selected.length)),
           ], disabled: selected.isEmpty, onClick: () {
             component.onSave([...selected]);

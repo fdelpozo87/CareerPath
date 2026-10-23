@@ -199,6 +199,8 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
         const foco = optStr(body.foco, 600)
         const ajuste = optStr(body.ajuste, 400)
         if (!area || rol === null || periodo === null || foco === null || ajuste === null) return fail(400, 'srv.badPayload')
+        // Para evaluarse a uno mismo se piden el área y el cargo: sin cargo la evaluación no se puede armar a medida.
+        if (modo === 'propia' && !rol) return fail(400, 'srv.badPayload')
         const prevC = normalizeCompetencias((body.previa as { competencias?: unknown } | undefined)?.competencias)
         const previa = prevC && ajuste ? { titulo: str((body.previa as { titulo?: unknown }).titulo, MAX_TEXT) ?? '', competencias: prevC } : undefined
         if (!apiKey) return { status: 200, body: { demo: true, borrador: { titulo: `— DEMO — Evaluación · ${area}`, competencias: DEMO_COMPETENCIAS } } }

@@ -175,8 +175,15 @@ describe('evaluaciones: generar', () => {
   it('crear evaluaciones para otras personas exige "Para empresas"; evaluarse a sí mismo, cualquiera de las dos áreas', async () => {
     gemini.generateContent.mockResolvedValue(modelReply(modelDraft))
     expect((await call('tok_ana', { action: 'generar', modo: 'jefe', area: 'Ventas' })).status).toBe(403)
-    expect((await call('tok_ana', { action: 'generar', modo: 'propia', area: 'Ventas' })).status).toBe(200)
-    expect((await call('tok_luis', { action: 'generar', modo: 'propia', area: 'Ventas' })).status).toBe(403)
+    expect((await call('tok_ana', { action: 'generar', modo: 'propia', area: 'Ventas', rol: 'Analista' })).status).toBe(200)
+    expect((await call('tok_luis', { action: 'generar', modo: 'propia', area: 'Ventas', rol: 'Analista' })).status).toBe(403)
+  })
+
+  it('para evaluarse a sí mismo el cargo es obligatorio', async () => {
+    gemini.generateContent.mockResolvedValue(modelReply(modelDraft))
+    expect((await call('tok_ana', { action: 'generar', modo: 'propia', area: 'Ventas' })).status).toBe(400)
+    expect((await call('tok_ana', { action: 'generar', modo: 'propia', area: 'Ventas', rol: 'Analista' })).status).toBe(200)
+    expect(String(gemini.generateContent.mock.calls[0][0])).toContain('rol "Analista"')
   })
 
   it('un ajuste manda el borrador actual y el cambio pedido', async () => {

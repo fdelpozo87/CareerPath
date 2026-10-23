@@ -725,5 +725,14 @@
   "nav.noAreas.title": "Your account has no parts enabled yet",
   "nav.noAreas.body": "Your account exists, but whoever runs Bivio hasn’t enabled any part of the service for you yet (neither “For professionals” nor “For companies”). Write to them to ask for it.",
   "admin.deleteAria": "Delete {email}",
-  "admin.deleted": "The account of {email} was deleted."
+  "admin.deleted": "The account of {email} was deleted.",
+  "srv.evalNoAccounts": "None of those emails has an active Bivio account. Ask whoever runs the service to set them up.",
+  "srv.evalLocked": "This evaluation was already submitted or isn’t yours to answer.",
+  "srv.evalIncomplete": "A competency is incomplete: choose a level and write a concrete example.",
+  "mail.eval.subject": "You were assigned an evaluation in Bivio",
+  "mail.eval.hello": "Hi,",
+  "mail.eval.intro": "{who} assigned you a performance evaluation in Bivio: “{title}”. It’s a self-evaluation: you answer, and both you and whoever assigned it will see the report.",
+  "mail.eval.cta": "Sign in to Bivio with your account and you’ll find it under “My evaluations”: {url}",
+  "mail.eval.link": "Go to my evaluations",
+  "mail.eval.footer": "You get this message because you have an account in Bivio. You can delete your account and data anytime from your account menu."
 }

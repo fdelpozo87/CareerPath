@@ -26,6 +26,8 @@ export const RATE_RULES = {
   porCodigo: { limit: 400, windowMs: 24 * 60 * 60_000 },
   /** Panel de administración por IP. */
   admin: { limit: 120, windowMs: 60 * 60_000 },
+  /** Evaluaciones de desempeño: cada generación o informe llama al modelo. */
+  evaluaciones: { limit: 40, windowMs: 24 * 60 * 60_000 },
   /** Borrado de cuenta por IP. */
   cuenta: { limit: 5, windowMs: 60 * 60_000 },
   /** Intentos fallidos de código por IP: frena la adivinanza. */

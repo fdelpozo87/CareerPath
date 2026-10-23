@@ -1,0 +1,31 @@
+// Envío de emails (Resend). Si faltan RESEND_API_KEY o REMINDER_FROM no se manda nada y quien llama lo sabe:
+// las funciones de la app tienen que seguir funcionando sin email (la notificación también aparece dentro de Bivio).
+
+export interface Mail {
+  subject: string
+  html: string
+  text: string
+}
+
+export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+export function mailerConfigured(): boolean {
+  return Boolean(process.env.RESEND_API_KEY && process.env.REMINDER_FROM)
+}
+
+export async function sendMail(to: string, mail: Mail): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY
+  const from = process.env.REMINDER_FROM
+  if (!key || !from) return false
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to, subject: mail.subject, html: mail.html, text: mail.text }),
+      signal: AbortSignal.timeout(15_000),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}

@@ -20,6 +20,9 @@ const headers = (env: CloudEnv, extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
+/** Pedido genérico a la API de Supabase con la service role (para módulos que arman sus propias consultas). */
+export const rest = (env: CloudEnv, path: string, init: RequestInit = {}): Promise<Response> => call(env, path, init)
+
 async function call(env: CloudEnv, path: string, init: RequestInit = {}): Promise<Response> {
   return fetch(`${env.url}${path}`, { ...init, headers: { ...headers(env), ...(init.headers as Record<string, string> | undefined) }, signal: AbortSignal.timeout(15_000) })
 }

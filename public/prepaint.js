@@ -2,6 +2,8 @@
 (function () {
   try {
     var l = localStorage.getItem('cp_lang');
+    var p = /^\/(es|en)(\/|$)/.exec(location.pathname);
+    if (p) l = p[1];
     var en = l === 'en' || (l !== 'es' && (navigator.language || '').toLowerCase().indexOf('en') === 0);
     document.documentElement.setAttribute('lang', en ? 'en' : 'es');
     var m = localStorage.getItem('cp_theme');

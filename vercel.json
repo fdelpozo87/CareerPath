@@ -59,5 +59,15 @@
       "path": "/api/reminders",
       "schedule": "0 12 * * *"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/es",
+      "destination": "/es/index.html"
+    },
+    {
+      "source": "/en",
+      "destination": "/en/index.html"
+    }
   ]
 }

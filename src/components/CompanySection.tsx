@@ -6,15 +6,15 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
       icon: '↘',
       title: tr('company.uc1.title'),
       desc: tr('company.uc1.desc'),
-      color: '#ef4444',
-      bg: 'color-mix(in srgb, #ef4444 12%, var(--color-card))',
+      color: '#8f4300',
+      bg: 'color-mix(in srgb, #8f4300 12%, var(--color-card))',
     },
     {
       icon: '↗',
       title: tr('company.uc2.title'),
       desc: tr('company.uc2.desc'),
-      color: '#10b981',
-      bg: 'color-mix(in srgb, #10b981 12%, var(--color-card))',
+      color: '#6a3fc1',
+      bg: 'color-mix(in srgb, #6a3fc1 12%, var(--color-card))',
     },
   ]
 
@@ -80,13 +80,13 @@ export default function CompanySection({ onStart }: { onStart?: () => void }) {
               key={c.aspecto}
               className="flex items-start gap-3 rounded-2xl border p-5"
               style={{
-                borderColor: c.icon === '✓' ? '#10b98130' : 'var(--color-border-color)',
-                background: c.icon === '✓' ? 'color-mix(in srgb, #10b981 12%, var(--color-card))' : 'var(--color-card)',
+                borderColor: c.icon === '✓' ? '#6a3fc130' : 'var(--color-border-color)',
+                background: c.icon === '✓' ? 'color-mix(in srgb, #6a3fc1 12%, var(--color-card))' : 'var(--color-card)',
               }}
             >
               <span
                 className="mt-0.5 text-base font-bold"
-                style={{ color: c.icon === '✓' ? '#10b981' : '#ef4444' }}
+                style={{ color: c.icon === '✓' ? '#6a3fc1' : '#8f4300' }}
               >
                 {c.icon}
               </span>

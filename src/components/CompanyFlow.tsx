@@ -44,16 +44,16 @@ export interface CompanyDiagnosisResult {
 
 const QUESTION_DEFS: Record<CaseType, { id: string; color: string }[]> = {
   rendimiento: [
-    { id: 'observacion', color: '#ef4444' },
-    { id: 'contexto', color: '#f97316' },
-    { id: 'conversaciones', color: '#6366f1' },
-    { id: 'objetivo', color: '#10b981' },
+    { id: 'observacion', color: '#8f4300' },
+    { id: 'contexto', color: '#5a33a8' },
+    { id: 'conversaciones', color: '#6a3fc1' },
+    { id: 'objetivo', color: '#3e2280' },
   ],
   crecimiento: [
-    { id: 'aspiracion', color: '#10b981' },
-    { id: 'brechaActual', color: '#6366f1' },
-    { id: 'oportunidades', color: '#0ea5e9' },
-    { id: 'alineacion', color: '#f97316' },
+    { id: 'aspiracion', color: '#6a3fc1' },
+    { id: 'brechaActual', color: '#5a33a8' },
+    { id: 'oportunidades', color: '#3e2280' },
+    { id: 'alineacion', color: '#8f4300' },
   ],
 }
 
@@ -229,16 +229,16 @@ const casoOptions = (): { value: CaseType; icon: string; titulo: string; desc: s
     icon: '↘',
     titulo: tr('cf.case.rendimiento.title'),
     desc: tr('cf.case.rendimiento.desc'),
-    color: '#ef4444',
-    bg: 'color-mix(in srgb, #ef4444 12%, var(--color-card))',
+    color: '#8f4300',
+    bg: 'color-mix(in srgb, #8f4300 12%, var(--color-card))',
   },
   {
     value: 'crecimiento',
     icon: '↗',
     titulo: tr('cf.case.crecimiento.title'),
     desc: tr('cf.case.crecimiento.desc'),
-    color: '#10b981',
-    bg: 'color-mix(in srgb, #10b981 12%, var(--color-card))',
+    color: '#6a3fc1',
+    bg: 'color-mix(in srgb, #6a3fc1 12%, var(--color-card))',
   },
 ]
 
@@ -419,8 +419,8 @@ function QuestionsScreen({
           autoFocus
           className="w-full resize-y rounded-xl border p-3.5 font-sans text-sm text-foreground outline-none transition-colors"
           style={{
-            borderColor: canContinue ? '#10b981' : 'var(--color-border-color)',
-            background: canContinue ? 'color-mix(in srgb, #10b981 12%, var(--color-card))' : 'var(--color-card)',
+            borderColor: canContinue ? '#6a3fc1' : 'var(--color-border-color)',
+            background: canContinue ? 'color-mix(in srgb, #6a3fc1 12%, var(--color-card))' : 'var(--color-card)',
           }}
         />
         <p className="mt-2 text-xs text-text-muted">{q.ayuda}</p>
@@ -439,7 +439,7 @@ function QuestionsScreen({
           disabled={!canContinue}
           className="flex-1 rounded-xl py-3 font-semibold text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
           style={{
-            background: canContinue ? `linear-gradient(135deg, ${q.color}, ${q.color}cc)` : '#9ca3af',
+            background: canContinue ? `linear-gradient(135deg, ${q.color}, ${q.color}cc)` : 'var(--color-text-muted)',
           }}
         >
           {isLast ? tr('cf.toDocs') : tr('cf.next')}
@@ -499,8 +499,8 @@ function DocUploadScreen({
         aria-label={file ? tr('cf.doc.aria.file', { name: file.name }) : tr('cf.doc.aria.pick')}
         className="mb-6 block w-full cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all"
         style={{
-          borderColor: dragOver ? '#c2410c' : file ? '#047857' : 'var(--color-border-color)',
-          background: dragOver ? 'rgba(194,65,12,0.08)' : file ? 'color-mix(in srgb, #10b981 12%, var(--color-card))' : 'var(--color-card)',
+          borderColor: dragOver ? '#8f4300' : file ? '#6a3fc1' : 'var(--color-border-color)',
+          background: dragOver ? 'rgba(143,67,0,0.08)' : file ? 'color-mix(in srgb, #6a3fc1 12%, var(--color-card))' : 'var(--color-card)',
         }}
       >
         {file ? (
@@ -588,11 +588,11 @@ function AnalyzingScreen({ casoTipo }: { casoTipo: CaseType }) {
 // ── Step: Result ─────────────────────────────────────────────────────────────
 
 const BRECHA_COLORS: Record<TipoDeBrecha, string> = {
-  Aptitud: '#4f46e5',
-  Actitud: '#7c3aed',
-  Mixto: '#b45309',
-  Crecimiento: '#059669',
-  Movilidad: '#0284c7'
+  Aptitud: '#6a3fc1',
+  Actitud: '#3e2280',
+  Mixto: '#8f4300',
+  Crecimiento: '#5a33a8',
+  Movilidad: '#4f2c9b'
 }
 
 const brechaConfig = (tipo: TipoDeBrecha) => {
@@ -637,7 +637,7 @@ function ResultScreen({
       <div className="flex flex-col gap-4">
 
         {/* Mensaje para el líder — AI tint, prominente */}
-        <div className="ai-tint rounded-2xl p-6" style={{ borderLeft: '3px solid #f97316' }}>
+        <div className="ai-tint rounded-2xl p-6" style={{ borderLeft: '3px solid var(--color-accent)' }}>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{tr('cf.res.leader')}</p>
           <p className="italic leading-relaxed text-foreground">"{result.mensajeParaElLider}"</p>
         </div>
@@ -783,8 +783,8 @@ function ResultScreen({
             {result.proximosPasos.map((paso, i) => (
               <li key={i} className="flex gap-3">
                 <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ background: '#f97316' }}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-ink"
+                  style={{ background: 'var(--color-accent)' }}
                 >
                   {i + 1}
                 </span>

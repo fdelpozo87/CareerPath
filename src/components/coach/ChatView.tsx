@@ -156,7 +156,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
         {session.stageReady && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-primary/20 bg-primary-soft px-4 py-2.5 sm:px-6">
             <p className="text-sm font-medium text-primary">{tr('chat.mapReady', { stage: stageLabel(session.stage) })}</p>
-            <button onClick={onAdvance} className="btn-primary px-5 py-2 text-sm">
+            <button onClick={onAdvance} className="btn-advance px-5 py-2 text-sm">
               {nextLabel(session.stage)}
             </button>
           </div>

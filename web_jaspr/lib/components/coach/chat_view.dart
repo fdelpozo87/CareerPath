@@ -167,7 +167,7 @@ class _ChatViewState extends State<ChatView> {
         // El cierre no se pierde: aunque la persona siga escribiendo, el botón para seguir queda a la vista.
         when(session.stageReady, () => el('div', 'flex flex-wrap items-center justify-between gap-2 border-t border-primary/20 bg-primary-soft px-4 py-2.5 sm:px-6', [
           el('p', 'text-sm font-medium text-primary', [t(tl('chat.mapReady', {'stage': session.stage.label}))]),
-          btn('btn-primary px-5 py-2 text-sm', [t(_nextLabel(session.stage))], onClick: component.onAdvance),
+          btn('btn-advance px-5 py-2 text-sm', [t(_nextLabel(session.stage))], onClick: component.onAdvance),
         ])),
 
         _composer(),

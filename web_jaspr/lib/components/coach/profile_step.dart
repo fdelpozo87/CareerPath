@@ -245,7 +245,7 @@ class _ReadingViewState extends State<_ReadingView> {
           el('ul', 'space-y-3', [
             for (final (i, r) in recomendaciones.indexed)
               el('li', null, [
-                el('label', 'flex cursor-pointer gap-3 rounded-xl border border-border-color p-4 transition hover:bg-secondary', [
+                el('label', 'flex cursor-pointer gap-3 rounded-xl border p-4 transition hover:bg-secondary ${elegidas.contains(i) ? 'border-accent bg-accent-soft' : 'border-border-color'}', [
                   input<bool>(type: InputType.checkbox, checked: elegidas.contains(i), classes: 'mt-1 accent-primary', onChange: (_) => _toggle(i)),
                   el('div', null, [
                     el('p', 'text-sm font-semibold text-foreground', [t(r.cambio)]),
@@ -262,7 +262,7 @@ class _ReadingViewState extends State<_ReadingView> {
       ]),
       el('div', 'mt-8 rounded-2xl bg-ink p-6 text-center text-white', [
         el('p', 'mb-4 text-sm', [t(tl('profile.read.cta'))], attrs: {'style': 'color: rgba(255,255,255,0.75)'}),
-        btn('rounded-xl bg-card px-7 py-3 font-semibold text-foreground transition hover:shadow-lg active:scale-95', [t(tl('profile.read.start'))], onClick: () => component.onContinue(elegidas)),
+        btn('btn-advance px-7 py-3', [t(tl('profile.read.start'))], onClick: () => component.onContinue(elegidas)),
       ]),
     ]);
   }

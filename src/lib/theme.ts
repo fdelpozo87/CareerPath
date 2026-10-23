@@ -9,7 +9,7 @@ export const THEME_EVENT = 'cp:theme'
 
 const KEY = 'cp_theme'
 // Color de la barra del navegador en el celular.
-const THEME_COLOR = { light: '#781633', dark: '#170e12' } as const
+const THEME_COLOR = { light: '#6a3fc1', dark: '#150e24' } as const
 
 export function getThemeMode(): ThemeMode {
   try {

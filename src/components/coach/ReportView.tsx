@@ -69,7 +69,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
               if (!editing && !selected.includes(i)) return null
               return (
                 <li key={i}>
-                  <label className={`flex gap-3 rounded-xl border border-border-color p-4 ${editing ? 'cursor-pointer hover:bg-secondary' : ''}`}>
+                  <label className={`flex gap-3 rounded-xl border p-4 ${editing ? 'cursor-pointer hover:bg-secondary' : ''} ${editing && selected.includes(i) ? 'border-accent bg-accent-soft' : 'border-border-color'}`}>
                     {editing && (
                       <input type="checkbox" aria-label={tr('report.pickAria', { text: a.texto })} checked={selected.includes(i)} onChange={() => toggle(i)} className="mt-1 accent-primary print:hidden" />
                     )}

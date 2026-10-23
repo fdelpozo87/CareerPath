@@ -211,6 +211,8 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
   }, [session.phase, session.stage])
 
   const stageIdx = STAGE_ORDER.indexOf(session.stage)
+  // La etapa 0 ("Antes de empezar") dura hasta la primera respuesta de la persona.
+  const started = session.messages.some((m) => m.role === 'user' && !m.hidden)
 
   return (
     // En el chat la página ocupa exactamente la pantalla y no scrollea: lo único que se desplaza es la
@@ -227,8 +229,14 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
             {session.path === 'perfil' && (
               <li className={session.phase === 'perfil' ? 'font-semibold text-foreground' : 'text-text-muted'}>{tr('flow.profileStep')}</li>
             )}
+            {session.phase === 'chat' && (
+              <li aria-current={!started ? 'step' : undefined} className="flex items-center gap-1.5" style={{ color: !started ? 'var(--color-primary)' : 'var(--color-foreground)' }}>
+                <span aria-hidden="true">{started ? '✓' : '0.'}</span> <span className={!started ? 'font-semibold' : ''}>{tr('flow.stage0')}</span>
+                {started && <span className="sr-only">{tr('flow.done')}</span>}
+              </li>
+            )}
             {STAGE_ORDER.map((s, i) => {
-              const active = session.phase === 'chat' && s === session.stage
+              const active = session.phase === 'chat' && started && s === session.stage
               const done = session.phase === 'informe' || (session.phase === 'chat' && i < stageIdx)
               return (
                 <li

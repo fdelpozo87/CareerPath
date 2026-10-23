@@ -41,6 +41,29 @@ export default function CompanySection({ onStart, onEvaluaciones }: { onStart?: 
           </p>
         </div>
 
+        {/* Lo que se puede hacer, arriba y a la vista (igual que los caminos de "Para profesionales"). */}
+        <div className={`mx-auto mb-14 grid max-w-6xl gap-5 ${onEvaluaciones ? 'md:grid-cols-2' : 'md:grid-cols-1 md:max-w-xl'}`}>
+          <div className="card flex flex-col p-7 transition-colors hover:border-accent focus-within:border-accent">
+            <span className="mb-5 self-start rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">{tr('company.card.diag.tag')}</span>
+            <h3 className="mb-3 text-xl leading-snug">{tr('company.card.diag.title')}</h3>
+            <p className="mb-3 flex-1 text-sm leading-relaxed text-text-muted">{tr('company.cta.body')}</p>
+            <p className="mb-5 text-xs font-semibold text-text-muted">{tr('company.cta.note')}</p>
+            <button className="btn-primary w-full py-3" onClick={onStart}>
+              {tr('company.cta.button')}
+            </button>
+          </div>
+          {onEvaluaciones && (
+            <div className="card flex flex-col p-7 transition-colors hover:border-accent focus-within:border-accent">
+              <span className="mb-5 self-start rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">{tr('company.card.eval.tag')}</span>
+              <h3 className="mb-3 text-xl leading-snug">{tr('eval.section.cta')}</h3>
+              <p className="mb-8 flex-1 text-sm leading-relaxed text-text-muted">{tr('eval.section.body')}</p>
+              <button className="btn-primary w-full py-3" onClick={onEvaluaciones}>
+                {tr('company.card.eval.button')}
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Use cases */}
         <div className="mb-10 grid gap-5 md:grid-cols-2">
           {useCases.map((c) => (
@@ -96,41 +119,6 @@ export default function CompanySection({ onStart, onEvaluaciones }: { onStart?: 
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Evaluaciones de desempeño: autoevaluaciones asignadas por email (solo con cuenta). */}
-        {onEvaluaciones && (
-          <div className="mb-10 rounded-2xl border border-border-color bg-card p-8 md:p-10" style={{ boxShadow: 'var(--shadow-soft)' }}>
-            <div className="mx-auto max-w-xl text-center">
-              <h3 className="mb-3">{tr('eval.section.cta')}</h3>
-              <p className="mb-6 text-text-muted">{tr('eval.section.body')}</p>
-              <button className="btn-advance px-8 py-3.5 text-base" onClick={onEvaluaciones}>
-                {tr('eval.section.cta')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* CTA block */}
-        <div
-          className="rounded-2xl border border-border-color bg-card p-8 md:p-12"
-          style={{ boxShadow: 'var(--shadow-soft)' }}
-        >
-          <div className="mx-auto max-w-xl text-center">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              {tr('company.cta.eyebrow')}
-            </p>
-            <h3 className="mb-3">{tr('company.cta.title')}</h3>
-            <p className="mb-8 text-text-muted">
-              {tr('company.cta.body')}
-            </p>
-            <button className="btn-primary px-8 py-3.5 text-base" onClick={onStart}>
-              {tr('company.cta.button')}
-            </button>
-            <p className="mt-4 text-xs text-text-muted">
-              {tr('company.cta.note')}
-            </p>
-          </div>
         </div>
 
       </div>

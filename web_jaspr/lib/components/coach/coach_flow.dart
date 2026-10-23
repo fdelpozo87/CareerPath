@@ -237,14 +237,25 @@ class _CoachFlowState extends State<CoachFlow> {
     (web.document.getElementById('phase-heading') as web.HTMLElement?)?.focus();
   }
 
+  // La etapa 0 ("Antes de empezar") dura hasta la primera respuesta de la persona.
+  bool get _started => session.messages.any((m) => m.isUser && !m.hidden);
+
   Component _stagesNav() {
     final stageIdx = session.stage.index;
+    final started = _started;
     return el('ol', 'hidden items-center gap-4 text-xs sm:flex', [
       if (session.path == CoachPath.perfil)
         el('li', session.phase == Phase.perfil ? 'font-semibold text-foreground' : 'text-text-muted', [t(tl('flow.profileStep'))]),
+      if (session.phase == Phase.chat)
+        el('li', 'flex items-center gap-1.5', [
+          el('span', null, [t(started ? '✓' : '0.')], attrs: {'aria-hidden': 'true'}),
+          t(' '),
+          el('span', started ? '' : 'font-semibold', [t(tl('flow.stage0'))]),
+          when(started, () => el('span', 'sr-only', [t(tl('flow.done'))])),
+        ], attrs: {'style': 'color: ${started ? 'var(--color-foreground)' : 'var(--color-primary)'}', if (!started) 'aria-current': 'step'}),
       for (final (i, s) in Stage.values.indexed)
         () {
-          final active = session.phase == Phase.chat && s == session.stage;
+          final active = session.phase == Phase.chat && started && s == session.stage;
           final done = session.phase == Phase.informe || (session.phase == Phase.chat && i < stageIdx);
           // El verde del sistema para la etapa activa; las hechas en el color de texto; las que faltan, apagadas.
           final color = active ? 'var(--color-primary)' : done ? 'var(--color-foreground)' : 'var(--color-text-muted)';

@@ -249,6 +249,7 @@ class _ChatViewState extends State<ChatView> {
   // ── Encabezado: quién es el coach y dónde estás ─────────────────────────────
 
   Component _header() {
+    final started = session.messages.any((m) => m.isUser && !m.hidden);
     final idx = session.stage.index;
     final objetivos = objectivesFor(session.stage, session.path);
     final cubiertos = session.cubiertos[session.stage] ?? const <String>[];
@@ -282,27 +283,38 @@ class _ChatViewState extends State<ChatView> {
 
       when(session.perfil != null, _profileRecap),
 
-      // Dónde estás: etapa, qué se hace ahora y qué viene después.
-      el('div', 'mt-2.5', [
-        el('div', 'flex items-baseline justify-between gap-3 text-xs', [
-          el('p', 'font-semibold text-primary', [t(tl('chat.stageOf', {'n': idx + 1, 'total': Stage.values.length, 'stage': session.stage.label}))]),
-          el('p', 'hidden text-text-muted sm:block', [t(tl('chat.after', {'next': intro.despues}))]),
-        ]),
-        el('div', 'mt-2 flex gap-1.5', [
-          for (final s in Stage.values)
-            el('span', 'h-1.5 flex-1 overflow-hidden rounded-full bg-secondary', [
-              el('span', 'block h-full rounded-full ${s.index == idx ? 'bg-accent' : 'bg-primary'} transition-all duration-500', [], attrs: {
-                'style': 'width: ${s.index < idx ? 100 : s.index == idx ? math.max(fraction * 100, 8) : 0}%',
-              }),
-            ]),
-        ], attrs: {'aria-hidden': 'true'}),
-        el('p', 'mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden', [t(tl('chat.now', {'what': intro.queHacemos}))]),
+      // Antes de la primera respuesta es la etapa 0 ("Antes de empezar"); al empezar, la etapa 1.
+      if (!started)
+        el('div', 'mt-2.5', [
+          el('div', 'flex items-baseline justify-between gap-3 text-xs', [
+            el('p', 'font-semibold text-primary', [t(tl('chat.stage0.label'))]),
+            el('p', 'hidden text-text-muted sm:block', [t(tl('chat.stage0.next'))]),
+          ]),
+          el('div', 'mt-2 flex gap-1.5', [
+            for (final _ in Stage.values) el('span', 'h-1.5 flex-1 rounded-full bg-secondary', []),
+          ], attrs: {'aria-hidden': 'true'}),
+        ])
+      else
+        el('div', 'mt-2.5', [
+          el('div', 'flex items-baseline justify-between gap-3 text-xs', [
+            el('p', 'font-semibold text-primary', [t(tl('chat.stageOf', {'n': idx + 1, 'total': Stage.values.length, 'stage': session.stage.label}))]),
+            el('p', 'hidden text-text-muted sm:block', [t(tl('chat.after', {'next': intro.despues}))]),
+          ]),
+          el('div', 'mt-2 flex gap-1.5', [
+            for (final s in Stage.values)
+              el('span', 'h-1.5 flex-1 overflow-hidden rounded-full bg-secondary', [
+                el('span', 'block h-full rounded-full ${s.index == idx ? 'bg-accent' : 'bg-primary'} transition-all duration-500', [], attrs: {
+                  'style': 'width: ${s.index < idx ? 100 : s.index == idx ? math.max(fraction * 100, 8) : 0}%',
+                }),
+              ]),
+          ], attrs: {'aria-hidden': 'true'}),
+          el('p', 'mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden', [t(tl('chat.now', {'what': intro.queHacemos}))]),
 
-        // Con poca altura (teclado abierto, celular horizontal) se deja más lugar a la conversación.
-        el('ul', 'mt-1.5 flex flex-wrap gap-1.5 [@media(max-height:560px)]:hidden', [
-          for (final o in objetivos) _topicChip(o, cubiertos, omitidos),
-        ], attrs: {'role': 'list', 'aria-label': tl('chat.topics')}),
-      ]),
+          // Con poca altura (teclado abierto, celular horizontal) se deja más lugar a la conversación.
+          el('ul', 'mt-1.5 flex flex-wrap gap-1.5 [@media(max-height:560px)]:hidden', [
+            for (final o in objetivos) _topicChip(o, cubiertos, omitidos),
+          ], attrs: {'role': 'list', 'aria-label': tl('chat.topics')}),
+        ]),
     ]);
   }
 

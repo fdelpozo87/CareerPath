@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- el Supabase simulado y las respuestas JSON de los tests se manejan sin tipos */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const gemini = vi.hoisted(() => ({ generateContent: vi.fn() }))

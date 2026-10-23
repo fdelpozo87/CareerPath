@@ -20,6 +20,17 @@ const BADGE: Record<Estado, string> = {
 
 type Filter = 'todos' | 'pendiente'
 
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h16" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
+      <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  )
+}
+
 export function AdminPanel({ onBack }: { onBack: () => void }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null)
   const [audit, setAudit] = useState<AuditEntry[]>([])
@@ -239,11 +250,14 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                         {on ? tr('admin.switch.on') : tr('admin.switch.off')}
                       </label>
                       <button
+                        type="button"
                         onClick={() => setToDelete(u)}
                         disabled={busy}
-                        className="text-sm text-text-muted underline underline-offset-2 hover:text-danger disabled:opacity-50"
+                        aria-label={tr('admin.deleteAria', { email: u.email })}
+                        title={tr('admin.delete')}
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition hover:bg-danger-soft hover:text-danger disabled:opacity-50"
                       >
-                        {tr('admin.delete')}
+                        <TrashIcon />
                       </button>
                     </div>
                   )}
@@ -279,10 +293,16 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
         body={tr('admin.deleteConfirm', { email: toDelete?.email ?? '' })}
         confirmLabel={tr('admin.deleteAction')}
         onCancel={() => setToDelete(null)}
+        destructive
         onConfirm={() => {
           const u = toDelete
           setToDelete(null)
-          if (u) void act(u.user_id, () => deleteUserAccount(u.user_id))
+          if (u) {
+            void act(u.user_id, async () => {
+              await deleteUserAccount(u.user_id)
+              setAddMsg(tr('admin.deleted', { email: u.email }))
+            })
+          }
         }}
       />
     </div>

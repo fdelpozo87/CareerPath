@@ -635,9 +635,9 @@
   "admin.switch.on": "Activo",
   "admin.switch.off": "Inactivo",
   "admin.switchAria": "Permitir el acceso de {email}",
-  "admin.delete": "Eliminar",
+  "admin.delete": "Eliminar usuario",
   "admin.deleteTitle": "¿Eliminar a este usuario?",
-  "admin.deleteConfirm": "Se elimina la cuenta de {email} con sus informes, compromisos y recordatorios. No se puede deshacer. Si se vuelve a registrar, quedará pendiente.",
+  "admin.deleteConfirm": "Se elimina la cuenta de {email} de la base de datos, con sus informes, compromisos y recordatorios. No se puede deshacer. Para que vuelva a entrar tendrás que darla de alta de nuevo.",
   "admin.deleteAction": "Sí, eliminar",
   "login.error.rate": "Ya se enviaron varios enlaces a este email. Espera un rato (hasta una hora) y vuelve a intentarlo; revisa también la carpeta de spam.",
   "login.error.network": "No pudimos conectar con el servicio de cuentas. Revisa tu conexión e inténtalo de nuevo; si sigue igual, avísale a quien administra Bivio.",
@@ -723,5 +723,7 @@
   "admin.areaAria": "{area} para {email}",
   "admin.audit.areas": "{actor} cambió las áreas habilitadas de {target}",
   "nav.noAreas.title": "Tu cuenta todavía no tiene partes habilitadas",
-  "nav.noAreas.body": "Tu cuenta existe, pero quien administra Bivio aún no te habilitó ninguna parte del servicio (ni “Para profesionales” ni “Para empresas”). Escríbele para pedirla."
+  "nav.noAreas.body": "Tu cuenta existe, pero quien administra Bivio aún no te habilitó ninguna parte del servicio (ni “Para profesionales” ni “Para empresas”). Escríbele para pedirla.",
+  "admin.deleteAria": "Eliminar a {email}",
+  "admin.deleted": "Se eliminó la cuenta de {email}."
 }

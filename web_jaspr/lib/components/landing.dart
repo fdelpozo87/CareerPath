@@ -63,7 +63,7 @@ String _date(Session s) {
   return currentLang == Lang.en ? '${d.month}/${d.day}/${d.year}' : '${d.day}/${d.month}/${d.year}';
 }
 
-Component _processRow(Session p, void Function(String) onResume, void Function(String) onDelete) {
+Component _processRow(Session p, bool first, void Function(String) onResume, void Function(String) onDelete) {
   final name = tl('process.name.${p.path.id}');
   return el('li', 'flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between', [
     el('div', 'min-w-0', [
@@ -72,7 +72,8 @@ Component _processRow(Session p, void Function(String) onResume, void Function(S
       el('p', 'text-xs text-text-muted', [t(tl('process.updated', {'date': _date(p)}))]),
     ]),
     el('div', 'flex shrink-0 items-center gap-3', [
-      btn('btn-primary px-5 py-2.5 text-sm', [t(tl('landing.resume.button'))], onClick: () => onResume(p.id)),
+      // Solo el proceso más reciente lleva el color de "seguir": un único punto de mandarina en la pantalla.
+      btn('${first ? 'btn-advance' : 'btn-primary'} px-5 py-2.5 text-sm', [t(tl('landing.resume.button'))], onClick: () => onResume(p.id)),
       el(
         'button',
         'text-sm text-text-muted underline underline-offset-2 transition hover:text-foreground',
@@ -95,7 +96,7 @@ Component landing({
       when(processes.isNotEmpty, () => el('section', 'mx-auto mb-12 max-w-6xl rounded-2xl border border-primary/20 bg-card p-5', [
         el('h2', 'mb-1 text-base font-semibold text-foreground', [t(tl('process.title'))], id: 'mis-procesos'),
         el('p', 'mb-3 text-sm text-text-muted', [t(tl('process.lede'))]),
-        el('ul', 'divide-y divide-border-color', [for (final p in processes) _processRow(p, onResume, onDelete)]),
+        el('ul', 'divide-y divide-border-color', [for (final (i, p) in processes.indexed) _processRow(p, i == 0, onResume, onDelete)]),
       ], attrs: {'aria-labelledby': 'mis-procesos'})),
       el('div', 'mx-auto mb-12 max-w-3xl text-center', [
         el('p', 'mb-4 text-xs font-semibold uppercase tracking-widest text-primary', [t(tl('landing.eyebrow'))]),

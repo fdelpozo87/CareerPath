@@ -28,6 +28,12 @@ como tarjeta y un fondo `#150E24`.
 - **Acciones:** `btn-primary` (violeta) para lo general y `btn-advance` (mandarina) para **avanzar** (“Seguir a…”,
   “Empezar la conversación”). La opción elegida (acciones del informe, cambios de la lectura de perfil) se marca con
   borde mandarina y fondo durazno.
+- **Dónde va el mandarina** (la señal de "aquí va tu mirada" y "esto es lo que sigue"; como mucho un punto por pantalla):
+  la acción de avanzar (“Seguir a…”, “Empezar la conversación”, **“Asumir N compromisos”**), la **etapa actual** en la
+  barra de progreso (las completadas quedan en violeta), el **proceso más reciente** en “Tus procesos” (“Retomar”) y la
+  opción elegida. No va en texto, enlaces, íconos, errores, foco del teclado, panel de administración ni en el botón de
+  enviar del chat. Pendiente de decidir: borde mandarina en la tarjeta de camino al pasar el mouse y un filete en
+  “Para completar tu plan”.
 - **Sin rojo y verde de semáforo:** Bivio no aprueba ni desaprueba. Lo negativo y lo positivo se distinguen con
   mandarina oscuro y violeta, nunca con rojo ni verde. Los avisos de error usan un naranja oscuro (`--color-danger`).
 - **Texto secundario:** `#5E566D` en lugar de `#6B6478`, un poco más oscuro, para sostener AA (≥ 5,5:1) también sobre

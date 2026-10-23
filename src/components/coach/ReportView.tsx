@@ -163,7 +163,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
               setEditing(false)
             }}
             disabled={selected.length === 0}
-            className="btn-primary flex-1 py-3.5 disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-advance flex-1 py-3.5 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {selected.length ? trn('report.take.n', selected.length) : tr('report.take.zero')}
           </button>

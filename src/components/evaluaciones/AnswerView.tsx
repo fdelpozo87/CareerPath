@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { abrir, enviar, guardar, NIVEL_KEYS, puntuar, SCORE_KEYS, type Abierta, type Puntajes, type Respuesta, type Respuestas } from '../../lib/evaluaciones'
+import { abrir, compartir, dejarDeCompartir, enviar, guardar, NIVEL_KEYS, puntuar, SCORE_KEYS, type Abierta, type Puntajes, type Respuesta, type Respuestas } from '../../lib/evaluaciones'
 import { getLang, tr } from '../../lib/i18n'
+import { useId } from 'react'
 import ConfirmDialog from '../ConfirmDialog'
 import { InformeView } from './InformeView'
 
@@ -19,6 +20,11 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
   // El puntaje de quien evalúa (lo escribe quien creó la evaluación, después de que la persona la envía).
   const [scores, setScores] = useState<Puntajes>({})
   const [confirmScore, setConfirmScore] = useState(false)
+  // Compartir una autoevaluación propia con otra cuenta (solo lectura).
+  const [shareEmail, setShareEmail] = useState('')
+  const [shareMsg, setShareMsg] = useState<string | null>(null)
+  const [pendingShare, setPendingShare] = useState<string | null>(null)
+  const shareId = useId()
 
   const load = useCallback(async () => {
     try {
@@ -55,6 +61,7 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
   const set = (cid: string, patch: Partial<Respuesta>) => setAnswers((a) => ({ ...a, [cid]: { ...get(cid), ...patch } }))
   const missing = ev.competencias.find((c) => !get(c.id).nivel || get(c.id).evidencia.trim().length < MIN_EVIDENCIA)
   // Puntuar: solo quien creó la evaluación, y cuando la persona ya la envió.
+  const canShare = data.rol === 'responde' && ev.tipo === 'directa' && data.estado === 'completada'
   const canScore = data.rol === 'creador' && data.estado === 'completada' && ev.tipo === 'asignada'
   const sc = (cid: string) => scores[cid] ?? { puntaje: 0, comentario: '' }
   const setSc = (cid: string, patch: Partial<{ puntaje: number; comentario: string }>) => setScores((x) => ({ ...x, [cid]: { ...sc(cid), ...patch } }))
@@ -85,7 +92,9 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
 
       {/* Transparencia: quién va a leer lo que se escriba, antes de escribirlo. */}
       <p className="mb-6 rounded-xl bg-primary-soft p-4 text-sm leading-relaxed text-foreground">
-        {data.rol === 'creador'
+        {data.rol === 'lector'
+          ? tr('eval.who.reader', { email: data.email })
+          : data.rol === 'creador'
           ? tr('eval.who.creator', { email: data.email })
           : ev.tipo === 'directa'
             ? tr('eval.who.self')
@@ -106,6 +115,57 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
 
       {canAnswer || data.estado === 'completada' ? (
         <>
+          {canShare && (
+            <section aria-labelledby="compartir-titulo" className="mb-8 card">
+              <h3 id="compartir-titulo" className="mb-1 text-base">
+                {tr('eval.share.title')}
+              </h3>
+              <p className="mb-3 text-sm text-text-muted">{tr('eval.share.lede')}</p>
+              {data.compartidoCon.length > 0 && (
+                <ul className="mb-3 divide-y divide-border-color rounded-xl border border-border-color text-sm">
+                  {data.compartidoCon.map((email) => (
+                    <li key={email} className="flex items-center justify-between gap-3 px-3 py-2">
+                      <span className="min-w-0 truncate text-foreground">{email}</span>
+                      <button
+                        onClick={() => void run(async () => { await dejarDeCompartir(id, email); await load(); setShareMsg(tr('eval.share.removed', { email })) })}
+                        className="shrink-0 text-xs text-text-muted underline underline-offset-2 hover:text-foreground"
+                      >
+                        {tr('eval.share.stop')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (shareEmail.trim()) setPendingShare(shareEmail.trim().toLowerCase())
+                }}
+                className="flex flex-col gap-3 sm:flex-row sm:items-end"
+              >
+                <div className="flex-1">
+                  <label htmlFor={shareId} className="mb-1 block text-sm font-medium text-foreground">
+                    {tr('eval.share.email')}
+                  </label>
+                  <input
+                    id={shareId}
+                    type="email"
+                    required
+                    value={shareEmail}
+                    onChange={(e) => setShareEmail(e.target.value)}
+                    placeholder="jefa@empresa.com"
+                    className="w-full rounded-xl border border-border-color bg-background p-3 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </div>
+                <button type="submit" disabled={busy || !shareEmail.trim()} className="btn-primary px-5 py-2.5 text-sm disabled:opacity-50">
+                  {tr('eval.share.button')}
+                </button>
+              </form>
+              <p role="status" className="mt-2 min-h-5 text-sm text-text-muted">{shareMsg}</p>
+              <p role="alert" className="min-h-5 text-sm text-danger">{error}</p>
+            </section>
+          )}
+
           {data.informe && data.estado === 'completada' && (
             <section aria-labelledby="informe-titulo" className="mb-8">
               <h3 id="informe-titulo" className="mb-3 text-xl">
@@ -284,6 +344,25 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
           {error}
         </p>
       )}
+
+      <ConfirmDialog
+        open={pendingShare !== null}
+        title={tr('eval.share.confirm.title')}
+        body={tr('eval.share.confirm.body', { email: pendingShare ?? '' })}
+        confirmLabel={tr('eval.share.confirm.action')}
+        onCancel={() => setPendingShare(null)}
+        onConfirm={() => {
+          const email = pendingShare
+          setPendingShare(null)
+          if (!email) return
+          void run(async () => {
+            const r = await compartir(id, email)
+            setShareEmail('')
+            await load()
+            setShareMsg(tr(r.avisado ? 'eval.share.doneNotified' : 'eval.share.done', { email }))
+          })
+        }}
+      />
 
       <ConfirmDialog
         open={confirmScore}

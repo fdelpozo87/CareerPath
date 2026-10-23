@@ -1,15 +1,18 @@
 import { useId, useState, type FormEvent } from 'react'
-import { crear, generar, mias, type Borrador, type Competencia, type ResultadoAsignacion } from '../../lib/evaluaciones'
+import { crear, generar, type Borrador, type Competencia, type ResultadoAsignacion } from '../../lib/evaluaciones'
 import { tr } from '../../lib/i18n'
 
 // Armar una evaluación con ayuda de la IA: describir el área → revisar y editar la propuesta → asignar.
-// "jefe": se asigna a emails de cuentas de Bivio. "propia": la persona se la arma a sí misma.
+// Es el flujo de quien evalúa a otras personas: se asigna a emails de cuentas de Bivio. (Evaluarse a uno mismo
+// tiene su propio flujo corto: SelfStart.)
 
 type Step = 'form' | 'draft' | 'assign' | 'done'
 
 const inputCls = 'w-full rounded-xl border border-border-color bg-background p-3 text-sm text-foreground outline-none focus:border-primary'
 
-export function Builder({ modo, onBack, onOpen }: { modo: 'jefe' | 'propia'; onBack: () => void; onOpen: (asignacionId: string) => void }) {
+const modo = 'jefe' as const
+
+export function Builder({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<Step>('form')
   const [area, setArea] = useState('')
   const [rol, setRol] = useState('')
@@ -64,15 +67,9 @@ export function Builder({ modo, onBack, onOpen }: { modo: 'jefe' | 'propia'; onB
     const d = cleanDraft()
     if (!d || busy) return
     const list = [...new Set(emails.split(/[\s,;]+/).map((x) => x.trim().toLowerCase()).filter(Boolean))]
-    if (modo === 'jefe' && list.length === 0) return setError(tr('eval.build.emailsRequired'))
+    if (list.length === 0) return setError(tr('eval.build.emailsRequired'))
     void run(async () => {
-      const r = await crear({ modo, titulo: d.titulo, area: area.trim(), rol: rol.trim(), periodo: periodo.trim(), competencias: d.competencias, ...(modo === 'jefe' ? { emails: list, notify } : {}) })
-      if (modo === 'propia') {
-        // Se abre la evaluación recién creada para empezar a responderla.
-        const m = await mias()
-        if (m.items[0]) return onOpen(m.items[0].id)
-        return onBack()
-      }
+      const r = await crear({ modo, titulo: d.titulo, area: area.trim(), rol: rol.trim(), periodo: periodo.trim(), competencias: d.competencias, emails: list, notify })
       setResultados(r.resultados)
       setStep('done')
     })
@@ -85,8 +82,8 @@ export function Builder({ modo, onBack, onOpen }: { modo: 'jefe' | 'propia'; onB
       <button onClick={onBack} className="mb-4 text-sm text-text-muted underline underline-offset-2 hover:text-foreground">
         ← {tr('eval.back')}
       </button>
-      <h2 className="mb-1 text-2xl">{tr(modo === 'jefe' ? 'eval.build.titleBoss' : 'eval.build.titleSelf')}</h2>
-      <p className="mb-6 text-sm text-text-muted">{tr(modo === 'jefe' ? 'eval.build.ledeBoss' : 'eval.build.ledeSelf')}</p>
+      <h2 className="mb-1 text-2xl">{tr('eval.build.titleBoss')}</h2>
+      <p className="mb-6 text-sm text-text-muted">{tr('eval.build.ledeBoss')}</p>
 
       {step === 'form' && (
         <form onSubmit={propose} className="card space-y-4">
@@ -168,8 +165,8 @@ export function Builder({ modo, onBack, onOpen }: { modo: 'jefe' | 'propia'; onB
           <p role="alert" className="min-h-5 text-sm text-danger">{error}</p>
           <div className="flex justify-end gap-3">
             <button type="button" onClick={() => setStep('form')} className="btn-secondary px-5 py-2.5 text-sm">{tr('eval.build.backToForm')}</button>
-            <button type="button" disabled={!draftOk} onClick={() => (modo === 'jefe' ? setStep('assign') : create())} className="btn-primary px-6 py-2.5 text-sm disabled:opacity-50">
-              {busy ? tr('login.sending') : tr(modo === 'jefe' ? 'eval.build.continue' : 'eval.build.startSelf')}
+            <button type="button" disabled={!draftOk} onClick={() => setStep('assign')} className="btn-primary px-6 py-2.5 text-sm disabled:opacity-50">
+              {tr('eval.build.continue')}
             </button>
           </div>
         </div>

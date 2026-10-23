@@ -760,7 +760,6 @@
   "eval.build.titleBoss": "Create an evaluation",
   "eval.build.titleSelf": "Evaluate myself",
   "eval.build.ledeBoss": "Tell me the area and the AI proposes competencies and questions about concrete facts. You review them, adjust them and assign them to Bivio accounts: each person self-evaluates.",
-  "eval.build.ledeSelf": "Tell me your area and the AI builds a self-evaluation for you. When you’re done you get a report with your own evidence and a development plan.",
   "eval.build.area": "Area",
   "eval.build.areaPh": "For example: Sales, Support, Product…",
   "eval.build.role": "Role (optional)",
@@ -785,7 +784,6 @@
   "eval.build.backToForm": "Back",
   "eval.build.backToDraft": "Back to the proposal",
   "eval.build.continue": "Continue: assign",
-  "eval.build.startSelf": "Create and start",
   "eval.build.emails": "People’s emails",
   "eval.build.emailsHint": "Separated by comma or line. Each person must have an active Bivio account; if not, ask whoever runs the service to set it up.",
   "eval.build.emailsRequired": "Enter at least one email.",
@@ -833,5 +831,11 @@
   "eval.section.cta": "Performance evaluations",
   "eval.section.body": "Create self-evaluations with AI help and assign them by email, or evaluate yourself. Each person answers with concrete examples and gets a report.",
   "privacy.s3.f.strong": "Performance evaluations (only if you use this feature)",
-  "privacy.s3.f.rest": ": the content of the evaluation (competencies and questions), your answers (level and examples), the generated report and the email of whoever created it and whoever answers. An assigned evaluation is seen by the person answering and by whoever created it (the latter only once the person submits it); one you create for yourself is only yours. Don’t use names or personal data of third parties in the texts, and don’t include sensitive data. Bivio doesn’t score or make decisions about people: the decision is always human. [Define with the legal team each party’s role (whoever creates the evaluation and Rubika Tech) and the retention period.]"
+  "privacy.s3.f.rest": ": the content of the evaluation (competencies and questions), your answers (level and examples), the generated report and the email of whoever created it and whoever answers. An assigned evaluation is seen by the person answering and by whoever created it (the latter only once the person submits it); one you create for yourself is only yours. Don’t use names or personal data of third parties in the texts, and don’t include sensitive data. Bivio doesn’t score or make decisions about people: the decision is always human. [Define with the legal team each party’s role (whoever creates the evaluation and Rubika Tech) and the retention period.]",
+  "eval.self.lede": "Tell me your area and your job title and I’ll get started: I build a self-evaluation tailored to you and you go straight to answering it. When you’re done you get a report with your own evidence and a development plan.",
+  "eval.self.role": "Job title",
+  "eval.self.rolePh": "For example: Data analyst, Project lead…",
+  "eval.self.start": "Start my evaluation",
+  "eval.self.building": "Building your evaluation: it may take a few seconds…",
+  "eval.self.private": "It’s only yours: nobody else sees what you write or the report. Don’t use names or personal data of other people."
 }

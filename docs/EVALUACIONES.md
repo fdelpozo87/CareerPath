@@ -11,8 +11,9 @@ preparar la conversación con un informe. La decisión sobre la persona es siemp
    un aviso por email; si no, la ve en “Mis evaluaciones” al entrar. La persona se **autoevalúa**: un nivel (Aún no / En
    desarrollo / Sólido / Referente) y un ejemplo concreto por competencia, más qué quiere desarrollar. Al enviar, se genera el
    informe.
-2. **Propia** — cualquier cuenta con “Para profesionales” o “Para empresas” escribe su área, la IA le arma la
-   autoevaluación y recibe el informe. Es solo suya: nadie más la ve.
+2. **Propia ("Evaluarme")** — cualquier cuenta con “Para profesionales” o “Para empresas” escribe su **área y su cargo**
+   y empieza: la IA le arma la autoevaluación a medida y pasa directo a responderla, sin revisar una propuesta antes.
+   Al enviar recibe el informe. Es solo suya: nadie más la ve.
 
 ## Quién ve qué
 

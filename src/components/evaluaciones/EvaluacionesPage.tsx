@@ -7,6 +7,7 @@ import Logo from '../Logo'
 import ThemeToggle from '../ThemeToggle'
 import { AnswerView } from './AnswerView'
 import { Builder } from './Builder'
+import { SelfStart } from './SelfStart'
 
 // Evaluaciones de desempeño: lo que me asignaron (o me armé), lo que creé para otras personas, y los accesos
 // para crear una evaluación o evaluarme. Quien responde siempre es una cuenta de Bivio.
@@ -65,7 +66,8 @@ export function EvaluacionesPage({ canCreate, canSelf, onBack, onPending }: { ca
       </header>
 
       <main className="section-container max-w-3xl flex-1 py-10">
-        {view.kind === 'builder' && <Builder modo={view.modo} onBack={home} onOpen={(id) => setView({ kind: 'open', id })} />}
+        {view.kind === 'builder' && view.modo === 'jefe' && <Builder onBack={home} />}
+        {view.kind === 'builder' && view.modo === 'propia' && <SelfStart onBack={home} onOpen={(id) => setView({ kind: 'open', id })} />}
         {view.kind === 'open' && <AnswerView id={view.id} onBack={home} onChanged={() => void load()} />}
 
         {view.kind === 'home' && (

@@ -124,8 +124,18 @@ export function passwordErrorKey(e: unknown): 'password.error.credentials' | 'pa
 export async function sendLoginLink(email: string): Promise<void> {
   const c = sb()
   if (!c) throw new Error('cloud_off')
-  const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } })
-  if (error) throw error
+  // shouldCreateUser: false → el enlace solo sirve para cuentas que ya existen (las da de alta quien administra).
+  const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin, shouldCreateUser: false } })
+  // Si ese email no tiene cuenta no se le dice a quien pregunta (no se revela quién tiene acceso): la pantalla
+  // muestra el mismo aviso que cuando el enlace se envía.
+  if (error && !isNoAccountError(error)) throw error
+}
+
+/** El email no tiene cuenta (o los registros están cerrados): Supabase lo informa con distintos códigos. */
+export function isNoAccountError(e: unknown): boolean {
+  const err = e as { code?: string; message?: string } | null
+  const code = err?.code ?? ''
+  return ['otp_disabled', 'signup_disabled', 'user_not_found'].includes(code) || /signups? not allowed/i.test(err?.message ?? '')
 }
 
 /** Header con el token de la sesión de la cuenta, para los pedidos a /api (vacío si no hay sesión). */

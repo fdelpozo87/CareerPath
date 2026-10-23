@@ -86,6 +86,7 @@ export async function runEndpoint(endpoint: EndpointName, req: Req, apiKey: stri
         pendiente: { status: 403, key: 'srv.pending' },
         desactivado: { status: 403, key: 'srv.disabled' },
         no_disponible: { status: 503, key: 'srv.authDown' },
+        mfa_requerido: { status: 403, key: 'srv.mfaLogin' },
       } as const
       const d = denied[gate.reason]
       return finish({ status: d.status, body: { error: msg(d.key), reason: gate.reason } }, { rule: 'cuenta', reason: gate.reason })

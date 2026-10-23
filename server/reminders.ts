@@ -34,13 +34,13 @@ export function buildReminderMail(r: DueReminder, appUrl: string): ReminderMail 
     t('mail.reminder.footer'),
   ].join('\n')
 
-  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#2b1b21;line-height:1.5">
+  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f1533;line-height:1.5">
 <p>${esc(t('mail.reminder.hello'))}</p>
 <p>${esc(items.length > 0 ? t('mail.reminder.intro') : t('mail.reminder.introNone'))}</p>
 ${items.length > 0 ? `<ul>${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
 ${checkIn ? `<p>${esc(t('mail.reminder.checkin', { text: checkIn }))}</p>` : ''}
-<p><a href="${esc(appUrl)}" style="color:#781633">${esc(t('mail.reminder.link'))}</a></p>
-<p style="font-size:12px;color:#54454b">${esc(t('mail.reminder.footer'))}</p>
+<p><a href="${esc(appUrl)}" style="color:#6a3fc1">${esc(t('mail.reminder.link'))}</a></p>
+<p style="font-size:12px;color:#5e566d">${esc(t('mail.reminder.footer'))}</p>
 </div>`
 
   return { subject: t('mail.reminder.subject'), html, text }

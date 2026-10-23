@@ -62,7 +62,7 @@ class _ReportViewState extends State<ReportView> {
   ]);
 
   Component _action(int i, ReportAction a) => el('li', null, [
-    el('label', 'flex gap-3 rounded-xl border border-border-color p-4 ${editing ? 'cursor-pointer hover:bg-secondary' : ''}', [
+    el('label', 'flex gap-3 rounded-xl border p-4 ${editing ? 'cursor-pointer hover:bg-secondary' : ''} ${editing && selected.contains(i) ? 'border-accent bg-accent-soft' : 'border-border-color'}', [
       when(editing, () => input<bool>(type: InputType.checkbox, checked: selected.contains(i), classes: 'mt-1 accent-primary print:hidden', onChange: (_) => _toggle(i))),
       el('div', 'flex-1', [
         el('p', 'text-sm font-medium leading-relaxed text-foreground', [t(a.texto)]),

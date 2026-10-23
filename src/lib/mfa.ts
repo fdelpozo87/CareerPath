@@ -37,6 +37,22 @@ export async function enrollTotp(): Promise<Enrollment> {
   return { factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret }
 }
 
+/** Desactiva la verificación en dos pasos (Supabase exige que la sesión ya la haya pasado). */
+export async function disableTotp(factorId: string): Promise<void> {
+  const c = getClient()
+  if (!c) throw new Error('cloud_off')
+  const { error } = await c.auth.mfa.unenroll({ factorId })
+  if (error) throw error
+}
+
+/** Nivel de la sesión: aal2 = ya pasó el código en esta sesión. */
+export async function currentAal(): Promise<'aal1' | 'aal2'> {
+  const c = getClient()
+  if (!c) return 'aal1'
+  const { data } = await c.auth.mfa.getAuthenticatorAssuranceLevel()
+  return data?.currentLevel === 'aal2' ? 'aal2' : 'aal1'
+}
+
 /** Verifica el código de 6 dígitos. Si es correcto, la sesión pasa a aal2. */
 export async function verifyTotp(factorId: string, code: string): Promise<void> {
   const c = getClient()

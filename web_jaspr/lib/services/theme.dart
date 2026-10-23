@@ -21,7 +21,7 @@ enum ThemeMode {
 const themeEvent = 'cp:theme';
 
 const _key = 'cp_theme';
-const _themeColor = {'light': '#781633', 'dark': '#170e12'};
+const _themeColor = {'light': '#6a3fc1', 'dark': '#150e24'};
 
 ThemeMode getThemeMode() => switch (readLocal(_key)) {
   'light' => ThemeMode.light,

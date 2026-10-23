@@ -55,7 +55,7 @@ export interface AccessStatus {
   /** 'accounts': el acceso es por cuenta (email), no por código. */
   mode?: 'accounts'
   /** En modo cuentas, por qué no se puede usar todavía. */
-  reason?: 'sin_sesion' | 'pendiente' | 'desactivado' | 'no_disponible'
+  reason?: 'sin_sesion' | 'pendiente' | 'desactivado' | 'no_disponible' | 'mfa_requerido'
   /** Quien tiene la sesión es administrador (ve el panel de usuarios). */
   isAdmin?: boolean
 }

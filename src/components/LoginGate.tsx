@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { loginErrorKey, passwordErrorKey, sendLoginLink, sendPasswordReset, signInWithPassword, signOut } from '../lib/cloud'
+import { MfaStep } from './MfaStep'
 import { PasswordForm } from './PasswordForm'
 import { tr, type Key } from '../lib/i18n'
 import LanguageToggle from './LanguageToggle'
@@ -191,6 +192,18 @@ export function SetPasswordScreen({ onDone }: { onDone: () => void }) {
       <h1 className="mb-3 text-2xl md:text-3xl">{tr('password.recovery.title')}</h1>
       <p className="mb-6 text-sm leading-relaxed text-text-muted">{tr('password.recovery.body')}</p>
       <PasswordForm onDone={onDone} />
+    </Shell>
+  )
+}
+
+/** Entró con el enlace o la contraseña pero su cuenta tiene la verificación en dos pasos: falta el código. */
+export function MfaGate({ onDone }: { onDone: () => void }) {
+  return (
+    <Shell>
+      <MfaStep variant="login" onDone={onDone} />
+      <button onClick={() => void signOut()} className="mt-4 w-full text-sm text-text-muted underline underline-offset-2 hover:text-foreground">
+        {tr('cloud.signOut')}
+      </button>
     </Shell>
   )
 }

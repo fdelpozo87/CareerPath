@@ -1,41 +1,46 @@
 @import "tailwindcss";
 
 /*
- * Sistema visual de Bivio: crema cálido, burdeos, terracota y tipografía editorial
- * (la estructura del mockup de Lovable; el verde original se cambió por burdeos).
+ * Sistema visual de Bivio: violeta de marca, mandarina de acento y fondos claros con un toque lila.
+ * Paleta del equipo de diseño: Violeta #6A3FC1, Violeta profundo #3E2280, Lila suave #E9E2FA, Mandarina #F28C38,
+ * Durazno #FDE6D3, Tinta #1F1533, Gris violáceo #6B6478, Bruma #FAF9FC y Niebla #F8F5FF. Dentro de esa paleta se
+ * usan gamas más claras u oscuras cuando hace falta contraste o profundidad.
  * Contrastes verificados contra WCAG AA. Importante para texto:
- *   - `accent` (terracota) da 3,5:1: solo para decoración. Para texto, `accent-ink`.
- *   - `text-muted` sobre fondo, tarjetas y chips: ≥ 7,3:1 (≈ 8,6:1 sobre fondo, 8,9:1 sobre tarjetas).
+ *   - El mandarina (`accent`, 2,3:1 sobre fondo claro) NUNCA va como texto: es un relleno (la opción elegida y la
+ *     acción de avanzar, con texto tinta encima, 7,1:1). Para texto de acento sobre claros, `accent-ink`.
+ *   - `text-muted` es un gris violáceo un poco más oscuro que el de la paleta (#5E566D en vez de #6B6478) para
+ *     sostener AA también sobre chips lilas: ≥ 5,5:1 sobre fondo, tarjetas, chips y bloques destacados.
+ *   - Sin rojo y verde de semáforo: Bivio no aprueba ni desaprueba. Los avisos de error usan un naranja oscuro.
  */
 @theme {
   --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
 
-  --color-background: #fcf9f4;
-  --color-foreground: #2b1b21;
-  --color-card: #fffefc;
-  --color-secondary: #f4ecdd;
-  --color-border-color: #e6dfd1;
-  --color-text-muted: #54454b;
+  --color-background: #faf9fc;
+  --color-foreground: #1f1533;
+  --color-card: #ffffff;
+  --color-secondary: #f1ecfb;
+  --color-border-color: #e3dcf3;
+  --color-text-muted: #5e566d;
 
-  --color-primary: #781633;
-  --color-primary-dark: #5a1026;
-  --color-primary-soft: #f5e4ea;
+  --color-primary: #6a3fc1;
+  --color-primary-dark: #3e2280;
+  --color-primary-soft: #e9e2fa;
 
-  --color-accent: #c96b46;
-  --color-accent-ink: #94421f;
-  --color-accent-soft: #fde6da;
+  --color-accent: #f28c38;
+  --color-accent-ink: #8f4300;
+  --color-accent-soft: #fde6d3;
 
-  --color-danger: #b02a2d;
-  --color-danger-soft: #ffedeb;
+  --color-danger: #a8360c;
+  --color-danger-soft: #fff0e6;
 
   /* Texto sobre el color primario (blanco en claro, oscuro en modo oscuro), color del logo y una
      tinta oscura fija para cajas que no deben invertirse. */
   --color-on-primary: #ffffff;
-  --color-brand: #781633;
-  --color-ink: #2b1b21;
+  --color-brand: #6a3fc1;
+  --color-ink: #1f1533;
 
-  --shadow-soft: 0 1px 2px rgb(43 27 33 / 0.04), 0 8px 24px -8px rgb(43 27 33 / 0.10);
+  --shadow-soft: 0 1px 2px rgb(31 21 51 / 0.04), 0 8px 24px -8px rgb(31 21 51 / 0.10);
 }
 
 /*
@@ -46,25 +51,25 @@
 @media not print {
   :root[data-theme='dark'] {
     color-scheme: dark;
-    --color-background: #170e12;
-    --color-foreground: #f6edf0;
-    --color-card: #21161b;
-    --color-secondary: #2c1d24;
-    --color-border-color: #43303a;
-    --color-text-muted: #cdbcc3;
+    --color-background: #150e24;
+    --color-foreground: #f4f0fb;
+    --color-card: #1f1533;
+    --color-secondary: #2a1e45;
+    --color-border-color: #3d2f5e;
+    --color-text-muted: #b8afcb;
 
-    --color-primary: #e8899f;
-    --color-primary-dark: #f3b3c4;
-    --color-primary-soft: #3a1a26;
-    --color-on-primary: #2b1b21;
-    --color-brand: #e8899f;
+    --color-primary: #b79cf2;
+    --color-primary-dark: #d2bff8;
+    --color-primary-soft: #2e2050;
+    --color-on-primary: #1f1533;
+    --color-brand: #b79cf2;
 
-    --color-accent: #d9825c;
-    --color-accent-ink: #f2a98a;
-    --color-accent-soft: #3a231b;
+    --color-accent: #f28c38;
+    --color-accent-ink: #f7b27a;
+    --color-accent-soft: #3b2517;
 
-    --color-danger: #ff8f92;
-    --color-danger-soft: #3d1a1d;
+    --color-danger: #ff9e6b;
+    --color-danger-soft: #3a1f14;
 
     --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
   }
@@ -129,6 +134,14 @@
     @apply inline-flex items-center justify-center rounded-full border-0 bg-primary px-6 py-3 font-semibold text-on-primary transition-all duration-150 hover:bg-primary-dark hover:shadow-md active:scale-[0.98];
     cursor: pointer;
   }
+  /* La acción de avanzar: mandarina de relleno con texto tinta (nunca texto mandarina). */
+  .btn-advance {
+    @apply inline-flex items-center justify-center rounded-full border-0 bg-accent px-6 py-3 font-semibold text-ink transition-all duration-150 hover:shadow-md active:scale-[0.98];
+    cursor: pointer;
+  }
+  .btn-advance:hover {
+    background: color-mix(in srgb, var(--color-accent) 88%, white);
+  }
   .btn-secondary {
     @apply inline-flex items-center justify-center rounded-full border border-border-color bg-card px-6 py-3 font-semibold text-primary transition-all duration-150 hover:bg-secondary hover:shadow-sm active:scale-[0.98];
     cursor: pointer;
@@ -151,7 +164,7 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: conic-gradient(from 0deg, #f5e4ea 0%, #f4ecdd 33%, #fde6da 66%, #f5e4ea 100%);
+    background: conic-gradient(from 0deg, #e9e2fa 0%, #f8f5ff 33%, #fde6d3 66%, #e9e2fa 100%);
     animation: ai-spin 2.5s linear infinite;
   }
 
@@ -177,10 +190,10 @@
     border-radius: 2rem;
     border: 1px solid var(--color-border-color);
     background:
-      radial-gradient(55% 130% at 8% 15%, rgb(120 22 51 / 0.34), transparent 62%),
-      radial-gradient(45% 120% at 50% 105%, rgb(201 107 70 / 0.42), transparent 65%),
-      radial-gradient(50% 130% at 96% 10%, rgb(120 22 51 / 0.2), transparent 60%),
-      linear-gradient(135deg, #f5e4ea 0%, #f4ecdd 55%, #fde6da 100%);
+      radial-gradient(55% 130% at 8% 15%, rgb(106 63 193 / 0.34), transparent 62%),
+      radial-gradient(45% 120% at 50% 105%, rgb(242 140 56 / 0.42), transparent 65%),
+      radial-gradient(50% 130% at 96% 10%, rgb(106 63 193 / 0.2), transparent 60%),
+      linear-gradient(135deg, #e9e2fa 0%, #f8f5ff 55%, #fde6d3 100%);
   }
 
   .glass-pill {
@@ -198,8 +211,8 @@
     border: 1px solid rgb(255 255 255 / 0.7);
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.95),
-      inset 0 -1px 0 rgb(120 22 51 / 0.1),
-      0 14px 28px -14px rgb(43 27 33 / 0.45);
+      inset 0 -1px 0 rgb(106 63 193 / 0.1),
+      0 14px 28px -14px rgb(31 21 51 / 0.45);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
     animation: glass-float 7s ease-in-out infinite;
   }
@@ -217,8 +230,8 @@
     transform: translateY(-3px);
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.95),
-      inset 0 -1px 0 rgb(120 22 51 / 0.1),
-      0 20px 34px -14px rgb(43 27 33 / 0.5);
+      inset 0 -1px 0 rgb(106 63 193 / 0.1),
+      0 20px 34px -14px rgb(31 21 51 / 0.5);
   }
   /* Variante tranquila: una frase suelta, sin número. */
   .glass-pill--quiet {
@@ -226,7 +239,7 @@
     animation: none;
     background: linear-gradient(180deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.28));
   }
-  /* El número: una gota de burdeos dentro de la cápsula. */
+  /* El número: una gota de violeta dentro de la cápsula. */
   .glass-dot {
     position: relative;
     display: flex;
@@ -239,12 +252,12 @@
     font-size: 0.8rem;
     font-weight: 600;
     color: #fff;
-    background: radial-gradient(circle at 30% 25%, #a8284c 0%, #781633 55%, #5a1026 100%);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 4px 10px -4px rgb(120 22 51 / 0.7);
+    background: radial-gradient(circle at 30% 25%, #8a62e0 0%, #6a3fc1 55%, #3e2280 100%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 4px 10px -4px rgb(106 63 193 / 0.7);
   }
 
   .glass-link {
-    background: rgb(120 22 51 / 0.35);
+    background: rgb(106 63 193 / 0.35);
   }
   :root[data-theme='dark'] .glass-kicker {
     color: rgb(255 255 255 / 0.74);
@@ -253,14 +266,14 @@
     background: rgb(255 255 255 / 0.3);
   }
 
-  /* Versión oscura del vidrio: fondo burdeos profundo con brasas de terracota, cápsulas que brillan. */
+  /* Versión oscura del vidrio: fondo violeta profundo con brasas de mandarina, cápsulas que brillan. */
   :root[data-theme='dark'] .glass-stage {
-    border-color: #3a0f1e;
+    border-color: #2a1e45;
     background:
-      radial-gradient(50% 140% at 10% 0%, rgb(168 40 76 / 0.55), transparent 60%),
-      radial-gradient(45% 130% at 55% 120%, rgb(201 107 70 / 0.5), transparent 62%),
-      radial-gradient(40% 120% at 100% 20%, rgb(120 22 51 / 0.6), transparent 60%),
-      linear-gradient(140deg, #1d0710 0%, #35101f 50%, #4a1429 100%);
+      radial-gradient(50% 140% at 10% 0%, rgb(138 98 224 / 0.5), transparent 60%),
+      radial-gradient(45% 130% at 55% 120%, rgb(242 140 56 / 0.32), transparent 62%),
+      radial-gradient(40% 120% at 100% 20%, rgb(106 63 193 / 0.6), transparent 60%),
+      linear-gradient(140deg, #110a1f 0%, #1f1533 50%, #2e2050 100%);
   }
   :root[data-theme='dark'] .glass-pill {
     color: #fff;
@@ -284,9 +297,9 @@
     background: linear-gradient(180deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.06));
   }
   :root[data-theme='dark'] .glass-dot {
-    color: #5a1026;
-    background: radial-gradient(circle at 30% 25%, #fff 0%, #f5e4ea 60%, #e8c3cf 100%);
-    box-shadow: inset 0 -2px 4px rgb(120 22 51 / 0.25), 0 4px 12px -4px rgb(0 0 0 / 0.6);
+    color: #3e2280;
+    background: radial-gradient(circle at 30% 25%, #fff 0%, #e9e2fa 60%, #cdbdf3 100%);
+    box-shadow: inset 0 -2px 4px rgb(106 63 193 / 0.25), 0 4px 12px -4px rgb(0 0 0 / 0.6);
   }
   /* Sin desenfoque disponible, un fondo casi opaco mantiene el texto legible. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

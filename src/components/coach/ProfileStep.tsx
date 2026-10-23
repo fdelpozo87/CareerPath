@@ -267,7 +267,7 @@ function ReadingView({
           <ul className="space-y-3">
             {recomendaciones.map((r, i) => (
               <li key={i}>
-                <label className="flex cursor-pointer gap-3 rounded-xl border border-border-color p-4 transition hover:bg-secondary">
+                <label className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition hover:bg-secondary ${elegidas.includes(i) ? 'border-accent bg-accent-soft' : 'border-border-color'}`}>
                   <input type="checkbox" checked={elegidas.includes(i)} onChange={() => toggle(i)} className="mt-1 accent-primary" />
                   <div>
                     <p className="text-sm font-semibold text-foreground">{r.cambio}</p>
@@ -296,7 +296,7 @@ function ReadingView({
         </p>
         <button
           onClick={() => onContinue(elegidas)}
-          className="rounded-xl bg-card px-7 py-3 font-semibold text-foreground transition hover:shadow-lg active:scale-95"
+          className="btn-advance px-7 py-3"
         >
           {tr('profile.read.start')}
         </button>

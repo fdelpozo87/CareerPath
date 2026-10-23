@@ -8,6 +8,6 @@
     var dark = m === 'dark' || (m !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', dark ? '#170e12' : '#781633');
+    if (meta) meta.setAttribute('content', dark ? '#150e24' : '#6a3fc1');
   } catch (e) {}
 })();

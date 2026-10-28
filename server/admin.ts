@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 import { translate, type Lang } from '../shared/i18n.js'
 import { adminMfaRequired, authorize, resetAuthCache } from './auth.js'
-import { ESTADOS, cloudEnv, createUser, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, setAreas, setEstado, type AuditAction, type Estado } from './cloud.js'
+import { ESTADOS, cloudEnv, createUser, listComentarios, setComentarioLeido, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, setAreas, setEstado, type AuditAction, type Estado } from './cloud.js'
 import { RATE_RULES, clientIp, ipTag, isAllowedOrigin, logEvent, requestLang } from './guard.js'
 import { durableLimit } from './limits.js'
 import { notifyAccess, notifyActivated } from './accessMail.js'
@@ -53,6 +53,9 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
       const users = await listPerfiles(env)
       return { status: 200, body: { users: users.map((u) => ({ ...u, isSelf: u.user_id === gate.user.id })) } }
     }
+    if (body.action === 'comentarios') {
+      return { status: 200, body: { entries: await listComentarios(env, 50).catch(() => []) } }
+    }
     if (body.action === 'audit') {
       return { status: 200, body: { entries: await listAudit(env, 50).catch(() => []) } }
     }
@@ -89,6 +92,11 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
     // Quien administra no puede apagarse ni borrarse a sí mismo: quedaría sin panel.
     if (id === gate.user.id) return { status: 400, body: { error: msg('srv.adminSelf') } }
 
+    if (body.action === 'comentarioLeido') {
+      if (typeof (body as { leido?: unknown }).leido !== 'boolean') return { status: 400, body: { error: msg('srv.badPayload') } }
+      const ok = await setComentarioLeido(env, id, (body as { leido: boolean }).leido)
+      return ok ? { status: 200, body: { ok: true } } : { status: 502, body: { error: msg('srv.upstream') } }
+    }
     if (body.action === 'setAreas') {
       if (typeof body.profesionales !== 'boolean' && typeof body.empresas !== 'boolean') return { status: 400, body: { error: msg('srv.badPayload') } }
       const areas = { profesionales: typeof body.profesionales === 'boolean' ? body.profesionales : undefined, empresas: typeof body.empresas === 'boolean' ? body.empresas : undefined }

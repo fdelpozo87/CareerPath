@@ -2,6 +2,8 @@
 // la seguridad por filas: por eso vive solo acá y nunca viaja al navegador. Sin dependencias: habla
 // con la API REST de Supabase directamente.
 
+import type { Lang } from '../shared/i18n.js'
+
 export interface CloudEnv {
   url: string
   serviceKey: string
@@ -243,4 +245,36 @@ export async function generateLink(env: CloudEnv, email: string, redirectTo: str
   if (!res.ok) return null
   const body = (await res.json().catch(() => ({}))) as { action_link?: string }
   return typeof body.action_link === 'string' && body.action_link.startsWith('https://') ? body.action_link : null
+}
+
+// ── Comentarios de las personas ───────────────────────────────────────────────
+
+export type ComentarioTipo = 'problema' | 'idea' | 'otro'
+export const TIPOS_COMENTARIO: ComentarioTipo[] = ['problema', 'idea', 'otro']
+
+export interface Comentario {
+  id: string
+  email: string
+  tipo: ComentarioTipo
+  mensaje: string
+  pagina: string | null
+  lang: string
+  leido: boolean
+  created_at: string
+}
+
+export async function insertComentario(env: CloudEnv, c: { user_id: string; email: string; tipo: ComentarioTipo; mensaje: string; pagina: string | null; lang: Lang }): Promise<boolean> {
+  const res = await call(env, '/rest/v1/bivio_comentarios', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(c) })
+  return res.ok
+}
+
+export async function listComentarios(env: CloudEnv, limit = 50): Promise<Comentario[]> {
+  const res = await call(env, `/rest/v1/bivio_comentarios?select=id,email,tipo,mensaje,pagina,lang,leido,created_at&order=created_at.desc&limit=${limit}`)
+  if (!res.ok) throw new Error(`comentarios ${res.status}`)
+  return (await res.json()) as Comentario[]
+}
+
+export async function setComentarioLeido(env: CloudEnv, id: string, leido: boolean): Promise<boolean> {
+  const res = await call(env, `/rest/v1/bivio_comentarios?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ leido }) })
+  return res.ok
 }

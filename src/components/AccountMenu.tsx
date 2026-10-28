@@ -15,6 +15,8 @@ export interface AccountInfo {
   onDeleteData: () => void
   /** Baja un archivo con todo lo que hay de la persona (procesos de este navegador y lo guardado en su cuenta). */
   onExport: () => void
+  /** Con cuenta: abre el formulario de comentarios para quien administra. */
+  onFeedback?: () => void
   /** Solo para quien administra: abre el panel de usuarios. */
   onAdmin?: () => void
   /** Evaluaciones de desempeño (solo con cuenta): abre "Mis evaluaciones". */
@@ -174,6 +176,20 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
                   }}
                 >
                   {tr('admin.link')}
+                </button>
+              </li>
+            )}
+            {account.onFeedback && (
+              <li>
+                <button
+                  type="button"
+                  className={ITEM}
+                  onClick={() => {
+                    setOpen(false)
+                    account.onFeedback?.()
+                  }}
+                >
+                  {tr('comment.menu')}
                 </button>
               </li>
             )}

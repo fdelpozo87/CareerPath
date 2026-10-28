@@ -10,6 +10,7 @@ vi.mock('@google/generative-ai', () => ({
 }))
 
 import { handleAdmin } from '../server/admin'
+import { handleComentarios } from '../server/comentarios'
 import { resetAuthCache } from '../server/auth'
 import { runEndpoint } from '../server/endpoints'
 import { resetRateLimits } from '../server/guard'
@@ -31,6 +32,7 @@ interface Fake {
   avisados?: Set<string>
   /** La migración de avisos no se corrió: la columna no existe. */
   sinColumnaAviso?: boolean
+  comentarios?: { id: string; email: string; tipo: string; mensaje: string; pagina: string | null; lang: string; leido: boolean; created_at: string }[]
 }
 
 /** Supabase de mentira: lo justo para probar quién entra y quién no. */
@@ -81,6 +83,21 @@ function fakeSupabase(f: Fake) {
         if (typeof b.acceso_empresas === 'boolean') f.perfiles[id].acceso_empresas = b.acceso_empresas
         return new Response(null, { status: 204 })
       }
+    }
+    if (url.includes('/rest/v1/bivio_comentarios')) {
+      const list = (f.comentarios ??= [])
+      if (method === 'POST') {
+        const b = JSON.parse(String(init?.body)) as { email: string; tipo: string; mensaje: string; pagina: string | null; lang: string }
+        list.unshift({ ...b, id: `c${list.length + 1}`, leido: false, created_at: new Date().toISOString() })
+        return new Response(null, { status: 201 })
+      }
+      if (method === 'PATCH') {
+        const cid = /id=eq\.([^&]+)/.exec(url)?.[1]
+        const found = list.find((c) => c.id === cid)
+        if (found) found.leido = (JSON.parse(String(init?.body)) as { leido: boolean }).leido
+        return new Response(null, { status: 204 })
+      }
+      return json(list)
     }
     if (url.includes('/auth/v1/admin/users/') && method === 'DELETE') return json({})
     if (url.includes('/rest/v1/bivio_auditoria')) {
@@ -555,5 +572,53 @@ describe('administración: varios administradores, avisos y activación', () => 
     await handleAdmin(req('tok_admin', { action: 'setEstado', id: NUEVO, estado: 'activo' }))
     await new Promise((r) => setTimeout(r, 10))
     expect(fake.mails).toHaveLength(0)
+  })
+})
+
+
+describe('comentarios de las personas', () => {
+  const send = (token: string | null, body: unknown, ip = '10.2.2.2') => handleComentarios(req(token, body, ip) as Parameters<typeof handleComentarios>[0])
+  const withResend = () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test')
+    vi.stubEnv('REMINDER_FROM', 'Bivio <hola@bivio.test>')
+  }
+
+  it('una cuenta activa envía un comentario y le llega a quien administra', async () => {
+    withResend()
+    const res = await send('tok_activo', { tipo: 'idea', mensaje: 'Estaría bueno poder exportar el informe', pagina: '#evaluaciones' })
+    expect(res.status).toBe(200)
+    expect(fake.comentarios?.[0]).toMatchObject({ email: 'ana@x.test', tipo: 'idea', pagina: '#evaluaciones' })
+    expect(fake.mails?.map((m) => m.to)).toEqual(['admin@bivio.test'])
+    expect(fake.mails?.[0].subject).toContain('ana@x.test')
+  })
+
+  it('sin sesión o con la cuenta pendiente no se puede enviar', async () => {
+    expect((await send(null, { tipo: 'otro', mensaje: 'Hola, esto es una prueba' })).status).toBe(401)
+    expect((await send('tok_nuevo', { tipo: 'otro', mensaje: 'Hola, esto es una prueba' })).status).toBe(401)
+    expect(fake.comentarios ?? []).toHaveLength(0)
+  })
+
+  it('rechaza un comentario vacío, demasiado largo o de un tipo desconocido, y una página rara se descarta', async () => {
+    expect((await send('tok_activo', { tipo: 'idea', mensaje: '   ' })).status).toBe(400)
+    expect((await send('tok_activo', { tipo: 'idea', mensaje: 'x'.repeat(2001) })).status).toBe(400)
+    expect((await send('tok_activo', { tipo: 'insulto', mensaje: 'Un mensaje válido' })).status).toBe(400)
+    expect((await send('tok_activo', { tipo: 'problema', mensaje: 'Un mensaje válido', pagina: '<script>alert(1)</script>' })).status).toBe(200)
+    expect(fake.comentarios?.[0].pagina).toBeNull()
+  })
+
+  it('limita cuántos comentarios se pueden mandar por hora', async () => {
+    for (let i = 0; i < 10; i++) expect((await send('tok_activo', { tipo: 'otro', mensaje: `Comentario número ${i}` }, '10.9.9.9')).status).toBe(200)
+    expect((await send('tok_activo', { tipo: 'otro', mensaje: 'Uno más, de más' }, '10.9.9.9')).status).toBe(429)
+  })
+
+  it('quien administra los ve y los marca como leídos; el resto no', async () => {
+    await send('tok_activo', { tipo: 'problema', mensaje: 'No me carga el informe' })
+    const list = await handleAdmin(req('tok_admin', { action: 'comentarios' }))
+    expect(list.status).toBe(200)
+    const entries = (list.body as { entries: { id: string; leido: boolean }[] }).entries
+    expect(entries).toHaveLength(1)
+    expect(entries[0].leido).toBe(false)
+    expect((await handleAdmin(req('tok_admin', { action: 'comentarioLeido', id: '88888888-8888-4888-8888-888888888888', leido: true }))).status).toBe(200)
+    expect((await handleAdmin(req('tok_activo', { action: 'comentarios' }))).status).toBe(404)
   })
 })

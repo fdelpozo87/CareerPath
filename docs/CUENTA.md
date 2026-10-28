@@ -65,6 +65,21 @@ desde otro dispositivo y pedir un recordatorio de check-in. Sin cuenta, todo sig
 - **Aviso de activación:** al pasar una cuenta de pendiente a activa desde el panel, la persona recibe un mail (español e
   inglés) que la invita a entrar. Desactivar o reactivar una cuenta no manda nada.
 
+## Comentarios de las personas
+
+- Menú de la cuenta → "Enviar un comentario": la persona elige entre un problema, una idea u otro y escribe hasta 2000
+  caracteres. Solo con cuenta activa (`/api/comentarios`, `server/comentarios.ts`).
+- Se guardan en `bivio_comentarios` (migración `20261029000000_bivio_comentarios.sql`; solo el servidor la lee y escribe) y, si
+  hay Resend, le llegan por mail a quien administra. En el panel de administración aparece la sección **Comentarios**, con los
+  nuevos resaltados y la opción de marcarlos como leídos.
+- Límites: 10 por hora por IP y 20 por día por cuenta. Si se borra la cuenta, el comentario queda sin vínculo a la persona.
+
+## Migraciones nuevas, en orden
+
+Después de las anteriores: `20261027000000_bivio_sesiones.sql` (sincronizar sesiones), `20261028000000_bivio_avisos.sql` (aviso de
+cuenta nueva) y `20261029000000_bivio_comentarios.sql` (comentarios). Se pegan una vez en el SQL Editor de Supabase. Las tres son
+seguras de correr más de una vez.
+
 ## Límites conocidos
 
 - Cualquiera puede crear una cuenta con su email: el código de acceso de las pruebas privadas no gobierna esto.

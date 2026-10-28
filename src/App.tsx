@@ -25,6 +25,7 @@ const CoachFlow = lazy(() => import('./components/coach/CoachFlow').then((m) => 
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'))
 const PasswordDialog = lazy(() => import('./components/PasswordDialog'))
 const MfaSettingsDialog = lazy(() => import('./components/MfaSettingsDialog'))
+const FeedbackDialog = lazy(() => import('./components/FeedbackDialog'))
 
 type View = 'landing' | 'coach' | 'company' | 'privacidad' | 'admin' | 'evaluaciones'
 
@@ -67,6 +68,7 @@ function AppInner() {
   const [pending, setPending] = useState<Pending | null>(null)
   // Sincronización opcional de las sesiones con la cuenta (ver src/lib/sync.ts).
   const syncOn = useSyncEnabled()
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   useEffect(() => startAutoSync(), [])
   // Cuenta opcional: quién tiene la sesión iniciada y un aviso breve (guardado, recuperado).
   const [cloudUser, setCloudUser] = useState<CloudUser | null>(null)
@@ -250,6 +252,7 @@ function AppInner() {
         }
       : undefined,
     evalPending,
+    onFeedback: cloudUser ? () => setFeedbackOpen(true) : undefined,
     onAdmin: isAdmin
       ? () => {
           window.location.hash = '#admin'
@@ -342,6 +345,7 @@ function AppInner() {
   const passwordDialog = (
     <>
     <MfaSettingsDialog open={mfaSettingsOpen} onClose={() => setMfaSettingsOpen(false)} />
+    <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     <PasswordDialog
       open={passwordOpen}
       onClose={() => setPasswordOpen(false)}

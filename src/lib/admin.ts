@@ -51,3 +51,15 @@ export const addUser = (email: string, notify: boolean, areas: { profesionales: 
   call<{ ok: true; created: boolean; notified: boolean }>({ action: 'add', email, notify, ...areas })
 export const setUserAreas = (id: string, areas: { profesionales?: boolean; empresas?: boolean }) => call<{ ok: true }>({ action: 'setAreas', id, ...areas })
 export const deleteUserAccount = (id: string) => call<{ ok: true }>({ action: 'delete', id })
+
+export interface ComentarioItem {
+  id: string
+  email: string
+  tipo: 'problema' | 'idea' | 'otro'
+  mensaje: string
+  pagina: string | null
+  leido: boolean
+  created_at: string
+}
+export const listComentarios = async (): Promise<ComentarioItem[]> => (await call<{ entries: ComentarioItem[] }>({ action: 'comentarios' })).entries
+export const marcarComentario = (id: string, leido: boolean) => call<{ ok: true }>({ action: 'comentarioLeido', id, leido })

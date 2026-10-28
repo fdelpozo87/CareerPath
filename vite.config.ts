@@ -19,6 +19,7 @@ function devApi(geminiApiKey: string | undefined): Plugin {
         ['account', '/server/account.ts', 'handleAccount'],
         ['admin', '/server/admin.ts', 'handleAdmin'],
         ['evaluaciones', '/server/evaluaciones.ts', 'handleEvaluaciones'],
+        ['comentarios', '/server/comentarios.ts', 'handleComentarios'],
       ] as const) {
         server.middlewares.use(`/api/${route}`, async (req, res) => {
           res.setHeader('Content-Type', 'application/json')

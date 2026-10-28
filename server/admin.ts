@@ -4,7 +4,7 @@ import { adminMfaRequired, authorize, resetAuthCache } from './auth.js'
 import { ESTADOS, cloudEnv, createUser, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, setAreas, setEstado, type AuditAction, type Estado } from './cloud.js'
 import { RATE_RULES, clientIp, ipTag, isAllowedOrigin, logEvent, requestLang } from './guard.js'
 import { durableLimit } from './limits.js'
-import { notifyAccess } from './accessMail.js'
+import { notifyAccess, notifyActivated } from './accessMail.js'
 
 // POST /api/admin — panel de administración de cuentas. Solo lo usa quien tenga el email de ADMIN_EMAIL
 // (verificado en el servidor con su token de sesión: el navegador no decide quién es administrador).
@@ -105,6 +105,8 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
       const ok = await setEstado(env, id, body.estado as Estado)
       resetAuthCache()
       if (ok) await audit(AUDIT_BY_ESTADO[body.estado as Estado], target?.email ?? id, { antes: target?.estado })
+      // Al aprobar una cuenta que estaba pendiente, la persona se entera (si hay envío de mails configurado).
+      if (ok && body.estado === 'activo' && target?.estado === 'pendiente') void notifyActivated(target.email).catch(() => false)
       logEvent(ok ? 'info' : 'error', 'admin_estado', { ok, estado: body.estado })
       return ok ? { status: 200, body: { ok: true } } : { status: 502, body: { error: msg('srv.upstream') } }
     }

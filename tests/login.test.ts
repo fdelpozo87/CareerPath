@@ -27,6 +27,10 @@ interface Fake {
   mails?: { to: string; subject: string; html: string; text: string }[]
   audit: { id: number; at: string; actor_email: string; action: string; target_email: string; detail: unknown }[]
   auditFail?: boolean
+  /** Cuentas pendientes de las que ya se avisó a quien administra. */
+  avisados?: Set<string>
+  /** La migración de avisos no se corrió: la columna no existe. */
+  sinColumnaAviso?: boolean
 }
 
 /** Supabase de mentira: lo justo para probar quién entra y quién no. */
@@ -62,6 +66,13 @@ function fakeSupabase(f: Fake) {
         const known = Object.values(f.users).find((u) => u.id === b.user_id)
         if (!known) f.users[`tok_${b.email}`] = { id: b.user_id, email: b.email }
         return json({}, 201)
+      }
+      if (method === 'PATCH' && id && url.includes('avisado_admin_at=is.null')) {
+        if (f.sinColumnaAviso) return json({ code: '42703' }, 400)
+        const done = (f.avisados ??= new Set<string>())
+        if (done.has(id) || f.perfiles[id]?.estado !== 'pendiente') return json([])
+        done.add(id)
+        return json([{ user_id: id }])
       }
       if (method === 'PATCH' && id) {
         const b = JSON.parse(String(init?.body)) as { estado?: Estado; acceso_profesionales?: boolean; acceso_empresas?: boolean }
@@ -470,5 +481,79 @@ describe('áreas habilitadas por cuenta (profesionales y empresas)', () => {
     fake.perfiles[ANA].acceso_empresas = false
     await handleAdmin(req('tok_admin', { action: 'add', email: 'ana@x.test' }))
     expect(fake.perfiles[ANA].acceso_empresas).toBe(false)
+  })
+})
+
+
+describe('administración: varios administradores, avisos y activación', () => {
+  const NUEVO = '33333333-3333-4333-8333-333333333333'
+  const withResend = () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test')
+    vi.stubEnv('REMINDER_FROM', 'Bivio <hola@bivio.test>')
+  }
+
+  it('ADMIN_EMAIL admite varios emails y todos administran', async () => {
+    vi.stubEnv('ADMIN_EMAIL', 'admin@bivio.test, otra@bivio.test;tercero@bivio.test')
+    const { adminEmails, isAdminEmail } = await import('../server/admins')
+    expect(adminEmails()).toEqual(['admin@bivio.test', 'otra@bivio.test', 'tercero@bivio.test'])
+    expect(isAdminEmail('OTRA@bivio.test')).toBe(true)
+    expect(isAdminEmail('ana@x.test')).toBe(false)
+    fake.users.tok_otra = { id: '77777777-7777-4777-8777-777777777777', email: 'otra@bivio.test' }
+    const res = await runEndpoint('access', req('tok_otra'), undefined)
+    expect(res.body).toMatchObject({ ok: true, isAdmin: true })
+  })
+
+  it('una cuenta nueva avisa a quien administra, una sola vez', async () => {
+    withResend()
+    vi.stubEnv('ADMIN_EMAIL', 'admin@bivio.test,otra@bivio.test')
+    await runEndpoint('access', req('tok_nuevo'), undefined)
+    await runEndpoint('access', req('tok_nuevo'), undefined)
+    await runEndpoint('coach', req('tok_nuevo', coachBody), 'k')
+    expect(fake.mails?.map((m) => m.to).sort()).toEqual(['admin@bivio.test', 'otra@bivio.test'])
+    expect(fake.mails?.[0].subject).toContain('nuevo@x.test')
+    expect(fake.mails?.[0].html).toContain('#admin')
+  })
+
+  it('sin envío de mails no se avisa ni se gasta el aviso: se manda cuando se configura', async () => {
+    await runEndpoint('access', req('tok_nuevo'), undefined)
+    expect(fake.mails ?? []).toHaveLength(0)
+    expect(fake.avisados?.has(NUEVO)).toBeFalsy()
+    withResend()
+    resetAuthCache() // pasa un rato y la persona vuelve a entrar
+    await runEndpoint('access', req('tok_nuevo'), undefined)
+    expect(fake.mails).toHaveLength(1)
+  })
+
+  it('si falta la migración del aviso, la cuenta pendiente igual se ve como pendiente', async () => {
+    withResend()
+    fake.sinColumnaAviso = true
+    const res = await runEndpoint('access', req('tok_nuevo'), undefined)
+    expect(res.body).toMatchObject({ ok: false, reason: 'pendiente' })
+    expect(fake.mails ?? []).toHaveLength(0)
+  })
+
+  it('una cuenta activa o desactivada no avisa', async () => {
+    withResend()
+    await runEndpoint('access', req('tok_activo'), undefined)
+    await runEndpoint('access', req('tok_off'), undefined)
+    expect(fake.mails ?? []).toHaveLength(0)
+  })
+
+  it('al activar una cuenta pendiente, la persona recibe el mail; al desactivarla, no', async () => {
+    withResend()
+    vi.stubEnv('ADMIN_EMAIL', 'admin@bivio.test')
+    await runEndpoint('access', req('tok_nuevo'), undefined) // queda pendiente (y avisa al admin)
+    fake.mails = []
+    expect((await handleAdmin(req('tok_admin', { action: 'setEstado', id: NUEVO, estado: 'activo' }))).status).toBe(200)
+    await new Promise((r) => setTimeout(r, 10))
+    expect(fake.mails).toHaveLength(1)
+    expect(fake.mails?.[0]).toMatchObject({ to: 'nuevo@x.test' })
+    expect(fake.mails?.[0].subject).toContain('activa')
+    expect(fake.mails?.[0].html).toContain('Your account is active')
+    fake.mails = []
+    await handleAdmin(req('tok_admin', { action: 'setEstado', id: NUEVO, estado: 'desactivado' }))
+    await handleAdmin(req('tok_admin', { action: 'setEstado', id: NUEVO, estado: 'activo' }))
+    await new Promise((r) => setTimeout(r, 10))
+    expect(fake.mails).toHaveLength(0)
   })
 })

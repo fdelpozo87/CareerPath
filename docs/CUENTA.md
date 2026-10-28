@@ -54,6 +54,17 @@ desde otro dispositivo y pedir un recordatorio de check-in. Sin cuenta, todo sig
 - **Hay que correr la migración** en el SQL Editor antes de usarla; si falta, activarla falla y queda apagada.
 - La política de privacidad debe actualizarse (ver `docs/LEGAL_PENDIENTES.md`).
 
+## Avisos de administración y varios administradores
+
+- **Varios administradores:** `ADMIN_EMAIL` admite varios emails separados por coma (`a@x.com, b@x.com`). Todos tienen los mismos
+  permisos, así el panel no depende de una sola persona. Cada uno necesita su verificación en dos pasos (salvo `ADMIN_REQUIRE_MFA=0`).
+- **Aviso de cuenta nueva:** cuando alguien se registra, confirma su email y entra, quien administra recibe un mail con el
+  botón al panel (una sola vez por cuenta). Requiere Resend (`RESEND_API_KEY` y `REMINDER_FROM`) y la migración
+  `20261028000000_bivio_avisos.sql`. Sin Resend no se manda nada y el aviso queda pendiente: sale cuando se configura. Sin la
+  migración, la app funciona igual pero no avisa.
+- **Aviso de activación:** al pasar una cuenta de pendiente a activa desde el panel, la persona recibe un mail (español e
+  inglés) que la invita a entrar. Desactivar o reactivar una cuenta no manda nada.
+
 ## Límites conocidos
 
 - Cualquiera puede crear una cuenta con su email: el código de acceso de las pruebas privadas no gobierna esto.

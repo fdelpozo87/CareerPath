@@ -1,3 +1,5 @@
+import { isAdminEmail } from './admins.js'
+import { notifyAdminsNewAccount } from './accessMail.js'
 import type { IncomingMessage } from 'node:http'
 import { cloudEnv, ensurePerfil, setEstado, touchSeen, verifyUser, type CloudEnv, type CloudUser, type Estado } from './cloud.js'
 
@@ -48,10 +50,7 @@ export function tokenAal(token: string): 'aal1' | 'aal2' {
   }
 }
 
-export function isAdminEmail(email: string): boolean {
-  const admin = process.env.ADMIN_EMAIL?.trim().toLowerCase()
-  return Boolean(admin) && email.trim().toLowerCase() === admin
-}
+export { isAdminEmail }
 
 export function bearerToken(req: IncomingMessage): string {
   const h = req.headers.authorization
@@ -74,7 +73,11 @@ async function resolve(env: CloudEnv, token: string, now: number): Promise<Gate>
   // Quien administra no puede quedar afuera: se lo deja activo aunque su perfil diga otra cosa.
   if (isAdmin && perfil.estado !== 'activo') await setEstado(env, user.id, 'activo')
   const estado: Estado = isAdmin ? 'activo' : perfil.estado
-  if (estado === 'pendiente') return { ok: false, reason: 'pendiente', user }
+  if (estado === 'pendiente') {
+    // Primera vez que esta cuenta nueva se ve en el servicio: se le avisa a quien administra (una sola vez).
+    await notifyAdminsNewAccount(env, user.id, user.email).catch(() => {})
+    return { ok: false, reason: 'pendiente', user }
+  }
   if (estado === 'desactivado') return { ok: false, reason: 'desactivado', user }
   // Último acceso: se anota como mucho una vez por minuto.
   const seen = perfil.last_seen_at ? Date.parse(perfil.last_seen_at) : 0

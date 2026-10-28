@@ -129,6 +129,21 @@ export async function ensurePerfil(env: CloudEnv, user: CloudUser): Promise<Perf
   return created
 }
 
+/**
+ * Anota que ya se le avisó a quien administra de esta cuenta pendiente. Devuelve true solo la primera vez (lo decide la base
+ * con un único UPDATE, así dos pedidos a la vez no mandan el aviso dos veces). Si la columna no existe (falta correr la
+ * migración) devuelve false: no se avisa, pero nada más se rompe.
+ */
+export async function claimAdminNotice(env: CloudEnv, userId: string): Promise<boolean> {
+  const res = await call(env, `/rest/v1/bivio_perfiles?user_id=eq.${encodeURIComponent(userId)}&estado=eq.pendiente&avisado_admin_at=is.null`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ avisado_admin_at: new Date().toISOString() }),
+  })
+  if (!res.ok) return false
+  return ((await res.json().catch(() => [])) as unknown[]).length > 0
+}
+
 export async function setEstado(env: CloudEnv, userId: string, estado: Estado): Promise<boolean> {
   const res = await call(env, `/rest/v1/bivio_perfiles?user_id=eq.${encodeURIComponent(userId)}`, {
     method: 'PATCH',

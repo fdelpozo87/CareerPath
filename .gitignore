@@ -27,3 +27,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Copias de seguridad locales (npm run backup): tienen datos personales
+backups/
+
+# Pruebas de punta a punta
+dist-e2e
+playwright-report
+test-results

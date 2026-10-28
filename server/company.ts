@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { isLang, type Lang } from '../shared/i18n.js'
-import { generateJson } from './gemini.js'
+import { generateJson, resilientModel } from './gemini.js'
 import { languageSection } from './prompts.js'
 
 // Flujo de Empresas: el prompt se arma aquí, del lado del servidor. Antes el
@@ -168,7 +168,7 @@ ${languageSection(lang)}`
 
 export async function runCompanyAnalysis(apiKey: string, req: CompanyRequest, lang: Lang = 'es'): Promise<unknown> {
   const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel(
+  const model = resilientModel(genAI, 
     { model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite', generationConfig: { responseMimeType: 'application/json', temperature: 0.5 } },
     { timeout: 45_000 },
   )

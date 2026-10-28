@@ -10,7 +10,7 @@ import {
 } from './prompts.js'
 import { DEFAULT_LANG, isLang, translate, type Lang } from '../shared/i18n.js'
 import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type SynthesisItem } from '../shared/stages.js'
-import { generateJson, responseText } from './gemini.js'
+import { generateJson, responseText, resilientModel } from './gemini.js'
 import { neutralizeGender, wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
 import { MAX_MARKET_PER_CONVERSATION, fetchMarketData, looksLikeMarketQuestion, type MarketData, type MarketSource } from './market.js'
@@ -372,7 +372,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
 
   switch (req.mode) {
     case 'turno': {
-      const model = genAI.getGenerativeModel({
+      const model = resilientModel(genAI, {
         model: modelName,
         systemInstruction: buildTurnSystemPrompt({ ...req, lang, intentos: askCounts(req.history, req.stage, req.cubiertos, req.omitidos, req.path) }),
         generationConfig,
@@ -426,7 +426,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
       return market ? { ...clean, fuentes: market.fuentes, fechaDatos: market.fecha } : clean
     }
     case 'informe': {
-      const model = genAI.getGenerativeModel({
+      const model = resilientModel(genAI, {
         model: modelName,
         systemInstruction: buildReportPrompt({ ...req, lang }),
         generationConfig: { ...generationConfig, temperature: 0.3 },
@@ -437,7 +437,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
       return normalizeReport(informe)
     }
     case 'perfil': {
-      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { ...generationConfig, temperature: 0.3 } }, requestOptions)
+      const model = resilientModel(genAI, { model: modelName, generationConfig: { ...generationConfig, temperature: 0.3 } }, requestOptions)
       const reading = await generateJson<Record<string, unknown>>(async () =>
         (
           await model.generateContent([
@@ -449,7 +449,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
       return normalizeReading(reading)
     }
     case 'extraer': {
-      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { ...generationConfig, temperature: 0 } }, requestOptions)
+      const model = resilientModel(genAI, { model: modelName, generationConfig: { ...generationConfig, temperature: 0 } }, requestOptions)
       const { texto } = await generateJson<{ texto?: string }>(async () =>
         (
           await model.generateContent([

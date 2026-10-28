@@ -5,7 +5,7 @@ import { authorize } from './auth.js'
 import { notifyAccess } from './accessMail.js'
 import { cloudEnv, createUser, ensurePerfil, findPerfilByEmail, getPerfil, listPerfiles, logAudit, rest, setAreas, setEstado, type CloudEnv } from './cloud.js'
 import { buildGeneratePrompt, buildReportPrompt, type Competencia } from './evaluacionesPrompts.js'
-import { generateJson, responseText } from './gemini.js'
+import { generateJson, responseText, resilientModel } from './gemini.js'
 import { RATE_RULES, clientIp, ipTag, isAllowedOrigin, logEvent, publicError, requestLang } from './guard.js'
 import { durableLimit } from './limits.js'
 import { brandedMail, sendMail, type Mail } from './mailer.js'
@@ -65,7 +65,7 @@ export function normalizeCompetencias(raw: unknown): Competencia[] | null {
 const modelName = () => process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
 
 async function askModel<T>(apiKey: string, system: string, temperature: number): Promise<T> {
-  const model = new GoogleGenerativeAI(apiKey).getGenerativeModel(
+  const model = resilientModel(new GoogleGenerativeAI(apiKey), 
     { model: modelName(), generationConfig: { responseMimeType: 'application/json', temperature } },
     { timeout: 45_000 },
   )

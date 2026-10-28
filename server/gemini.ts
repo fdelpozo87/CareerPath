@@ -1,3 +1,4 @@
+import type { GenerativeModel, GoogleGenerativeAI, ModelParams, RequestOptions } from '@google/generative-ai'
 import { logEvent, upstreamStatus } from './guard.js'
 
 // Anti-error para las llamadas a Gemini: reintenta una vez ante fallas
@@ -65,4 +66,26 @@ export async function generateJson<T = unknown>(run: () => Promise<string>, atte
     }
   }
   throw lastErr
+}
+
+/**
+ * Un modelo que, si el principal falla por sobrecarga o timeout (429, 5xx), repite la misma llamada con el modelo de
+ * respaldo de `GEMINI_FALLBACK_MODEL`. Sin esa variable (o igual al principal) es el modelo de siempre. Los errores que no
+ * son transitorios (pedido inválido, bloqueo de seguridad) no se reintentan con otro modelo.
+ */
+export function resilientModel(genAI: GoogleGenerativeAI, params: ModelParams, options?: RequestOptions): Pick<GenerativeModel, 'generateContent'> {
+  const primary = genAI.getGenerativeModel(params, options)
+  const fallback = process.env.GEMINI_FALLBACK_MODEL?.trim()
+  if (!fallback || fallback === params.model) return primary
+  return {
+    generateContent: async (...args: Parameters<GenerativeModel['generateContent']>) => {
+      try {
+        return await primary.generateContent(...args)
+      } catch (err) {
+        if (!isTransient(err)) throw err
+        logEvent('warn', 'gemini_fallback', { desde: params.model, hacia: fallback, error: err instanceof Error ? err : String(err) })
+        return genAI.getGenerativeModel({ ...params, model: fallback }, options).generateContent(...args)
+      }
+    },
+  }
 }

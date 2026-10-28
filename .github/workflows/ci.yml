@@ -33,6 +33,30 @@ jobs:
           npm run i18n
           git diff --exit-code -- shared/locales/dictionaries.ts web_jaspr/lib/i18n/strings.g.dart
 
+  e2e:
+    name: Punta a punta (Chrome)
+    runs-on: ubuntu-latest
+    needs: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - name: Pruebas de punta a punta (con Supabase y /api simulados)
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-informe
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
   jaspr:
     name: Jaspr (Dart)
     runs-on: ubuntu-latest

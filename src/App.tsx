@@ -7,6 +7,7 @@ import AccessGate from './components/AccessGate'
 import { AccountStatus, LoginGate, MfaGate, SetPasswordScreen } from './components/LoginGate'
 import { mias as listMias } from './lib/evaluaciones'
 import ConfirmDialog from './components/ConfirmDialog'
+import { loadSyncPreference, pullAndMerge, resetSync, setSyncEnabled, startAutoSync, useSyncEnabled } from './lib/sync'
 import { clearAllSessions, deleteSession, listSessions, loadSessionById, newSession, saveSession } from './lib/coach/session'
 import { cloudEnabled, currentUser, deleteAccount, listSavedReports, onAuthChange, onPasswordRecovery, saveReport, sessionFromSaved, signOut, takePendingSave, type CloudUser } from './lib/cloud'
 import { downloadMyData } from './lib/exportData'
@@ -31,7 +32,7 @@ const isPrivacyHash = () => window.location.hash === '#privacidad'
 const isAdminHash = () => window.location.hash === '#admin'
 const isEvalHash = () => window.location.hash === '#evaluaciones'
 
-type Pending = { kind: 'deleteAll' } | { kind: 'deleteOne'; id: string } | { kind: 'deleteAccount' }
+type Pending = { kind: 'deleteAll' } | { kind: 'deleteOne'; id: string } | { kind: 'deleteAccount' } | { kind: 'syncOn' } | { kind: 'syncOff' }
 
 type Access =
   | { state: 'checking' }
@@ -64,6 +65,9 @@ function AppInner() {
   const [label, setLabel] = useState<string | null>(getAccessLabel)
   // Confirmación pendiente (reemplaza a window.confirm, que algunos navegadores bloquean).
   const [pending, setPending] = useState<Pending | null>(null)
+  // Sincronización opcional de las sesiones con la cuenta (ver src/lib/sync.ts).
+  const syncOn = useSyncEnabled()
+  useEffect(() => startAutoSync(), [])
   // Cuenta opcional: quién tiene la sesión iniciada y un aviso breve (guardado, recuperado).
   const [cloudUser, setCloudUser] = useState<CloudUser | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -81,9 +85,15 @@ function AppInner() {
     const onUser = async (user: CloudUser | null) => {
       if (!alive) return
       setCloudUser(user)
+      if (!user) resetSync()
       // Guardar y recuperar informes solo tiene sentido con acceso (una cuenta pendiente no puede escribir).
       if (!user || !accessOpen) return
       try {
+        // Si la cuenta tiene activada la sincronización, se mezclan las sesiones de este navegador con las de la cuenta.
+        if (await loadSyncPreference()) {
+          const changed = await pullAndMerge().catch(() => 0)
+          if (changed > 0 && alive) setListVersion((v) => v + 1)
+        }
         const pending = takePendingSave()
         const local = pending ? loadSessionById(pending.processId) : null
         if (pending && local?.informe) {
@@ -273,16 +283,43 @@ function AppInner() {
           onDeleteAccount: () => setPending({ kind: 'deleteAccount' }),
           onPassword: () => setPasswordOpen(true),
           onMfa: () => setMfaSettingsOpen(true),
+          sync: { enabled: syncOn, onToggle: () => setPending({ kind: syncOn ? 'syncOff' : 'syncOn' }) },
         }
       : undefined,
   }
 
+  const dialog = (() => {
+    switch (pending?.kind) {
+      case 'deleteOne':
+        return { title: tr('process.deleteTitle'), body: tr(syncOn ? 'sync.deleteOneConfirm' : 'process.deleteConfirm'), label: tr('process.deleteAction') }
+      case 'deleteAccount':
+        return { title: tr('cloud.deleteTitle'), body: tr('cloud.deleteConfirm'), label: tr('cloud.deleteAction') }
+      case 'syncOn':
+        return { title: tr('sync.onTitle'), body: tr('sync.onBody'), label: tr('sync.onAction') }
+      case 'syncOff':
+        return { title: tr('sync.offTitle'), body: tr('sync.offBody'), label: tr('sync.offAction') }
+      default:
+        return { title: tr('account.deleteTitle'), body: tr(syncOn ? 'sync.deleteAllConfirm' : 'account.deleteConfirm'), label: tr('account.deleteAction') }
+    }
+  })()
+
+  const changeSync = (on: boolean) =>
+    setSyncEnabled(on, { deleteRemote: !on })
+      .then((changed) => {
+        if (changed > 0) setListVersion((v) => v + 1)
+        setNotice(tr(on ? 'sync.onDone' : 'sync.offDone'))
+      })
+      .catch((e) => {
+        console.error(e)
+        setNotice(tr('sync.error'))
+      })
+
   const confirmDialog = (
     <ConfirmDialog
       open={pending !== null}
-      title={pending?.kind === 'deleteOne' ? tr('process.deleteTitle') : pending?.kind === 'deleteAccount' ? tr('cloud.deleteTitle') : tr('account.deleteTitle')}
-      body={pending?.kind === 'deleteOne' ? tr('process.deleteConfirm') : pending?.kind === 'deleteAccount' ? tr('cloud.deleteConfirm') : tr('account.deleteConfirm')}
-      confirmLabel={pending?.kind === 'deleteOne' ? tr('process.deleteAction') : pending?.kind === 'deleteAccount' ? tr('cloud.deleteAction') : tr('account.deleteAction')}
+      title={dialog.title}
+      body={dialog.body}
+      confirmLabel={dialog.label}
       onCancel={() => setPending(null)}
       onConfirm={() => {
         const action = pending
@@ -295,7 +332,9 @@ function AppInner() {
               console.error(e)
               setNotice(tr('cloud.error'))
             })
-        } else if (action) deleteOne(action.id)
+        } else if (action?.kind === 'syncOn') void changeSync(true)
+        else if (action?.kind === 'syncOff') void changeSync(false)
+        else if (action?.kind === 'deleteOne') deleteOne(action.id)
       }}
     />
   )

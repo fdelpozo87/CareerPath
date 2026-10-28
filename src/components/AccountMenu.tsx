@@ -22,7 +22,15 @@ export interface AccountInfo {
   /** Cuántas evaluaciones tiene pendientes de responder. */
   evalPending?: number
   /** Cuenta opcional (guardar el informe con email). Solo si hay una sesión iniciada. */
-  cloud?: { email: string; onSignOut: () => void; onDeleteAccount: () => void; onPassword: () => void; onMfa: () => void }
+  cloud?: {
+    email: string
+    onSignOut: () => void
+    onDeleteAccount: () => void
+    onPassword: () => void
+    onMfa: () => void
+    /** Sincronizar las sesiones del coach con la cuenta (apagado por defecto). */
+    sync: { enabled: boolean; onToggle: () => void }
+  }
 }
 
 function PersonIcon() {
@@ -95,6 +103,18 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
                 }}
               >
                 {tr('password.menu')}
+              </button>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={account.cloud.sync.enabled}
+                className={`${ITEM} -mx-3`}
+                onClick={() => {
+                  setOpen(false)
+                  account.cloud?.sync.onToggle()
+                }}
+              >
+                {tr(account.cloud.sync.enabled ? 'sync.menu.on' : 'sync.menu.off')}
               </button>
               <button
                 type="button"

@@ -16,6 +16,23 @@ Los textos viven en `shared/locales/es.json` y `en.json` (claves `privacy.*`); d
 | Condiciones vigentes de Resend | `privacy.s4.r.rest` |
 | Evaluaciones de desempeño: rol de cada parte y plazo de conservación | `privacy.s3.f.rest` |
 
+## Sincronización de sesiones (nueva): la política dice algo que ya no es siempre cierto
+
+Con la opción "Sincronizar mis sesiones" activada (apagada por defecto), la conversación completa y los documentos que la
+persona subió se guardan en Supabase (`bivio_sesiones`). Hasta ahora la política afirma que la conversación **solo** vive en
+el navegador. Hay que reescribir, con el equipo legal, estos textos (`shared/locales/es.json` y `en.json`):
+
+| Clave | Qué dice hoy y por qué queda desactualizado |
+|---|---|
+| `privacy.s1.3` | "Tu progreso queda guardado solo en tu navegador" |
+| `privacy.s5.body` | Lista dónde se guardan los procesos (solo almacenamiento del navegador) |
+| `cloud.lede` | "Se guardan solo tu informe y tus compromisos, no la conversación" |
+| `report.saved`, `error.body`, `chat.onb.*` | Mencionan "este navegador" como único lugar |
+
+Hay que definir también: base legal (consentimiento, que ya se pide con un aviso antes de activar), plazo de conservación,
+si la conversación puede contener datos sensibles que la persona escribe, y el tratamiento de los documentos subidos.
+En la app, mientras la opción está activada, la línea del chat y las confirmaciones de borrado ya dicen que se guarda en la cuenta.
+
 ## Revisión legal
 
 - El texto es un **borrador**; la versión en inglés es una traducción del español y también necesita revisión.

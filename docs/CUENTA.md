@@ -38,6 +38,22 @@ desde otro dispositivo y pedir un recordatorio de check-in. Sin cuenta, todo sig
   email ya tiene cuenta, lo avisa y sugiere ingresar o recuperar la contraseña.
 - Recomendado en Supabase: dejar activada la confirmación de email (*Confirm email*), para que no se registren emails ajenos.
 
+## Sincronizar sesiones entre dispositivos (opcional)
+
+- **Apagada por defecto.** Menú de la cuenta → "Sincronizar mis sesiones". Antes de activarla se explica que se guarda la
+  conversación completa y los documentos subidos. La preferencia vive en la cuenta (`user_metadata.sync_sesiones`), no en el
+  navegador, así que vale en todos los dispositivos.
+- **Qué se guarda:** la sesión entera en `bivio_sesiones` (migración `20261027000000_bivio_sesiones.sql`, con RLS: cada persona
+  ve solo lo suyo). Tope de 400 KB por sesión; una más grande queda solo en el navegador.
+- **Cómo se mezcla** (`src/lib/sync.ts`): al entrar y al activarla, de cada sesión gana la versión más nueva (`updatedAt`);
+  después se sube cada cambio con una pausa de 2 s. Si dos dispositivos editan la misma sesión a la vez, gana la última
+  (no se combinan mensajes).
+- **Borrados:** borrar una sesión, o "Borrar mis procesos", la borra también de la cuenta. Una sesión ya sincronizada que
+  desaparece de la cuenta se borra en los otros dispositivos al entrar. Apagar la opción borra lo guardado en la cuenta y
+  conserva lo del navegador. Borrar la cuenta lo borra todo (cascada).
+- **Hay que correr la migración** en el SQL Editor antes de usarla; si falta, activarla falla y queda apagada.
+- La política de privacidad debe actualizarse (ver `docs/LEGAL_PENDIENTES.md`).
+
 ## Límites conocidos
 
 - Cualquiera puede crear una cuenta con su email: el código de acceso de las pruebas privadas no gobierna esto.

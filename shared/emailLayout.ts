@@ -27,7 +27,8 @@ const C = {
   soft: '#e9e2fa',
   accent: '#f28c38',
 }
-const SERIF = "Georgia,'Times New Roman',serif"
+// Los clientes de correo no cargan tipografías de la web: títulos en una sans gruesa del sistema, parecida a la de la marca.
+const DISPLAY = "'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
 const SANS = "-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
 
 export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -38,7 +39,7 @@ function block(c: EmailContent, first: boolean): string {
   return `
 <tr><td style="padding:${first ? '0' : '24px 0 0'}">
   ${first ? '' : `<div style="border-top:1px solid ${C.border};margin:0 0 20px"></div>`}
-  <h1 style="margin:0 0 12px;font-family:${SERIF};font-size:${size}px;line-height:1.25;font-weight:500;color:${C.ink}">${esc(c.heading)}</h1>
+  <h1 style="margin:0 0 12px;font-family:${DISPLAY};font-size:${size}px;line-height:1.25;font-weight:700;letter-spacing:-0.01em;color:${C.ink}">${esc(c.heading)}</h1>
   ${c.paragraphs.map((p) => `<p style="margin:0 0 12px;font-family:${SANS};font-size:${body}px;line-height:1.6;color:${C.ink}">${esc(p)}</p>`).join('')}
   ${
     c.bullets?.length
@@ -72,10 +73,7 @@ ${first.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opaci
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg}"><tr><td align="center" style="padding:32px 16px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
     <tr><td style="padding:0 4px 20px">
-      <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-        <td style="vertical-align:middle"><img src="${esc(logo)}" width="36" height="32" alt="" style="display:block;border:0"></td>
-        <td style="vertical-align:middle;padding-left:10px;font-family:${SERIF};font-size:28px;line-height:1;color:${C.ink}">bivio</td>
-      </tr></table>
+      <img src="${esc(logo)}" width="148" height="40" alt="Bivio" style="display:block;border:0;height:40px;width:148px">
     </td></tr>
     <tr><td style="background:${C.card};border:1px solid ${C.border};border-radius:20px;padding:32px 28px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">

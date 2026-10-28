@@ -13,8 +13,8 @@
  *   - Sin rojo y verde de semáforo: Bivio no aprueba ni desaprueba. Los avisos de error usan un naranja oscuro.
  */
 @theme {
-  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Plus Jakarta Sans', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'DM Sans Variable', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
 
   --color-background: #faf9fc;
   --color-foreground: #1f1533;

@@ -21,7 +21,7 @@ function PasswordField({ id, value, onChange, autoComplete, className }: { id: s
         type="button"
         aria-pressed={visible}
         onClick={() => setVisible(!visible)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-primary hover:text-primary-dark"
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full px-3 py-1.5 text-sm font-semibold text-primary hover:text-primary-dark"
       >
         {tr(visible ? 'password.hide' : 'password.show')}
       </button>

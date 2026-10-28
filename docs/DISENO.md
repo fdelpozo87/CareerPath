@@ -42,8 +42,8 @@ como tarjeta y un fondo `#150E24`.
 
 ## Tipografía y marca
 
-- Títulos en **Plus Jakarta Sans** (700) y texto en **DM Sans**, cargadas desde Google Fonts en `index.html`. Los tokens `--font-display` y `--font-sans` viven en `src/index.css`.
-- El logo (`src/components/Logo.tsx`) es un trazo violeta que sube y se curva hacia un punto mandarina, con la palabra "bivio" y los puntos de las dos "i" en violeta y mandarina. El favicon, las imágenes para compartir y el logo de los mails (`public/email/logo.png`) todavía usan la marca anterior.
+- Títulos en **Plus Jakarta Sans** (700) y texto en **DM Sans**, servidas desde el propio sitio (`src/fonts.css`, paquetes `@fontsource-variable`, solo alfabeto latino). No se le pide nada a Google: menos conexiones, carga más rápida y CSP cerrada (`font-src 'self'`). Los tokens `--font-display` y `--font-sans` viven en `src/index.css`.
+- El logo (`src/components/Logo.tsx`) es un trazo violeta que sube y se curva hacia un punto mandarina, con la palabra "bivio" y los puntos de las dos "i" en violeta y mandarina. El favicon, los íconos, las imágenes para compartir (`og-image*.png`) y el logo de los mails (`public/email/logo.png`) se generan con `npm run brand` (`scripts/gen-brand-assets.mjs`, usa Chrome): si cambia la marca o el texto de la portada, se vuelve a correr y se commitean los archivos. Los mails usan el logo completo (símbolo y palabra) como imagen y una sans gruesa del sistema para los títulos, porque los clientes de correo no cargan tipografías web.
 - La pantalla de entrada tiene el formulario a la izquierda y un panel de marca a la derecha (`--color-panel`, violeta fijo en claro y oscuro).
 
 ## Inicio: los tres caminos

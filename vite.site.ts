@@ -88,9 +88,9 @@ export function renderPage(template: string, lang: L, site: string): string {
   const dict = JSON.parse(readFileSync(new URL(`./shared/locales/${lang}.json`, import.meta.url), 'utf-8')) as Record<string, string>
   const t = STATIC[lang]
   const other = LANGS.find((l) => l !== lang)!
-  const main = `<main style="max-width:44rem;margin:0 auto;padding:4rem 1.5rem;font-family:'DM Sans',system-ui,sans-serif;line-height:1.6">
+  const main = `<main style="max-width:44rem;margin:0 auto;padding:4rem 1.5rem;font-family:'DM Sans Variable','DM Sans',system-ui,sans-serif;line-height:1.6">
         <p><strong>Bivio</strong></p>
-        <h1 style="font-family:'Plus Jakarta Sans','DM Sans',system-ui,sans-serif;font-weight:700;line-height:1.15">${t.h1}</h1>
+        <h1 style="font-family:'Plus Jakarta Sans Variable','Plus Jakarta Sans','DM Sans Variable',system-ui,sans-serif;font-weight:700;line-height:1.15">${t.h1}</h1>
         <p>${t.lede}</p>
         <ul>
           <li>${dict['landing.pathA.title']}</li>

@@ -40,6 +40,12 @@ como tarjeta y un fondo `#150E24`.
 - **Contrastes (WCAG AA):** texto Tinta sobre Bruma 16,5:1; blanco sobre Violeta 6,8:1; Violeta sobre Bruma 6,5:1; en
   modo oscuro texto 7–16,7:1 y texto sobre el botón primario 7,5:1.
 
+## Tipografía y marca
+
+- Títulos en **Plus Jakarta Sans** (700) y texto en **DM Sans**, cargadas desde Google Fonts en `index.html`. Los tokens `--font-display` y `--font-sans` viven en `src/index.css`.
+- El logo (`src/components/Logo.tsx`) es un trazo violeta que sube y se curva hacia un punto mandarina, con la palabra "bivio" y los puntos de las dos "i" en violeta y mandarina. El favicon, las imágenes para compartir y el logo de los mails (`public/email/logo.png`) todavía usan la marca anterior.
+- La pantalla de entrada tiene el formulario a la izquierda y un panel de marca a la derecha (`--color-panel`, violeta fijo en claro y oscuro).
+
 ## Dónde más hay colores
 
 - `public/favicon.svg` y `web_jaspr/web/favicon.svg` (violeta en claro, violeta claro en oscuro).

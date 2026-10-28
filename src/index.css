@@ -119,6 +119,26 @@
   50%       { opacity: 1; transform: translateY(-2px); }
 }
 
+/* Dibujos de los caminos (PathIllustrations): en reposo quietos; se mueven con el mouse o el foco del teclado. */
+@keyframes pa-ring {
+  0%   { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+@keyframes pa-scan {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-46px); }
+}
+@keyframes pa-travel {
+  0%        { offset-distance: 0%; }
+  70%, 100% { offset-distance: 100%; }
+}
+
+.pa-ring   { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.pa-travel { offset-distance: 100%; offset-rotate: 0deg; }
+.group:hover .pa-ring,   .group:focus-within .pa-ring   { animation: pa-ring 1.6s ease-out infinite; }
+.group:hover .pa-scan,   .group:focus-within .pa-scan   { animation: pa-scan 1.6s ease-in-out infinite alternate; }
+.group:hover .pa-travel, .group:focus-within .pa-travel { animation: pa-travel 1.6s ease-in-out infinite; }
+
 /* Quien tiene activado "reducir movimiento" no ve animaciones. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

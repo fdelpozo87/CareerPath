@@ -29,6 +29,9 @@ el navegador. Hay que reescribir, con el equipo legal, estos textos (`shared/loc
 | `cloud.lede` | "Se guardan solo tu informe y tus compromisos, no la conversación" |
 | `report.saved`, `error.body`, `chat.onb.*` | Mencionan "este navegador" como único lugar |
 
+Con "Avisarme si dejo una sesión a medias" se envía además un mail de la persona (solo si lo activó); hay que reflejarlo en la política y
+verificar el consentimiento y la baja (se apaga desde el menú de la cuenta).
+
 Hay que definir también: base legal (consentimiento, que ya se pide con un aviso antes de activar), plazo de conservación,
 si la conversación puede contener datos sensibles que la persona escribe, y el tratamiento de los documentos subidos.
 En la app, mientras la opción está activada, la línea del chat y las confirmaciones de borrado ya dicen que se guarda en la cuenta.

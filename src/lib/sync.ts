@@ -11,6 +11,7 @@ import type { Session } from './coach/types'
 
 const TABLE = 'bivio_sesiones'
 const META_KEY = 'sync_sesiones'
+const NUDGE_KEY = 'avisos_sesion'
 const SYNCED_KEY = 'cp_synced_ids'
 /** Tope por sesión: una más grande queda solo en el navegador. */
 export const MAX_SESSION_BYTES = 400_000
@@ -18,10 +19,17 @@ const PUSH_DELAY_MS = 2000
 const PULL_LIMIT = 50
 
 let enabled = false
+/** Aviso por mail si la persona deja una sesión a medias (solo con la sincronización encendida). */
+let nudge = false
 const subs = new Set<() => void>()
 function setEnabled(v: boolean) {
   if (v === enabled) return
   enabled = v
+  subs.forEach((f) => f())
+}
+function setNudge(v: boolean) {
+  if (v === nudge) return
+  nudge = v
   subs.forEach((f) => f())
 }
 
@@ -37,6 +45,18 @@ export function useSyncEnabled(): boolean {
   )
 }
 
+/** ¿La persona pidió que le avisen por mail si deja una sesión a medias? */
+export function useNudgeEnabled(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      subs.add(cb)
+      return () => subs.delete(cb)
+    },
+    () => nudge,
+    () => false,
+  )
+}
+
 export const isSyncEnabled = () => enabled
 
 /** Lee la preferencia de la cuenta (al entrar). Sin sesión, queda apagada. */
@@ -45,6 +65,7 @@ export async function loadSyncPreference(): Promise<boolean> {
   const user = c ? (await c.auth.getSession()).data.session?.user : null
   const on = user?.user_metadata?.[META_KEY] === true
   setEnabled(on)
+  setNudge(on && user?.user_metadata?.[NUDGE_KEY] === true)
   return on
 }
 
@@ -53,6 +74,7 @@ export function resetSync() {
   timers.forEach((t) => clearTimeout(t))
   timers.clear()
   setEnabled(false)
+  setNudge(false)
 }
 
 const readSynced = (): Set<string> => {
@@ -79,7 +101,7 @@ export async function pushSession(s: Session): Promise<boolean> {
   if (!c || !user || !hasProgress(s) || JSON.stringify(s).length > MAX_SESSION_BYTES) return false
   const { error } = await c
     .from(TABLE)
-    .upsert({ user_id: user.id, process_id: s.id, path: s.path, data: s, lang: getLang(), session_updated_at: s.updatedAt }, { onConflict: 'user_id,process_id' })
+    .upsert({ user_id: user.id, process_id: s.id, path: s.path, data: s, lang: getLang(), session_updated_at: s.updatedAt, avisar: nudge, nudged_at: null }, { onConflict: 'user_id,process_id' })
   if (error) throw error
   return true
 }
@@ -184,9 +206,11 @@ export function startAutoSync(): () => void {
 export async function setSyncEnabled(on: boolean, opts?: { deleteRemote?: boolean }): Promise<number> {
   const c = getClient()
   if (!c) throw new Error('cloud_unavailable')
-  const { error } = await c.auth.updateUser({ data: { [META_KEY]: on } })
+  // Al apagar la sincronización se apagan también los avisos: sin las sesiones en la cuenta, no hay de qué avisar.
+  const { error } = await c.auth.updateUser({ data: { [META_KEY]: on, ...(on ? {} : { [NUDGE_KEY]: false }) } })
   if (error) throw error
   setEnabled(on)
+  if (!on) setNudge(false)
   if (on) {
     try {
       return await pullAndMerge()
@@ -199,4 +223,17 @@ export async function setSyncEnabled(on: boolean, opts?: { deleteRemote?: boolea
   }
   if (opts?.deleteRemote) await removeAllRemote()
   return 0
+}
+
+/** Activa o apaga el aviso por mail de sesiones a medias (requiere la sincronización encendida). */
+export async function setNudgeEnabled(on: boolean): Promise<void> {
+  const c = getClient()
+  const user = await currentUser()
+  if (!c || !user || !enabled) throw new Error('cloud_unavailable')
+  const { error } = await c.auth.updateUser({ data: { [NUDGE_KEY]: on } })
+  if (error) throw error
+  setNudge(on)
+  // Las sesiones que ya estaban subidas toman la nueva preferencia.
+  const { error: e2 } = await c.from(TABLE).update({ avisar: on }).eq('user_id', user.id)
+  if (e2) throw e2
 }

@@ -13,7 +13,7 @@ Sentry) se configura a mano; lo demás ya está en el repositorio.
 - **Errores del navegador:** Sentry se activa con `VITE_SENTRY_DSN` en Vercel (el DSN es público). Nunca envía conversaciones ni
   documentos (ver `src/lib/monitoring.ts`). Sin esa variable no hay registro de errores del cliente: conviene cargarla.
 - **Errores del servidor:** quedan en los logs de Vercel (*Project → Logs*), con eventos con nombre (`gemini_retry`,
-  `gemini_fallback`, `aviso_cuenta_nueva`, `comentario`, `auditoria_no_registrada`…). Filtrar por el nombre.
+  `gemini_fallback`, `aviso_cuenta_nueva`, `avisos_sesion`, `comentario`, `auditoria_no_registrada`…). Filtrar por el nombre.
 - **Uso y velocidad:** Vercel Analytics y Speed Insights ya están integrados.
 
 ## Copias de seguridad
@@ -55,7 +55,7 @@ recuperación a un punto en el tiempo, hay un respaldo propio:
 
 | Qué | Cómo | Cuándo |
 |---|---|---|
-| Unitarias y de servidor (235) | `npm test` | cada PR |
+| Unitarias y de servidor (243) | `npm test` | cada PR |
 | Punta a punta en Chrome | `npm run e2e` (compila con Supabase simulado y recorre ingreso, registro, recuperación, idioma y una conversación) | cada PR (job `e2e` de `ci.yml`) |
 | Calidad del coach con Gemini real | `npm run eval`, o el workflow *Evaluación del coach* | cada lunes y a pedido; necesita el secreto `GEMINI_API_KEY` |
 
@@ -77,7 +77,7 @@ Las pruebas de punta a punta no gastan modelo ni tocan datos: Supabase y `/api` 
 ## Migraciones, en orden
 
 `supabase/migrations/`: cuenta, perfiles, auditoría, límites, áreas, evaluaciones, puntajes, compartidas, **sesiones**, **avisos**,
-**comentarios**. Se pegan una vez en el SQL Editor y se pueden volver a correr.
+**comentarios**, **avisos de sesión**. Se pegan una vez en el SQL Editor y se pueden volver a correr.
 
 ## Si algo falla
 

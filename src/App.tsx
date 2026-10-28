@@ -7,7 +7,7 @@ import AccessGate from './components/AccessGate'
 import { AccountStatus, LoginGate, MfaGate, SetPasswordScreen } from './components/LoginGate'
 import { mias as listMias } from './lib/evaluaciones'
 import ConfirmDialog from './components/ConfirmDialog'
-import { loadSyncPreference, pullAndMerge, resetSync, setSyncEnabled, startAutoSync, useSyncEnabled } from './lib/sync'
+import { loadSyncPreference, pullAndMerge, resetSync, setNudgeEnabled, setSyncEnabled, startAutoSync, useNudgeEnabled, useSyncEnabled } from './lib/sync'
 import { clearAllSessions, deleteSession, listSessions, loadSessionById, newSession, saveSession } from './lib/coach/session'
 import { cloudEnabled, currentUser, deleteAccount, listSavedReports, onAuthChange, onPasswordRecovery, saveReport, sessionFromSaved, signOut, takePendingSave, type CloudUser } from './lib/cloud'
 import { downloadMyData } from './lib/exportData'
@@ -68,6 +68,7 @@ function AppInner() {
   const [pending, setPending] = useState<Pending | null>(null)
   // Sincronización opcional de las sesiones con la cuenta (ver src/lib/sync.ts).
   const syncOn = useSyncEnabled()
+  const nudgeOn = useNudgeEnabled()
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   useEffect(() => startAutoSync(), [])
   // Cuenta opcional: quién tiene la sesión iniciada y un aviso breve (guardado, recuperado).
@@ -286,7 +287,20 @@ function AppInner() {
           onDeleteAccount: () => setPending({ kind: 'deleteAccount' }),
           onPassword: () => setPasswordOpen(true),
           onMfa: () => setMfaSettingsOpen(true),
-          sync: { enabled: syncOn, onToggle: () => setPending({ kind: syncOn ? 'syncOff' : 'syncOn' }) },
+          sync: {
+            enabled: syncOn,
+            onToggle: () => setPending({ kind: syncOn ? 'syncOff' : 'syncOn' }),
+            nudge: {
+              enabled: nudgeOn,
+              onToggle: () =>
+                void setNudgeEnabled(!nudgeOn)
+                  .then(() => setNotice(tr(nudgeOn ? 'sync.nudge.offDone' : 'sync.nudge.onDone')))
+                  .catch((e) => {
+                    console.error(e)
+                    setNotice(tr('sync.error'))
+                  }),
+            },
+          },
         }
       : undefined,
   }

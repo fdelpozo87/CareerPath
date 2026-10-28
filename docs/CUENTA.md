@@ -52,6 +52,11 @@ desde otro dispositivo y pedir un recordatorio de check-in. Sin cuenta, todo sig
   desaparece de la cuenta se borra en los otros dispositivos al entrar. Apagar la opción borra lo guardado en la cuenta y
   conserva lo del navegador. Borrar la cuenta lo borra todo (cascada).
 - **Hay que correr la migración** en el SQL Editor antes de usarla; si falta, activarla falla y queda apagada.
+- **Aviso por mail de sesión a medias (otro interruptor, apagado por defecto):** con la sincronización encendida aparece
+  "Avisarme si dejo una sesión a medias". Si la persona lo activa y una sesión en el chat lleva 3 días sin tocarse, recibe un
+  mail para retomarla (`server/nudges.ts`, dentro del cron diario de `api/reminders.ts`). Como mucho un aviso por persona y
+  por pasada, y otro solo si retoma la sesión y la vuelve a dejar. Apagar la sincronización apaga también los avisos. Requiere
+  Resend y la migración `20261030000000_bivio_avisos_sesion.sql`; sin ellos no se manda nada y nada se rompe.
 - La política de privacidad debe actualizarse (ver `docs/LEGAL_PENDIENTES.md`).
 
 ## Avisos de administración y varios administradores
@@ -77,7 +82,7 @@ desde otro dispositivo y pedir un recordatorio de check-in. Sin cuenta, todo sig
 ## Migraciones nuevas, en orden
 
 Después de las anteriores: `20261027000000_bivio_sesiones.sql` (sincronizar sesiones), `20261028000000_bivio_avisos.sql` (aviso de
-cuenta nueva) y `20261029000000_bivio_comentarios.sql` (comentarios). Se pegan una vez en el SQL Editor de Supabase. Las tres son
+cuenta nueva), `20261029000000_bivio_comentarios.sql` (comentarios) y `20261030000000_bivio_avisos_sesion.sql` (aviso de sesión a medias). Se pegan una vez en el SQL Editor de Supabase. Todas son
 seguras de correr más de una vez.
 
 ## Límites conocidos

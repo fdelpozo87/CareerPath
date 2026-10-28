@@ -31,7 +31,7 @@ export interface AccountInfo {
     onPassword: () => void
     onMfa: () => void
     /** Sincronizar las sesiones del coach con la cuenta (apagado por defecto). */
-    sync: { enabled: boolean; onToggle: () => void }
+    sync: { enabled: boolean; onToggle: () => void; nudge: { enabled: boolean; onToggle: () => void } }
   }
 }
 
@@ -118,6 +118,20 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
               >
                 {tr(account.cloud.sync.enabled ? 'sync.menu.on' : 'sync.menu.off')}
               </button>
+              {account.cloud.sync.enabled && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={account.cloud.sync.nudge.enabled}
+                  className={`${ITEM} -mx-3`}
+                  onClick={() => {
+                    setOpen(false)
+                    account.cloud?.sync.nudge.onToggle()
+                  }}
+                >
+                  {tr(account.cloud.sync.nudge.enabled ? 'sync.nudge.on' : 'sync.nudge.off')}
+                </button>
+              )}
               <button
                 type="button"
                 className={`${ITEM} -mx-3`}

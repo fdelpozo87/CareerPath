@@ -16,6 +16,11 @@ export function brandedMail(subject: string, content: EmailContent, assetsUrl = 
   return { subject, html: renderEmailHtml([content], assetsUrl), text: renderEmailText([content]) }
 }
 
+/** Un email con varios bloques (por ejemplo, español e inglés): el primero lleva el botón grande. */
+export function brandedMailMulti(subject: string, contents: EmailContent[], assetsUrl = appUrl()): Mail {
+  return { subject, html: renderEmailHtml(contents, assetsUrl), text: renderEmailText(contents) }
+}
+
 export const appUrl = (): string => process.env.APP_URL ?? 'https://career-path-ruby.vercel.app'
 
 export function mailerConfigured(): boolean {

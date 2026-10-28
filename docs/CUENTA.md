@@ -38,6 +38,53 @@ desde otro dispositivo y pedir un recordatorio de check-in. Sin cuenta, todo sig
   email ya tiene cuenta, lo avisa y sugiere ingresar o recuperar la contraseña.
 - Recomendado en Supabase: dejar activada la confirmación de email (*Confirm email*), para que no se registren emails ajenos.
 
+## Sincronizar sesiones entre dispositivos (opcional)
+
+- **Apagada por defecto.** Menú de la cuenta → "Sincronizar mis sesiones". Antes de activarla se explica que se guarda la
+  conversación completa y los documentos subidos. La preferencia vive en la cuenta (`user_metadata.sync_sesiones`), no en el
+  navegador, así que vale en todos los dispositivos.
+- **Qué se guarda:** la sesión entera en `bivio_sesiones` (migración `20261027000000_bivio_sesiones.sql`, con RLS: cada persona
+  ve solo lo suyo). Tope de 400 KB por sesión; una más grande queda solo en el navegador.
+- **Cómo se mezcla** (`src/lib/sync.ts`): al entrar y al activarla, de cada sesión gana la versión más nueva (`updatedAt`);
+  después se sube cada cambio con una pausa de 2 s. Si dos dispositivos editan la misma sesión a la vez, gana la última
+  (no se combinan mensajes).
+- **Borrados:** borrar una sesión, o "Borrar mis procesos", la borra también de la cuenta. Una sesión ya sincronizada que
+  desaparece de la cuenta se borra en los otros dispositivos al entrar. Apagar la opción borra lo guardado en la cuenta y
+  conserva lo del navegador. Borrar la cuenta lo borra todo (cascada).
+- **Hay que correr la migración** en el SQL Editor antes de usarla; si falta, activarla falla y queda apagada.
+- **Aviso por mail de sesión a medias (otro interruptor, apagado por defecto):** con la sincronización encendida aparece
+  "Avisarme si dejo una sesión a medias". Si la persona lo activa y una sesión en el chat lleva 3 días sin tocarse, recibe un
+  mail para retomarla (`server/nudges.ts`, dentro del cron diario de `api/reminders.ts`). Como mucho un aviso por persona y
+  por pasada, y otro solo si retoma la sesión y la vuelve a dejar. Apagar la sincronización apaga también los avisos. Requiere
+  Resend y la migración `20261030000000_bivio_avisos_sesion.sql`; sin ellos no se manda nada y nada se rompe.
+- La política de privacidad debe actualizarse (ver `docs/LEGAL_PENDIENTES.md`).
+
+## Avisos de administración y varios administradores
+
+- **Varios administradores:** `ADMIN_EMAIL` admite varios emails separados por coma (`a@x.com, b@x.com`). Todos tienen los mismos
+  permisos, así el panel no depende de una sola persona. Cada uno necesita su verificación en dos pasos (salvo `ADMIN_REQUIRE_MFA=0`).
+- **Aviso de cuenta nueva:** cuando alguien se registra, confirma su email y entra, quien administra recibe un mail con el
+  botón al panel (una sola vez por cuenta). Requiere Resend (`RESEND_API_KEY` y `REMINDER_FROM`) y la migración
+  `20261028000000_bivio_avisos.sql`. Sin Resend no se manda nada y el aviso queda pendiente: sale cuando se configura. Sin la
+  migración, la app funciona igual pero no avisa.
+- **Aviso de activación:** al pasar una cuenta de pendiente a activa desde el panel, la persona recibe un mail (español e
+  inglés) que la invita a entrar. Desactivar o reactivar una cuenta no manda nada.
+
+## Comentarios de las personas
+
+- Menú de la cuenta → "Enviar un comentario": la persona elige entre un problema, una idea u otro y escribe hasta 2000
+  caracteres. Solo con cuenta activa (`/api/comentarios`, `server/comentarios.ts`).
+- Se guardan en `bivio_comentarios` (migración `20261029000000_bivio_comentarios.sql`; solo el servidor la lee y escribe) y, si
+  hay Resend, le llegan por mail a quien administra. En el panel de administración aparece la sección **Comentarios**, con los
+  nuevos resaltados y la opción de marcarlos como leídos.
+- Límites: 10 por hora por IP y 20 por día por cuenta. Si se borra la cuenta, el comentario queda sin vínculo a la persona.
+
+## Migraciones nuevas, en orden
+
+Después de las anteriores: `20261027000000_bivio_sesiones.sql` (sincronizar sesiones), `20261028000000_bivio_avisos.sql` (aviso de
+cuenta nueva), `20261029000000_bivio_comentarios.sql` (comentarios) y `20261030000000_bivio_avisos_sesion.sql` (aviso de sesión a medias). Se pegan una vez en el SQL Editor de Supabase. Todas son
+seguras de correr más de una vez.
+
 ## Límites conocidos
 
 - Cualquiera puede crear una cuenta con su email: el código de acceso de las pruebas privadas no gobierna esto.

@@ -1,0 +1,60 @@
+name: Evaluación del coach
+
+# Corre los escenarios de scripts/eval contra Gemini real para detectar regresiones de calidad (tuteo, derivación, fuentes,
+# promesas indebidas…) cuando cambia un prompt o el modelo. Gasta unas decenas de llamadas: por eso no corre en cada PR sino
+# cada lunes y a pedido (Actions → Evaluación del coach → Run workflow). Hace falta el secreto GEMINI_API_KEY.
+
+on:
+  schedule:
+    - cron: '0 11 * * 1'
+  workflow_dispatch:
+    inputs:
+      repeticiones:
+        description: 'Cuántas veces repetir cada escenario (el modelo no es determinista)'
+        default: '2'
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      REQUIRE_LOGIN: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - name: Levantar el servidor local
+        run: |
+          test -n "$GEMINI_API_KEY" || { echo "Falta el secreto GEMINI_API_KEY"; exit 1; }
+          npm run dev -- --port 5173 > dev.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:5173/ > /dev/null && exit 0; sleep 1; done
+          cat dev.log; exit 1
+      - name: Evaluar (español e inglés)
+        env:
+          EVAL_REPEAT: ${{ github.event.inputs.repeticiones || '2' }}
+        run: |
+          set -o pipefail
+          fallo=0
+          npm run eval 2>&1 | tee eval-es.log || fallo=1
+          EVAL_LANG=en npm run eval 2>&1 | tee eval-en.log || fallo=1
+          exit $fallo
+      - name: Resumen
+        if: always()
+        run: |
+          { echo '## Evaluación del coach'; echo; echo '### Español'; echo '```'; tail -n 25 eval-es.log; echo '```'; echo '### English'; echo '```'; tail -n 25 eval-en.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-coach
+          path: |
+            eval-es.log
+            eval-en.log
+          retention-days: 30

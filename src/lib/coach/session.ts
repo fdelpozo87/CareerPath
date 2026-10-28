@@ -4,6 +4,15 @@ import type { Path, Session } from './types'
 // borra al empezar otro: se retoman — y con ellos los compromisos elegidos — más adelante (§5).
 
 const KEY = 'cp_coach_sessions_v3'
+
+/** Qué pasó con los procesos guardados (lo escucha la sincronización con la cuenta, ver sync.ts). */
+export type SessionChange = { type: 'save'; session: Session } | { type: 'delete'; id: string } | { type: 'clear' }
+const listeners = new Set<(c: SessionChange) => void>()
+export function onSessionChange(cb: (c: SessionChange) => void): () => void {
+  listeners.add(cb)
+  return () => listeners.delete(cb)
+}
+const emit = (c: SessionChange) => listeners.forEach((cb) => cb(c))
 const LEGACY_KEY = 'cp_coach_session_v2'
 /** Cuántos procesos se guardan como máximo en el navegador. */
 export const MAX_SESSIONS = 12
@@ -70,7 +79,8 @@ export function loadSessionById(id: string): Session | null {
   return readAll().find((s) => s.id === id) ?? null
 }
 
-export function saveSession(session: Session) {
+/** `silent`: el cambio viene de la cuenta (no hace falta volver a subirlo). */
+export function saveSession(session: Session, opts?: { silent?: boolean }) {
   const all = readAll()
   const exists = all.some((s) => s.id === session.id)
   // Un proceso existe desde que la persona escribe o carga su perfil, no desde que abre un camino.
@@ -78,10 +88,12 @@ export function saveSession(session: Session) {
   const next = exists ? all.map((s) => (s.id === session.id ? session : s)) : [session, ...all]
   // Tope: si hay de más, se descartan los más viejos.
   writeAll(next.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, MAX_SESSIONS))
+  if (!opts?.silent) emit({ type: 'save', session })
 }
 
-export function deleteSession(id: string) {
+export function deleteSession(id: string, opts?: { silent?: boolean }) {
   writeAll(readAll().filter((s) => s.id !== id))
+  if (!opts?.silent) emit({ type: 'delete', id })
 }
 
 export function clearAllSessions() {
@@ -91,6 +103,7 @@ export function clearAllSessions() {
   } catch {
     // ignorado
   }
+  emit({ type: 'clear' })
 }
 
 export function hasProgress(s: Session | null): s is Session {

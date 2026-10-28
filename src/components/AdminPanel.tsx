@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
-import { AdminError, addUser, deleteUserAccount, listAudit, listUsers, setUserAreas, setUserEstado, type AdminUser, type AuditEntry, type Estado } from '../lib/admin'
+import { AdminError, addUser, deleteUserAccount, listAudit, listComentarios, listUsers, marcarComentario, type ComentarioItem, setUserAreas, setUserEstado, type AdminUser, type AuditEntry, type Estado } from '../lib/admin'
 import { getLang, tr, type Key } from '../lib/i18n'
 import ConfirmDialog from './ConfirmDialog'
 import { MfaStep } from './MfaStep'
@@ -34,6 +34,7 @@ function TrashIcon() {
 export function AdminPanel({ onBack }: { onBack: () => void }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null)
   const [audit, setAudit] = useState<AuditEntry[]>([])
+  const [comentarios, setComentarios] = useState<ComentarioItem[]>([])
   // El servidor pide verificación en dos pasos antes de dejar tocar nada.
   const [needsMfa, setNeedsMfa] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +55,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
       setNeedsMfa(false)
       setError(null)
       setAudit(await listAudit().catch(() => []))
+      setComentarios(await listComentarios().catch(() => []))
     } catch (e) {
       if (e instanceof AdminError && e.reason === 'mfa_required') return setNeedsMfa(true)
       setError(e instanceof Error ? e.message : tr('cloud.error'))
@@ -266,6 +268,45 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
             })}
           </ul>
         )}
+
+        <section aria-labelledby="comentarios" className="mt-10">
+          <h2 id="comentarios" className="mb-1 flex items-center gap-2 text-base">
+            {tr('admin.comments.title')}
+            {comentarios.some((c) => !c.leido) && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-ink">{comentarios.filter((c) => !c.leido).length}</span>
+            )}
+          </h2>
+          <p className="mb-3 text-sm text-text-muted">{tr('admin.comments.lede')}</p>
+          {comentarios.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-border-color p-4 text-sm text-text-muted">{tr('admin.comments.empty')}</p>
+          ) : (
+            <ul className="space-y-3">
+              {comentarios.map((c) => (
+                <li key={c.id} className={`rounded-2xl border bg-card p-4 text-sm ${c.leido ? 'border-border-color' : 'border-accent'}`}>
+                  <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-text-muted">
+                    <span className="rounded-full bg-primary-soft px-2.5 py-0.5 font-semibold text-primary">{tr(`comment.tipo.${c.tipo}` as Key)}</span>
+                    {!c.leido && <span className="font-semibold text-accent-ink">{tr('admin.comments.new')}</span>}
+                    <span className="text-foreground">{c.email}</span>
+                    <span>{fmt(c.created_at)}</span>
+                    {c.pagina && <span className="font-mono">{c.pagina}</span>}
+                  </div>
+                  <p className="whitespace-pre-wrap leading-relaxed text-foreground">{c.mensaje}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const leido = !c.leido
+                      setComentarios((list) => list.map((x) => (x.id === c.id ? { ...x, leido } : x)))
+                      marcarComentario(c.id, leido).catch(() => setComentarios((list) => list.map((x) => (x.id === c.id ? { ...x, leido: c.leido } : x))))
+                    }}
+                    className="mt-3 text-sm text-primary underline underline-offset-2 hover:text-primary-dark"
+                  >
+                    {tr(c.leido ? 'admin.comments.markUnread' : 'admin.comments.markRead')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         {audit.length > 0 && (
           <section aria-labelledby="actividad" className="mt-10">

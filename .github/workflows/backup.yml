@@ -1,0 +1,42 @@
+name: Copia de seguridad
+
+# Cada lunes (y a pedido) baja las tablas de Supabase, las cifra y las guarda como artefacto por 30 días.
+# Hace falta cargar tres secretos en el repositorio (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY y BACKUP_PASSPHRASE (una frase larga que solo vos guardás).
+# Si el repositorio es público, los artefactos también lo son: por eso se suben cifrados. Ver docs/OPERACION.md.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Bajar las tablas
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/backup.mjs
+      - name: Comprimir y cifrar
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          test -n "$BACKUP_PASSPHRASE" || { echo "Falta el secreto BACKUP_PASSPHRASE"; exit 1; }
+          tar -czf backup.tar.gz backups
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in backup.tar.gz -out backup.tar.gz.enc -pass env:BACKUP_PASSPHRASE
+          rm -rf backups backup.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bivio-backup-${{ github.run_id }}
+          path: backup.tar.gz.enc
+          retention-days: 30
+          if-no-files-found: error

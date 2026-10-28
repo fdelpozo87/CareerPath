@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { STAGE_ORDER, introFor, objectiveLabel, objectivesFor } from '../../../shared/stages'
 import { looksLikeMarketQuestion } from '../../../shared/marketIntent'
 import { docLabel } from '../../lib/coach/docs'
+import { useSyncEnabled } from '../../lib/sync'
 import { getLang, stageLabel, tr, type Key } from '../../lib/i18n'
 import type { DocTipo, MarketSource, Path, Session, Stage } from '../../lib/coach/types'
 import { CoachAvatar } from '../Logo'
@@ -30,6 +31,7 @@ interface ChatViewProps {
 }
 
 export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAdvance, onAttachDoc, onResumeTopic, docStatus }: ChatViewProps) {
+  const synced = useSyncEnabled()
   const [draft, setDraft] = useState('')
   // En pantallas táctiles Enter da un salto de línea (se envía con el botón): ahí se escriben textos largos.
   const [touch] = useState(() => window.matchMedia?.('(pointer: coarse)').matches ?? false)
@@ -187,7 +189,7 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] text-text-muted [@media(max-height:560px)]:hidden">
             <span>{touch ? tr('chat.hint.touch') : tr('chat.hint.keyboard')}</span>
             <span className="inline-flex items-center gap-1">
-              <LockIcon /> {tr('chat.privacy')}
+              <LockIcon /> {tr(synced ? 'chat.privacy.synced' : 'chat.privacy')}
             </span>
           </p>
         </footer>
@@ -379,6 +381,7 @@ function Typing({ searching }: { searching?: boolean }) {
 
 // Antes del primer mensaje: cómo funciona, y frases para arrancar.
 function Onboarding({ path, onPick }: { path: Path; onPick: (text: string) => void }) {
+  const synced = useSyncEnabled()
   return (
     <div className="rounded-2xl border border-border-color bg-secondary/50 p-5 text-sm">
       <p className="mb-3 font-display text-lg text-foreground">{tr('chat.onb.title')}</p>
@@ -393,7 +396,7 @@ function Onboarding({ path, onPick }: { path: Path; onPick: (text: string) => vo
         </li>
         <li>
           <strong className="font-semibold text-foreground">{tr('chat.onb.3.strong')}</strong>
-          {tr('chat.onb.3.rest')}{' '}
+          {tr(synced ? 'chat.onb.3.rest.synced' : 'chat.onb.3.rest')}{' '}
           <a href="#privacidad" target="_blank" rel="noopener" className="underline underline-offset-2">
             {tr('chat.onb.3.link')}
           </a>

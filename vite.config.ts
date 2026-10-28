@@ -19,6 +19,7 @@ function devApi(geminiApiKey: string | undefined): Plugin {
         ['account', '/server/account.ts', 'handleAccount'],
         ['admin', '/server/admin.ts', 'handleAdmin'],
         ['evaluaciones', '/server/evaluaciones.ts', 'handleEvaluaciones'],
+        ['comentarios', '/server/comentarios.ts', 'handleComentarios'],
       ] as const) {
         server.middlewares.use(`/api/${route}`, async (req, res) => {
           res.setHeader('Content-Type', 'application/json')
@@ -81,7 +82,7 @@ export default defineConfig(({ mode }) => {
   if (env.ALLOWED_ORIGINS) process.env.ALLOWED_ORIGINS = env.ALLOWED_ORIGINS
   if (env.ACCESS_CODES && !process.env.ACCESS_CODES) process.env.ACCESS_CODES = env.ACCESS_CODES
   // El servidor (borrar cuenta, recordatorios) lee estas variables con process.env.
-  for (const k of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'RESEND_API_KEY', 'REMINDER_FROM', 'APP_URL', 'ADMIN_EMAIL', 'REQUIRE_LOGIN', 'ADMIN_REQUIRE_MFA', 'GEMINI_MODEL'] as const) {
+  for (const k of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'RESEND_API_KEY', 'REMINDER_FROM', 'APP_URL', 'ADMIN_EMAIL', 'REQUIRE_LOGIN', 'ADMIN_REQUIRE_MFA', 'GEMINI_MODEL', 'GEMINI_FALLBACK_MODEL'] as const) {
     if (env[k] && !process.env[k]) process.env[k] = env[k]
   }
   // Al navegador solo llegan la URL y la clave anónima de Supabase (públicas por diseño, la seguridad la

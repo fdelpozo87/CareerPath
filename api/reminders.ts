@@ -1,5 +1,6 @@
 import type { ApiRequest, ApiResponse } from '../server/http.js'
 import { runReminders } from '../server/reminders.js'
+import { runNudges } from '../server/nudges.js'
 import { logEvent } from '../server/guard.js'
 
 // Lo llama el cron de Vercel (vercel.json). Vercel manda `Authorization: Bearer $CRON_SECRET`:
@@ -12,7 +13,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'No autorizado' })
   try {
-    res.status(200).json(await runReminders())
+    const reminders = await runReminders()
+    // Un solo cron diario hace las dos cosas: recordatorios de check-in y avisos de sesiones a medias.
+    res.status(200).json({ ...reminders, nudges: await runNudges() })
   } catch (e) {
     logEvent('error', 'recordatorios_error', { error: e instanceof Error ? e : String(e) })
     res.status(500).json({ error: 'Falló el envío' })

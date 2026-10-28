@@ -15,6 +15,8 @@ export interface AccountInfo {
   onDeleteData: () => void
   /** Baja un archivo con todo lo que hay de la persona (procesos de este navegador y lo guardado en su cuenta). */
   onExport: () => void
+  /** Con cuenta: abre el formulario de comentarios para quien administra. */
+  onFeedback?: () => void
   /** Solo para quien administra: abre el panel de usuarios. */
   onAdmin?: () => void
   /** Evaluaciones de desempeño (solo con cuenta): abre "Mis evaluaciones". */
@@ -22,7 +24,15 @@ export interface AccountInfo {
   /** Cuántas evaluaciones tiene pendientes de responder. */
   evalPending?: number
   /** Cuenta opcional (guardar el informe con email). Solo si hay una sesión iniciada. */
-  cloud?: { email: string; onSignOut: () => void; onDeleteAccount: () => void; onPassword: () => void; onMfa: () => void }
+  cloud?: {
+    email: string
+    onSignOut: () => void
+    onDeleteAccount: () => void
+    onPassword: () => void
+    onMfa: () => void
+    /** Sincronizar las sesiones del coach con la cuenta (apagado por defecto). */
+    sync: { enabled: boolean; onToggle: () => void; nudge: { enabled: boolean; onToggle: () => void } }
+  }
 }
 
 function PersonIcon() {
@@ -98,6 +108,32 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
               </button>
               <button
                 type="button"
+                role="switch"
+                aria-checked={account.cloud.sync.enabled}
+                className={`${ITEM} -mx-3`}
+                onClick={() => {
+                  setOpen(false)
+                  account.cloud?.sync.onToggle()
+                }}
+              >
+                {tr(account.cloud.sync.enabled ? 'sync.menu.on' : 'sync.menu.off')}
+              </button>
+              {account.cloud.sync.enabled && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={account.cloud.sync.nudge.enabled}
+                  className={`${ITEM} -mx-3`}
+                  onClick={() => {
+                    setOpen(false)
+                    account.cloud?.sync.nudge.onToggle()
+                  }}
+                >
+                  {tr(account.cloud.sync.nudge.enabled ? 'sync.nudge.on' : 'sync.nudge.off')}
+                </button>
+              )}
+              <button
+                type="button"
                 className={`${ITEM} -mx-3`}
                 onClick={() => {
                   setOpen(false)
@@ -154,6 +190,20 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
                   }}
                 >
                   {tr('admin.link')}
+                </button>
+              </li>
+            )}
+            {account.onFeedback && (
+              <li>
+                <button
+                  type="button"
+                  className={ITEM}
+                  onClick={() => {
+                    setOpen(false)
+                    account.onFeedback?.()
+                  }}
+                >
+                  {tr('comment.menu')}
                 </button>
               </li>
             )}

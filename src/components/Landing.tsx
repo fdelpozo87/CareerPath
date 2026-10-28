@@ -60,26 +60,6 @@ function PathCard({ id, letter, onChoose }: { id: Path; letter: 'A' | 'B' | 'C';
   )
 }
 
-/** Versión chica, para "Empezar una nueva" cuando ya hay procesos. */
-function PathRow({ id, letter, onChoose }: { id: Path; letter: 'A' | 'B' | 'C'; onChoose: (p: Path) => void }) {
-  const { tag, title } = textOf(letter)
-  return (
-    <button
-      onClick={() => onChoose(id)}
-      className="group card flex w-full items-center gap-4 rounded-3xl p-3 pr-5 text-left transition duration-200 hover:border-primary/30 hover:shadow-soft focus-visible:border-primary/40 motion-reduce:transition-none"
-    >
-      <span className={`block h-16 w-24 shrink-0 rounded-2xl px-2 py-2 ${illustrationBg[id]}`}>
-        <PathIllustration path={id} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-xs font-semibold text-primary">{tag}</span>
-        <span className="block font-display text-base font-bold leading-snug text-foreground">{title}</span>
-      </span>
-      <Arrow className="shrink-0 text-primary transition-transform group-hover:translate-x-1 motion-reduce:transition-none" />
-    </button>
-  )
-}
-
 const statusOf = (s: Session) =>
   s.compromisos
     ? trn('landing.resume.commitments', s.compromisos.length)
@@ -162,7 +142,7 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
         {tr('process.title')}
       </h2>
       <p className="mb-4 text-sm text-text-muted">{tr('process.lede')}</p>
-      <ul role="list" className="space-y-4">
+      <ul role="list" className="grid gap-4 md:grid-cols-2">
         {processes.map((p, i) => (
           <ProcessCard key={p.id} process={p} latest={i === 0} onResume={onResume} onDelete={onDelete} />
         ))}
@@ -181,31 +161,21 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
               <p className="mx-auto max-w-xl text-lg leading-relaxed text-text-muted">{tr('landing.lede')}</p>
             </div>
 
-            {hasProcesses ? (
-              <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-                {sessions}
-                <section aria-labelledby="empezar-nueva">
-                  <h2 id="empezar-nueva" className="mb-4 text-2xl">
-                    {tr('landing.newSession')}
-                  </h2>
-                  <div className="space-y-3">
-                    {PATHS.map((p) => (
-                      <PathRow key={p.id} {...p} onChoose={onChoosePath} />
-                    ))}
-                  </div>
-                  <p className="mt-3 text-xs font-semibold text-text-muted">{tr('landing.pathC.note')}</p>
-                </section>
+            {sessions && <div className="mx-auto mb-14 max-w-6xl">{sessions}</div>}
+
+            <div className="mx-auto max-w-6xl">
+              {hasProcesses && (
+                <h2 id="empezar-nueva" className="mb-5 text-2xl">
+                  {tr('landing.newSession')}
+                </h2>
+              )}
+              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {PATHS.map((p) => (
+                  <PathCard key={p.id} {...p} onChoose={onChoosePath} />
+                ))}
               </div>
-            ) : (
-              <>
-                <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3">
-                  {PATHS.map((p) => (
-                    <PathCard key={p.id} {...p} onChoose={onChoosePath} />
-                  ))}
-                </div>
-                <p className="mx-auto mt-4 max-w-6xl text-xs font-semibold text-text-muted">{tr('landing.pathC.note')}</p>
-              </>
-            )}
+              <p className="mt-4 text-xs font-semibold text-text-muted">{tr('landing.pathC.note')}</p>
+            </div>
 
             <div className="mx-auto mt-14 max-w-4xl">
               <div className="glass-stage px-5 py-10 text-center sm:px-10 sm:py-12">

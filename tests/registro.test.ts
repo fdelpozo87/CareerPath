@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isNoAccountError, loginErrorKey } from '../src/lib/cloud'
+import { isNoAccountError, loginErrorKey, signupErrorKey } from '../src/lib/cloud'
 
 describe('registros cerrados', () => {
   it('reconoce que el email no tiene cuenta, sin importar cómo lo informe Supabase', () => {
@@ -15,5 +15,16 @@ describe('registros cerrados', () => {
     expect(isNoAccountError({ code: 'validation_failed' })).toBe(false)
     expect(isNoAccountError(null)).toBe(false)
     expect(loginErrorKey({ code: 'over_email_send_rate_limit' })).toBe('login.error.rate')
+  })
+})
+
+describe('signupErrorKey', () => {
+  it('avisa que el registro está cerrado en vez de disimularlo', () => {
+    expect(signupErrorKey({ code: 'signup_disabled' })).toBe('login.signup.closed')
+    expect(signupErrorKey({ message: 'Signups not allowed for otp' })).toBe('login.signup.closed')
+  })
+  it('el resto de los errores se explican igual que al ingresar', () => {
+    expect(signupErrorKey({ code: 'over_email_send_rate_limit', status: 429 })).toBe('login.error.rate')
+    expect(signupErrorKey({ code: 'validation_failed' })).toBe('login.error.email')
   })
 })

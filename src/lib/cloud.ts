@@ -72,7 +72,7 @@ export function loginErrorKey(e: unknown): 'login.error.rate' | 'login.error.net
 // ── Contraseña (opcional) ─────────────────────────────────────────────────────
 // Las contraseñas las guarda y protege Supabase Auth (hash bcrypt, nunca en claro): ni el navegador ni
 // nuestro servidor las almacenan ni las registran. Solo pueden tenerla cuentas que ya existen (alta por
-// el administrador o por enlace aprobado): acá no hay registro público con contraseña.
+// el administrador o por registro): las cuentas nuevas quedan pendientes hasta que las apruebe quien administra.
 
 export const MIN_PASSWORD = 10
 
@@ -131,17 +131,26 @@ export async function sendLoginLink(email: string): Promise<void> {
   if (error && !isNoAccountError(error)) throw error
 }
 
-/** Crea la cuenta (queda pendiente hasta que la apruebe quien administra) y manda el enlace para confirmar el email. */
-export async function sendSignupLink(email: string): Promise<void> {
+/**
+ * Crea la cuenta con email y contraseña. Queda pendiente hasta que la apruebe quien administra. Con la
+ * confirmación de email activada en Supabase no hay sesión hasta que se abra el enlace del mail (devuelve false);
+ * si está desactivada, entra directo y la pantalla pasa sola a "pendiente de aprobación" (devuelve true).
+ */
+export async function signUpWithPassword(email: string, password: string): Promise<boolean> {
   const c = sb()
   if (!c) throw new Error('cloud_off')
-  const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin, shouldCreateUser: true } })
+  const { data, error } = await c.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } })
   if (error) throw error
+  return data.session !== null
 }
 
 /** Qué mensaje mostrar si falla el registro: con los registros cerrados en Supabase se avisa, no se disimula. */
-export function signupErrorKey(e: unknown): 'login.signup.closed' | ReturnType<typeof loginErrorKey> {
-  return isNoAccountError(e) ? 'login.signup.closed' : loginErrorKey(e)
+export function signupErrorKey(e: unknown): 'login.signup.closed' | 'login.signup.exists' | 'login.error.email' | ReturnType<typeof passwordErrorKey> {
+  const code = (e as { code?: string } | null)?.code ?? ''
+  if (code === 'user_already_exists' || code === 'email_exists') return 'login.signup.exists'
+  if (isNoAccountError(e)) return 'login.signup.closed'
+  if (code === 'validation_failed' || code.startsWith('email_address')) return 'login.error.email'
+  return passwordErrorKey(e)
 }
 
 /** El email no tiene cuenta (o los registros están cerrados): Supabase lo informa con distintos códigos. */

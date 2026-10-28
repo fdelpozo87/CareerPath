@@ -26,12 +26,17 @@ desde otro dispositivo y pedir un recordatorio de check-in. Sin cuenta, todo sig
 
 ## Pantalla de acceso: Ingresar y Crear cuenta
 
-- **Ingresar:** para cuentas que ya existen, con enlace por email o con contraseña. Si el email no tiene cuenta, la pantalla
-  no lo revela (muestra el mismo aviso que cuando el enlace se envía).
-- **Crear cuenta:** manda un enlace que confirma el email y crea la cuenta como `pendiente`. No puede usar Bivio hasta
-  que quien administra la active desde el panel de administración; mientras tanto ve la pantalla "pendiente de aprobación".
+- **Ingresar:** email y contraseña. Debajo del campo está "Olvidé mi contraseña" (manda un email para elegir otra) y, como
+  alternativa, "Prefiero recibir un enlace por email" para quien no tiene o no recuerda la contraseña. Si el email no tiene
+  cuenta, el enlace no lo revela (muestra el mismo aviso que cuando se envía).
+- **Crear cuenta:** email y contraseña (mínimo 10 caracteres). Supabase manda un mensaje para confirmar el email (plantilla
+  "Confirm signup") y la cuenta queda `pendiente`: no puede usar Bivio hasta que quien administra la active desde el panel;
+  mientras tanto ve la pantalla "pendiente de aprobación". Si la confirmación de email está desactivada en Supabase, entra
+  directo a esa pantalla.
 - Requiere que los registros estén **abiertos** en Supabase (*Authentication → Sign In / Providers → Email → Allow new users
-  to sign up*). Si están cerrados, "Crear cuenta" avisa que el registro está cerrado en lugar de fingir que funcionó.
+  to sign up*). Si están cerrados, "Crear cuenta" avisa que el registro está cerrado en lugar de fingir que funcionó. Si el
+  email ya tiene cuenta, lo avisa y sugiere ingresar o recuperar la contraseña.
+- Recomendado en Supabase: dejar activada la confirmación de email (*Confirm email*), para que no se registren emails ajenos.
 
 ## Límites conocidos
 
@@ -95,9 +100,9 @@ Además del enlace por email, quien ya tiene cuenta puede elegir una contraseña
   la reciben en un pedido propio ni la registran en logs: el navegador habla directo con Supabase.
 - **Crear o cambiar:** menú de la cuenta → “Crear o cambiar contraseña” (mínimo 10 caracteres).
 - **Entrar:** en la pantalla de acceso, “Entrar con contraseña”. “Olvidé mi contraseña” manda un email para elegir otra.
-- **No hay registro público con contraseña:** solo pueden tener contraseña las cuentas que ya existen (alta por el
-  administrador o por enlace). Las cuentas nuevas siguen quedando pendientes hasta que se aprueben, y el estado
-  (`pendiente` / `activo` / `desactivado`) manda igual con contraseña que con enlace.
+- **Registro con contraseña:** cualquiera puede crear una cuenta con email y contraseña desde "Crear cuenta". Las cuentas
+  nuevas quedan pendientes hasta que se aprueben, y el estado (`pendiente` / `activo` / `desactivado`) manda igual con
+  contraseña que con enlace.
 - **Recomendado en Supabase** (Authentication → Providers → Email): subir el largo mínimo de contraseña a 10 o más y,
   si el plan lo permite, activar la protección contra contraseñas filtradas.
 

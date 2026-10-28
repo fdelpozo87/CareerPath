@@ -13,8 +13,8 @@
  *   - Sin rojo y verde de semáforo: Bivio no aprueba ni desaprueba. Los avisos de error usan un naranja oscuro.
  */
 @theme {
-  --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
 
   --color-background: #faf9fc;
   --color-foreground: #1f1533;
@@ -39,6 +39,8 @@
   --color-on-primary: #ffffff;
   --color-brand: #6a3fc1;
   --color-ink: #1f1533;
+  /* Panel de marca (login): violeta fijo con texto blanco en ambos modos. */
+  --color-panel: #6a3fc1;
 
   --shadow-soft: 0 1px 2px rgb(31 21 51 / 0.04), 0 8px 24px -8px rgb(31 21 51 / 0.10);
 }
@@ -85,8 +87,8 @@
   }
   h1, h2, h3 {
     font-family: var(--font-display);
-    font-weight: 500;
-    letter-spacing: -0.015em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     line-height: 1.15;
   }
   h1 { @apply text-4xl md:text-5xl; }
@@ -116,6 +118,26 @@
   0%, 100% { opacity: 0.35; transform: translateY(0); }
   50%       { opacity: 1; transform: translateY(-2px); }
 }
+
+/* Dibujos de los caminos (PathIllustrations): en reposo quietos; se mueven con el mouse o el foco del teclado. */
+@keyframes pa-ring {
+  0%   { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+@keyframes pa-scan {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-46px); }
+}
+@keyframes pa-travel {
+  0%        { offset-distance: 0%; }
+  70%, 100% { offset-distance: 100%; }
+}
+
+.pa-ring   { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.pa-travel { offset-distance: 100%; offset-rotate: 0deg; }
+.group:hover .pa-ring,   .group:focus-within .pa-ring   { animation: pa-ring 1.6s ease-out infinite; }
+.group:hover .pa-scan,   .group:focus-within .pa-scan   { animation: pa-scan 1.6s ease-in-out infinite alternate; }
+.group:hover .pa-travel, .group:focus-within .pa-travel { animation: pa-travel 1.6s ease-in-out infinite; }
 
 /* Quien tiene activado "reducir movimiento" no ve animaciones. */
 @media (prefers-reduced-motion: reduce) {

@@ -40,6 +40,18 @@ como tarjeta y un fondo `#150E24`.
 - **Contrastes (WCAG AA):** texto Tinta sobre Bruma 16,5:1; blanco sobre Violeta 6,8:1; Violeta sobre Bruma 6,5:1; en
   modo oscuro texto 7–16,7:1 y texto sobre el botón primario 7,5:1.
 
+## Tipografía y marca
+
+- Títulos en **Plus Jakarta Sans** (700) y texto en **DM Sans**, cargadas desde Google Fonts en `index.html`. Los tokens `--font-display` y `--font-sans` viven en `src/index.css`.
+- El logo (`src/components/Logo.tsx`) es un trazo violeta que sube y se curva hacia un punto mandarina, con la palabra "bivio" y los puntos de las dos "i" en violeta y mandarina. El favicon, las imágenes para compartir y el logo de los mails (`public/email/logo.png`) todavía usan la marca anterior.
+- La pantalla de entrada tiene el formulario a la izquierda y un panel de marca a la derecha (`--color-panel`, violeta fijo en claro y oscuro).
+
+## Inicio: los tres caminos
+
+- Cada camino tiene un dibujo propio (`src/components/PathIllustrations.tsx`): A una bifurcación, B un CV con lupa y C tres opciones de formación con una resaltada. Los fondos son durazno, lila y bruma, y los colores salen de los tokens, así que siguen el modo oscuro.
+- Los dibujos están quietos y se animan solo con el mouse o el foco del teclado sobre la tarjeta (reglas `.pa-*` en `src/index.css`); con "reducir movimiento" no se mueven.
+- Sin procesos guardados se ven tres tarjetas grandes. Con procesos, "Tus procesos" (con barra de etapas) a la izquierda y "Empezar una nueva" con tarjetas compactas a la derecha.
+
 ## Dónde más hay colores
 
 - `public/favicon.svg` y `web_jaspr/web/favicon.svg` (violeta en claro, violeta claro en oscuro).

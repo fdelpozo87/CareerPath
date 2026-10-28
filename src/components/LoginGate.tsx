@@ -29,6 +29,43 @@ function Shell({ children }: { children: ReactNode }) {
   )
 }
 
+/** Entrada: formulario a la izquierda y, al lado (debajo en celular), la propuesta de Bivio. */
+function SplitShell({ children }: { children: ReactNode }) {
+  const bullets = ['stuck', 'job', 'study'] as const
+  return (
+    <div className="flex min-h-screen flex-col bg-background font-sans">
+      <header>
+        <div className="section-container flex items-center justify-between py-5">
+          <Logo />
+          <div className="flex items-center gap-2">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
+      <main className="section-container grid flex-1 items-stretch gap-6 pb-10 pt-2 lg:grid-cols-2">
+        <div className="card flex w-full flex-col justify-center rounded-3xl p-6 sm:p-10">{children}</div>
+        <aside className="flex flex-col justify-between gap-10 rounded-3xl bg-panel p-8 text-white sm:p-10">
+          <div>
+            <h2 className="mb-8 text-3xl sm:text-4xl">{tr('login.panel.title')}</h2>
+            <ul role="list" className="space-y-5 text-lg leading-relaxed">
+              {bullets.map((b) => (
+                <li key={b} className="flex gap-3">
+                  <span aria-hidden="true" className="mt-2.5 h-2.5 w-2.5 shrink-0 rounded-full bg-accent" />
+                  <span>
+                    <strong className="font-semibold">{tr(`login.panel.${b}.lead` as Key)}</strong>
+                    {tr(`login.panel.${b}.rest` as Key)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      </main>
+    </div>
+  )
+}
+
 export function LoginGate({ initialError }: { initialError?: string }) {
   // Se puede entrar con el enlace del mail o, si la persona ya eligió una contraseña, con ella.
   const [mode, setMode] = useState<'link' | 'password'>('link')
@@ -81,8 +118,24 @@ export function LoginGate({ initialError }: { initialError?: string }) {
   }
 
   return (
-    <Shell>
-      <h1 className="mb-3 text-2xl md:text-3xl">{tr('login.title')}</h1>
+    <SplitShell>
+      <div role="group" aria-label={tr('login.title')} className="mb-8 grid grid-cols-2 rounded-full bg-secondary p-1 text-sm font-semibold">
+        {(['link', 'password'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={mode === m}
+            onClick={() => {
+              setMode(m)
+              setErrorKey(null)
+            }}
+            className={`rounded-full px-4 py-2.5 transition ${mode === m ? 'bg-primary text-on-primary shadow-sm' : 'text-text-muted hover:text-foreground'}`}
+          >
+            {tr(m === 'link' ? 'login.method.link' : 'login.method.password')}
+          </button>
+        ))}
+      </div>
+      <h1 className="mb-3 text-3xl md:text-4xl">{tr('login.welcome')}</h1>
       <p className="mb-6 text-sm leading-relaxed text-text-muted">{tr('login.body')}</p>
 
       {sent || resetSent ? (
@@ -105,7 +158,7 @@ export function LoginGate({ initialError }: { initialError?: string }) {
             placeholder="tu@correo.com"
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? 'login-error' : undefined}
-            className="w-full rounded-xl border border-border-color p-3 text-sm outline-none focus:border-primary"
+            className="w-full rounded-full border border-border-color bg-card px-5 py-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
           />
           {mode === 'password' && (
             <div className="mt-3">
@@ -119,7 +172,7 @@ export function LoginGate({ initialError }: { initialError?: string }) {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-border-color p-3 text-sm outline-none focus:border-primary"
+                className="w-full rounded-full border border-border-color bg-card px-5 py-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
               />
             </div>
           )}
@@ -133,23 +186,13 @@ export function LoginGate({ initialError }: { initialError?: string }) {
           >
             {busy ? tr('login.sending') : mode === 'password' ? tr('password.signIn') : tr('cloud.sendLink')}
           </button>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
-            <button
-              type="button"
-              onClick={() => {
-                setMode(mode === 'link' ? 'password' : 'link')
-                setErrorKey(null)
-              }}
-              className="underline underline-offset-2 hover:text-foreground"
-            >
-              {mode === 'link' ? tr('password.useInstead') : tr('password.useLink')}
-            </button>
-            {mode === 'password' && (
-              <button type="button" onClick={() => void forgot()} className="text-text-muted underline underline-offset-2 hover:text-foreground">
+          {mode === 'password' && (
+            <div className="mt-4 text-sm">
+              <button type="button" onClick={() => void forgot()} className="text-primary underline underline-offset-2 hover:text-primary-dark">
                 {tr('password.forgot')}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </form>
       )}
 
@@ -159,7 +202,7 @@ export function LoginGate({ initialError }: { initialError?: string }) {
           {tr('footer.privacy')}
         </a>
       </p>
-    </Shell>
+    </SplitShell>
   )
 }
 

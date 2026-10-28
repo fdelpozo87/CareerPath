@@ -131,6 +131,19 @@ export async function sendLoginLink(email: string): Promise<void> {
   if (error && !isNoAccountError(error)) throw error
 }
 
+/** Crea la cuenta (queda pendiente hasta que la apruebe quien administra) y manda el enlace para confirmar el email. */
+export async function sendSignupLink(email: string): Promise<void> {
+  const c = sb()
+  if (!c) throw new Error('cloud_off')
+  const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin, shouldCreateUser: true } })
+  if (error) throw error
+}
+
+/** Qué mensaje mostrar si falla el registro: con los registros cerrados en Supabase se avisa, no se disimula. */
+export function signupErrorKey(e: unknown): 'login.signup.closed' | ReturnType<typeof loginErrorKey> {
+  return isNoAccountError(e) ? 'login.signup.closed' : loginErrorKey(e)
+}
+
 /** El email no tiene cuenta (o los registros están cerrados): Supabase lo informa con distintos códigos. */
 export function isNoAccountError(e: unknown): boolean {
   const err = e as { code?: string; message?: string } | null

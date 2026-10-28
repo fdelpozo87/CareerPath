@@ -24,6 +24,15 @@ desde otro dispositivo y pedir un recordatorio de check-in. Sin cuenta, todo sig
    `REMINDER_FROM`, `APP_URL` y `CRON_SECRET`. Sin ellas el recordatorio simplemente no se manda.
 5. **Redeploy** para que el build tome las variables (la URL y la clave anónima se empaquetan en el cliente).
 
+## Pantalla de acceso: Ingresar y Crear cuenta
+
+- **Ingresar:** para cuentas que ya existen, con enlace por email o con contraseña. Si el email no tiene cuenta, la pantalla
+  no lo revela (muestra el mismo aviso que cuando el enlace se envía).
+- **Crear cuenta:** manda un enlace que confirma el email y crea la cuenta como `pendiente`. No puede usar Bivio hasta
+  que quien administra la active desde el panel de administración; mientras tanto ve la pantalla "pendiente de aprobación".
+- Requiere que los registros estén **abiertos** en Supabase (*Authentication → Sign In / Providers → Email → Allow new users
+  to sign up*). Si están cerrados, "Crear cuenta" avisa que el registro está cerrado en lugar de fingir que funcionó.
+
 ## Límites conocidos
 
 - Cualquiera puede crear una cuenta con su email: el código de acceso de las pruebas privadas no gobierna esto.

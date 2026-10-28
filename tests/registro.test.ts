@@ -23,7 +23,12 @@ describe('signupErrorKey', () => {
     expect(signupErrorKey({ code: 'signup_disabled' })).toBe('login.signup.closed')
     expect(signupErrorKey({ message: 'Signups not allowed for otp' })).toBe('login.signup.closed')
   })
-  it('el resto de los errores se explican igual que al ingresar', () => {
+  it('avisa si el email ya tiene cuenta', () => {
+    expect(signupErrorKey({ code: 'user_already_exists' })).toBe('login.signup.exists')
+    expect(signupErrorKey({ code: 'email_exists' })).toBe('login.signup.exists')
+  })
+  it('explica la contraseña débil y el resto de los errores', () => {
+    expect(signupErrorKey({ code: 'weak_password' })).toBe('password.error.weak')
     expect(signupErrorKey({ code: 'over_email_send_rate_limit', status: 429 })).toBe('login.error.rate')
     expect(signupErrorKey({ code: 'validation_failed' })).toBe('login.error.email')
   })

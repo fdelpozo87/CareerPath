@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { loginErrorKey, passwordErrorKey, sendLoginLink, sendPasswordReset, sendSignupLink, signInWithPassword, signOut, signupErrorKey } from '../lib/cloud'
+import { loginErrorKey, MIN_PASSWORD, passwordErrorKey, sendLoginLink, sendPasswordReset, signInWithPassword, signOut, signUpWithPassword, signupErrorKey } from '../lib/cloud'
 import { MfaStep } from './MfaStep'
 import { PasswordForm } from './PasswordForm'
 import { tr, type Key } from '../lib/i18n'
@@ -7,9 +7,27 @@ import LanguageToggle from './LanguageToggle'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
-// Puerta de entrada por cuenta: "Ingresar" (enlace por correo o contraseña) y "Crear cuenta" (enlace que
-// confirma el email). Las cuentas nuevas quedan pendientes hasta que las apruebe quien administra; esas
-// pantallas viven acá también.
+// Puerta de entrada por cuenta: "Ingresar" (email y contraseña; el enlace por correo queda como alternativa) y
+// "Crear cuenta" (email y contraseña, con confirmación por correo). Las cuentas nuevas quedan pendientes hasta
+// que las apruebe quien administra; esas pantallas viven acá también.
+
+/** Campo de contraseña con botón para ver lo escrito. */
+function PasswordField({ id, value, onChange, autoComplete, className }: { id: string; value: string; onChange: (v: string) => void; autoComplete: string; className: string }) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <div className="relative">
+      <input id={id} type={visible ? 'text' : 'password'} required autoComplete={autoComplete} value={value} onChange={(e) => onChange(e.target.value)} className={`${className} pr-24`} />
+      <button
+        type="button"
+        aria-pressed={visible}
+        onClick={() => setVisible(!visible)}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-primary hover:text-primary-dark"
+      >
+        {tr(visible ? 'password.hide' : 'password.show')}
+      </button>
+    </div>
+  )
+}
 
 function Shell({ children }: { children: ReactNode }) {
   return (
@@ -69,8 +87,8 @@ function SplitShell({ children }: { children: ReactNode }) {
 
 export function LoginGate({ initialError }: { initialError?: string }) {
   const [view, setView] = useState<'signin' | 'signup'>('signin')
-  // Para ingresar se puede usar el enlace del mail o, si la persona ya eligió una contraseña, ella.
-  const [mode, setMode] = useState<'link' | 'password'>('link')
+  // Para ingresar se usa la contraseña; quien no la tiene o la olvidó puede pedir un enlace por email.
+  const [mode, setMode] = useState<'link' | 'password'>('password')
   const [password, setPassword] = useState('')
   const [resetSent, setResetSent] = useState(false)
   const [email, setEmail] = useState('')
@@ -81,12 +99,14 @@ export function LoginGate({ initialError }: { initialError?: string }) {
   const [busy, setBusy] = useState(false)
   const signup = view === 'signup'
   const usePassword = !signup && mode === 'password'
+  const needsPassword = signup || usePassword
 
   const switchView = (next: 'signin' | 'signup') => {
     setView(next)
     setErrorKey(null)
     setSent(false)
     setResetSent(false)
+    setPassword('')
   }
 
   const submit = async (e: FormEvent) => {
@@ -97,7 +117,12 @@ export function LoginGate({ initialError }: { initialError?: string }) {
     setErrorKey(null)
     try {
       if (signup) {
-        await sendSignupLink(value)
+        if (password.length < MIN_PASSWORD) {
+          setErrorKey('password.error.short')
+          return
+        }
+        await signUpWithPassword(value, password)
+        setPassword('')
         setSent(true)
       } else if (usePassword) {
         // Al entrar, el cambio de sesión actualiza la pantalla solo (App escucha la cuenta).
@@ -178,25 +203,20 @@ export function LoginGate({ initialError }: { initialError?: string }) {
               aria-describedby={error ? 'login-error' : undefined}
               className={inputClass}
             />
-            {usePassword && (
+            {needsPassword && (
               <div className="mt-4">
                 <div className="mb-2 flex items-baseline justify-between gap-3">
                   <label htmlFor="login-password" className="block text-sm font-semibold text-foreground">
                     {tr('password.label')}
                   </label>
-                  <button type="button" onClick={() => void forgot()} className="text-sm text-primary underline underline-offset-2 hover:text-primary-dark">
-                    {tr('password.forgot')}
-                  </button>
+                  {!signup && (
+                    <button type="button" onClick={() => void forgot()} className="text-sm text-primary underline underline-offset-2 hover:text-primary-dark">
+                      {tr('password.forgot')}
+                    </button>
+                  )}
                 </div>
-                <input
-                  id="login-password"
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={inputClass}
-                />
+                <PasswordField id="login-password" value={password} onChange={setPassword} autoComplete={signup ? 'new-password' : 'current-password'} className={inputClass} />
+                {signup && <p className="mt-1.5 text-xs text-text-muted">{tr('password.hint', { n: MIN_PASSWORD })}</p>}
               </div>
             )}
             <div id="login-error" role="alert" className="min-h-6 pt-2 text-sm text-danger">
@@ -204,10 +224,10 @@ export function LoginGate({ initialError }: { initialError?: string }) {
             </div>
             <button
               type="submit"
-              disabled={!email.trim() || (usePassword && !password) || busy}
+              disabled={!email.trim() || (needsPassword && !password) || busy}
               className="btn-primary mt-2 w-full py-3 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {busy ? tr('login.sending') : signup ? tr('login.signup.cta') : usePassword ? tr('password.signIn') : tr('cloud.sendLink')}
+              {busy ? tr('login.sending') : signup ? tr('login.signup.cta') : usePassword ? tr('login.tab.signin') : tr('cloud.sendLink')}
             </button>
             {!signup && (
               <div className="mt-4 text-sm">
@@ -215,6 +235,7 @@ export function LoginGate({ initialError }: { initialError?: string }) {
                   type="button"
                   onClick={() => {
                     setMode(mode === 'link' ? 'password' : 'link')
+                    setPassword('')
                     setErrorKey(null)
                   }}
                   className="text-primary underline underline-offset-2 hover:text-primary-dark"

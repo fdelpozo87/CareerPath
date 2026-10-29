@@ -50,7 +50,8 @@ como tarjeta y un fondo `#150E24`.
 
 - Cada camino tiene un dibujo propio (`src/components/PathIllustrations.tsx`): A una bifurcación, B un CV con lupa y C tres opciones de formación con una resaltada. Los fondos son durazno, lila y bruma, y los colores salen de los tokens, así que siguen el modo oscuro.
 - Los dibujos están quietos y se animan solo con el mouse o el foco del teclado sobre la tarjeta (reglas `.pa-*` en `src/index.css`); con "reducir movimiento" no se mueven.
-- Sin procesos guardados se ven tres tarjetas grandes. Con procesos, "Tus procesos" (con barra de etapas) a la izquierda y "Empezar una nueva" con tarjetas compactas a la derecha.
+- Arriba va el saludo "Hola, {nombre}. ¿Por dónde quieres empezar hoy?" (la segunda frase en violeta profundo). `Landing` recibe `name` (todavía no se le pasa: sin nombre dice solo "Hola.").
+- Sin procesos guardados, "Elige tu primera sesión" y tres tarjetas grandes. Con procesos, "Tus procesos" (con barra de etapas) a la izquierda y "Empezar una nueva" con tarjetas compactas a la derecha.
 
 ## Dónde más hay colores
 

@@ -132,9 +132,11 @@ interface LandingProps {
   onDelete: (id: string) => void
   /** Si la cuenta no tiene habilitado "Para profesionales", no se muestran los caminos. */
   showPaths?: boolean
+  /** Nombre de quien tiene la sesión iniciada, para saludarla. Sin nombre, el saludo va sin él. */
+  name?: string
 }
 
-export default function Landing({ onChoosePath, processes, onResume, onDelete, showPaths = true }: LandingProps) {
+export default function Landing({ onChoosePath, processes, onResume, onDelete, showPaths = true, name }: LandingProps) {
   const hasProcesses = processes.length > 0
   const sessions = hasProcesses && (
     <section aria-labelledby="mis-procesos">
@@ -155,19 +157,22 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
       <div className="section-container">
         {showPaths && (
           <>
-            <div className="mx-auto mb-12 max-w-3xl text-center">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">{tr('landing.eyebrow')}</p>
-              <h1 className="mb-5 leading-tight">{tr('landing.title')}</h1>
-              <p className="mx-auto max-w-xl text-lg leading-relaxed text-text-muted">{tr('landing.lede')}</p>
-            </div>
+            <h1 className="mx-auto mb-10 max-w-6xl leading-tight">
+              {tr(name ? 'landing.hello' : 'landing.helloAnon', { name: name ?? '' })} <span className="text-primary-dark">{tr('landing.ask')}</span>
+            </h1>
 
             {sessions && <div className="mx-auto mb-14 max-w-6xl">{sessions}</div>}
 
             <div className="mx-auto max-w-6xl">
-              {hasProcesses && (
+              {hasProcesses ? (
                 <h2 id="empezar-nueva" className="mb-5 text-2xl">
                   {tr('landing.newSession')}
                 </h2>
+              ) : (
+                <div className="mb-6">
+                  <h2 className="mb-2 text-2xl">{tr('landing.first.title')}</h2>
+                  <p className="text-text-muted">{tr('landing.first.lede')}</p>
+                </div>
               )}
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {PATHS.map((p) => (

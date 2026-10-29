@@ -33,7 +33,9 @@ test.describe('entrada a Bivio', () => {
     await page.getByLabel('Contraseña').fill('una frase larga y segura')
     await page.getByRole('button', { name: 'Ingresar', exact: true }).last().click()
 
-    // Inicio: los tres caminos.
+    // Inicio: el saludo (sin nombre hasta que lo tengamos), la primera sesión y los tres caminos.
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hola. ¿Por dónde quieres empezar hoy?')
+    await expect(page.getByRole('heading', { level: 2, name: 'Elige tu primera sesión' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Quiero dar un paso, pero no sé cuál' })).toBeVisible()
     const caminos = page.locator('#profesional').getByRole('button', { name: /^Empezar/ })
     await expect(caminos).toHaveCount(3)

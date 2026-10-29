@@ -53,6 +53,16 @@ como tarjeta y un fondo `#150E24`.
 - Arriba va el saludo "Hola, {nombre}. ¿Por dónde quieres empezar hoy?" (la segunda frase en violeta profundo). `Landing` recibe `name` (todavía no se le pasa: sin nombre dice solo "Hola.").
 - Sin procesos guardados, "Elige tu primera sesión" y tres tarjetas grandes. Con procesos, "Tus procesos" (con barra de etapas) a la izquierda y "Empezar una nueva" con tarjetas compactas a la derecha.
 
+## Inicio de una sesión y progreso
+
+- Al abrir un camino nuevo se ve primero **"Esto es lo que vamos a hacer"** (`SessionIntro.tsx`): tres líneas según el camino y el botón
+  "¿Empezamos?". Recién ahí se le pide al coach la primera pregunta (o, en el camino B, se pasa a cargar el perfil). Una sesión
+  retomada no la muestra.
+- **No hay etapa 0 ni bloque "Antes de empezar"**: la conversación abre con la primera pregunta y, debajo, algunas frases para
+  quien le cuesta empezar. El enlace "Cómo cuidamos tus datos" quedó en el pie del chat.
+- El progreso es una **onda** (`StageWave.tsx`): una ondulación por etapa, con puntos de cierre y el punto mandarina del logo que
+  avanza según los temas cubiertos. Es un `progressbar` accesible y respeta "reducir movimiento".
+
 ## Dónde más hay colores
 
 - `public/favicon.svg` y `web_jaspr/web/favicon.svg` (violeta en claro, violeta claro en oscuro).

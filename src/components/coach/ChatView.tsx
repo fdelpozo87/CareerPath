@@ -9,6 +9,7 @@ import { CoachAvatar } from '../Logo'
 import { DocsPanel } from './DocInputs'
 import { ProfileRecap } from './ProfileRecap'
 import { StageMap } from './StageMap'
+import { StageWave } from './StageWave'
 
 const formatDate = (iso?: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString(getLang() === 'en' ? 'en-US' : 'es') : '')
 
@@ -96,16 +97,6 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
             </div>
           )}
 
-          {!hasUserMessage && (
-            <Onboarding
-              path={session.path}
-              onPick={(text) => {
-                setDraft(text)
-                inputRef.current?.focus()
-              }}
-            />
-          )}
-
           {visible.map((m, i) => {
             const prevStage = visible[i - 1]?.stage
             return (
@@ -140,6 +131,17 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
               </div>
             )
           })}
+
+          {/* La conversación arranca con la primera pregunta; si cuesta empezar, algunas frases para tomar. */}
+          {!hasUserMessage && !thinking && visible.some((m) => m.role === 'model') && (
+            <StarterChips
+              path={session.path}
+              onPick={(text) => {
+                setDraft(text)
+                inputRef.current?.focus()
+              }}
+            />
+          )}
 
           {thinking && <Typing searching={looksLikeMarketQuestion(visible.findLast((m) => m.role === 'user')?.text ?? '')} />}
 
@@ -189,7 +191,10 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] text-text-muted [@media(max-height:560px)]:hidden">
             <span>{touch ? tr('chat.hint.touch') : tr('chat.hint.keyboard')}</span>
             <span className="inline-flex items-center gap-1">
-              <LockIcon /> {tr(synced ? 'chat.privacy.synced' : 'chat.privacy')}
+              <LockIcon /> {tr(synced ? 'chat.privacy.synced' : 'chat.privacy')} ·{' '}
+              <a href="#privacidad" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-foreground">
+                {tr('chat.privacy.link')}
+              </a>
             </span>
           </p>
         </footer>
@@ -241,39 +246,16 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
 
       {session.perfil && <ProfileRecap perfil={session.perfil} />}
 
-      {/* Antes de la primera respuesta es la etapa 0 ("Antes de empezar"); al empezar, la etapa 1. */}
-      {!started ? (
-        <div className="mt-2.5">
-          <div className="flex items-baseline justify-between gap-3 text-xs">
-            <p className="font-semibold text-primary">{tr('chat.stage0.label')}</p>
-            <p className="hidden text-text-muted sm:block">{tr('chat.stage0.next')}</p>
-          </div>
-          <div className="mt-2 flex gap-1.5" aria-hidden="true">
-            {STAGE_ORDER.map((s) => (
-              <span key={s} className="h-1.5 flex-1 rounded-full bg-secondary" />
-            ))}
-          </div>
+      {/* La conversación empieza directamente en la etapa 1. */}
+      <div className="mt-2.5">
+        <div className="flex items-baseline justify-between gap-3 text-xs">
+          <p className="font-semibold text-primary">{tr('chat.stageOf', { n: idx + 1, total: STAGE_ORDER.length, stage: stageLabel(session.stage) })}</p>
+          <p className="hidden text-text-muted sm:block">{tr('chat.after', { next: intro.despues })}</p>
         </div>
-      ) : (
-        <div className="mt-2.5">
-          <div className="flex items-baseline justify-between gap-3 text-xs">
-            <p className="font-semibold text-primary">
-              {tr('chat.stageOf', { n: idx + 1, total: STAGE_ORDER.length, stage: stageLabel(session.stage) })}
-            </p>
-            <p className="hidden text-text-muted sm:block">{tr('chat.after', { next: intro.despues })}</p>
-          </div>
-          <div className="mt-2 flex gap-1.5" aria-hidden="true">
-            {STAGE_ORDER.map((s, i) => (
-              <span key={s} className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-                <span
-                  className={`block h-full rounded-full transition-all duration-500 ${i === idx ? 'bg-accent' : 'bg-primary'}`}
-                  style={{ width: i < idx ? '100%' : i === idx ? `${Math.max(fraction * 100, 8)}%` : '0%' }}
-                />
-              </span>
-            ))}
-          </div>
+        <StageWave progress={(idx + fraction) / STAGE_ORDER.length} label={tr('chat.progress')} />
           <p className="mt-1.5 hidden text-xs text-text-muted sm:block [@media(max-height:560px)]:hidden">{tr('chat.now', { what: intro.queHacemos })}</p>
 
+          {started && (<>
           {/* Con poca altura (teclado abierto, celular horizontal) se deja más lugar a la conversación. */}
           {/* En pantallas angostas los temas quedan plegados: el encabezado ocupaba un tercio de la pantalla. */}
           <button
@@ -312,8 +294,8 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
               )
             })}
           </ul>
+          </>)}
         </div>
-      )}
     </header>
   )
 }
@@ -379,40 +361,22 @@ function Typing({ searching }: { searching?: boolean }) {
   )
 }
 
-// Antes del primer mensaje: cómo funciona, y frases para arrancar.
-function Onboarding({ path, onPick }: { path: Path; onPick: (text: string) => void }) {
-  const synced = useSyncEnabled()
+// Frases para arrancar, debajo de la primera pregunta (para quien le cuesta empezar).
+function StarterChips({ path, onPick }: { path: Path; onPick: (text: string) => void }) {
   return (
-    <div className="rounded-2xl border border-border-color bg-secondary/50 p-5 text-sm">
-      <p className="mb-3 font-display text-lg text-foreground">{tr('chat.onb.title')}</p>
-      <ul className="space-y-2 leading-relaxed text-text-muted">
-        <li>
-          <strong className="font-semibold text-foreground">{tr('chat.onb.1.strong')}</strong>
-          {tr('chat.onb.1.rest')}
+    <ul role="list" aria-label={tr('chat.onb.stuck')} className="flex flex-wrap gap-2 pl-0 sm:pl-[3.25rem]">
+      {starters(path).map((text) => (
+        <li key={text}>
+          <button
+            type="button"
+            onClick={() => onPick(text)}
+            className="rounded-full border border-border-color bg-card px-3.5 py-2 text-left text-sm text-foreground transition-colors hover:border-primary/40 hover:bg-secondary"
+          >
+            {text}
+          </button>
         </li>
-        <li>
-          <strong className="font-semibold text-foreground">{tr('chat.onb.2.strong')}</strong>
-          {tr('chat.onb.2.rest')}
-        </li>
-        <li>
-          <strong className="font-semibold text-foreground">{tr('chat.onb.3.strong')}</strong>
-          {tr(synced ? 'chat.onb.3.rest.synced' : 'chat.onb.3.rest')}{' '}
-          <a href="#privacidad" target="_blank" rel="noopener" className="underline underline-offset-2">
-            {tr('chat.onb.3.link')}
-          </a>
-        </li>
-      </ul>
-      <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wider text-text-muted">{tr('chat.onb.stuck')}</p>
-      <ul role="list" className="flex flex-wrap gap-2">
-        {starters(path).map((text) => (
-          <li key={text}>
-            <button type="button" onClick={() => onPick(text)} className="rounded-full border border-border-color bg-card px-3.5 py-2 text-left text-sm text-foreground transition hover:border-primary hover:bg-primary-soft">
-              {text}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+      ))}
+    </ul>
   )
 }
 

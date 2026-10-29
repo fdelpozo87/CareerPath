@@ -58,6 +58,7 @@ como tarjeta y un fondo `#150E24`.
 - Al abrir un camino nuevo se ve primero **"Esto es lo que vamos a hacer"** (`SessionIntro.tsx`): tres líneas según el camino y el botón
   "¿Empezamos?". Recién ahí se le pide al coach la primera pregunta (o, en el camino B, se pasa a cargar el perfil). Una sesión
   retomada no la muestra.
+- **Camino A: la apertura es un texto fijo** (`src/lib/coach/opening.ts`, clave `chat.opening.quiebre`), no lo escribe el modelo: "Hola. Te acompaño en este espacio…". Así es siempre igual y no gasta una llamada. Se guarda con la forma de un turno del coach (tema `goal` ya preguntado) para que el resto de la conversación lo lea como siempre. Los caminos B y C siguen abriendo con el modelo.
 - **No hay etapa 0 ni bloque "Antes de empezar"**: la conversación abre con la primera pregunta y, debajo, algunas frases para
   quien le cuesta empezar. El enlace "Cómo cuidamos tus datos" quedó en el pie del chat.
 - El progreso es una **onda** (`StageWave.tsx`): una ondulación por etapa, con puntos de cierre y el punto mandarina del logo que

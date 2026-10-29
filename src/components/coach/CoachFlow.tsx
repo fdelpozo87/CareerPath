@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { STAGE_COLOR, STAGE_ORDER, stageName } from '../../../shared/stages'
 import { getLang, stageLabel, tr, type Key } from '../../lib/i18n'
 import { extractPdfText, requestReport, requestTurn } from '../../lib/coach/api'
+import SessionIntro from './SessionIntro'
 import { saveSession } from '../../lib/coach/session'
 import type { DocTipo, Session, Stage, TurnResult, UiMessage } from '../../lib/coach/types'
 import { trackEvent, type FunnelEvent } from '../../lib/tracking'
@@ -79,8 +80,13 @@ interface CoachFlowProps {
   confirmDialog?: ReactNode
 }
 
+/** Un proceso recién empezado: todavía no hay conversación, perfil ni informe. Antes de la primera pregunta va la pantalla de inicio. */
+const isNew = (s: Session) => s.messages.length === 0 && !s.perfil && !s.informe
+
 export function CoachFlow({ initialSession, onExit, onRestart, account, confirmDialog }: CoachFlowProps) {
-  const [session, setSession] = useState<Session>(() => withOpening(initialSession))
+  // En un proceso nuevo no se le pide nada al coach hasta que la persona toca "¿Empezamos?".
+  const [intro, setIntro] = useState(() => isNew(initialSession))
+  const [session, setSession] = useState<Session>(() => (isNew(initialSession) ? initialSession : withOpening(initialSession)))
   // true cuando el montaje agregó la apertura de etapa y hay que pedir el primer turno.
   const openingPending = useRef(session !== initialSession)
   const [thinking, setThinking] = useState(false)
@@ -144,6 +150,15 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
     const opened = withOpening(next)
     setSession(opened)
     if (opened !== next) void runTurn(opened)
+  }
+
+  // "¿Empezamos?": en los caminos que arrancan con el chat se pide la primera pregunta; en el de perfil sigue la lectura del perfil.
+  const begin = () => {
+    setIntro(false)
+    if (session.phase === 'chat') {
+      trackEvent('diagnosis_started', { path: session.path })
+      startStage(session)
+    }
   }
 
   const handleSend = (text: string) => {
@@ -211,13 +226,13 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
   }, [session.phase, session.stage])
 
   const stageIdx = STAGE_ORDER.indexOf(session.stage)
-  // La etapa 0 ("Antes de empezar") dura hasta la primera respuesta de la persona.
-  const started = session.messages.some((m) => m.role === 'user' && !m.hidden)
+  // La conversación ocupa la pantalla (y solo ella scrollea); la pantalla de inicio es una página común.
+  const chatLayout = session.phase === 'chat' && !intro
 
   return (
     // En el chat la página ocupa exactamente la pantalla y no scrollea: lo único que se desplaza es la
     // conversación. Así, al llegar al final, el scroll no "se escapa" y se lleva la tarjeta del chat.
-    <div className={`flex flex-col bg-background font-sans ${session.phase === 'chat' ? 'h-dvh overflow-hidden' : 'min-h-screen'}`}>
+    <div className={`flex flex-col bg-background font-sans ${chatLayout ? 'h-dvh overflow-hidden' : 'min-h-screen'}`}>
       <header className="sticky top-0 z-50 border-b border-border-color bg-background/90 backdrop-blur-sm print:hidden">
         <div className="section-container flex items-center gap-4 py-4">
           <button onClick={onExit} className="text-sm text-text-muted transition-colors hover:text-foreground">
@@ -229,14 +244,8 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
             {session.path === 'perfil' && (
               <li className={session.phase === 'perfil' ? 'font-semibold text-foreground' : 'text-text-muted'}>{tr('flow.profileStep')}</li>
             )}
-            {session.phase === 'chat' && (
-              <li aria-current={!started ? 'step' : undefined} className="flex items-center gap-1.5" style={{ color: !started ? 'var(--color-primary)' : 'var(--color-foreground)' }}>
-                <span aria-hidden="true">{started ? '✓' : '0.'}</span> <span className={!started ? 'font-semibold' : ''}>{tr('flow.stage0')}</span>
-                {started && <span className="sr-only">{tr('flow.done')}</span>}
-              </li>
-            )}
             {STAGE_ORDER.map((s, i) => {
-              const active = session.phase === 'chat' && started && s === session.stage
+              const active = session.phase === 'chat' && s === session.stage
               const done = session.phase === 'informe' || (session.phase === 'chat' && i < stageIdx)
               return (
                 <li
@@ -261,8 +270,12 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
         </div>
       </header>
 
-      <main className={`flex-1 px-3 sm:px-4 ${session.phase === 'chat' ? 'min-h-0 py-3 sm:py-6' : 'py-8'}`}>
+      <main className={`flex-1 px-3 sm:px-4 ${chatLayout ? 'min-h-0 py-3 sm:py-6' : 'py-8'}`}>
         {/* Encabezado para lectores de pantalla: cada fase se ubica por su h1. */}
+        {intro ? (
+          <SessionIntro path={session.path} onStart={begin} />
+        ) : (
+        <>
         <h1 ref={headingRef} tabIndex={-1} className="sr-only">
           {session.phase === 'perfil'
             ? tr('flow.h1.profile')
@@ -330,6 +343,8 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
               <p role="status" className="text-sm text-text-muted">{tr('flow.report.loading')}</p>
             </div>
           ))}
+        </>
+        )}
       </main>
       {confirmDialog}
     </div>

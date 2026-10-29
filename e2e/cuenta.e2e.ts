@@ -40,9 +40,21 @@ test.describe('entrada a Bivio', () => {
     const caminos = page.locator('#profesional').getByRole('button', { name: /^Empezar/ })
     await expect(caminos).toHaveCount(3)
 
-    // Camino A: aparece el chat y el coach saluda.
+    // Camino A: primero la pantalla de inicio, sin llamar al coach todavía.
     await caminos.first().click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Esto es lo que vamos a hacer' })).toBeVisible()
+    await expect(page.getByText('Me cuentas qué te está pasando.')).toBeVisible()
+    expect(mocks.turnos).toBe(0)
+
+    // "¿Empezamos?" abre la conversación directamente con la primera pregunta: sin etapa 0 ni bloque "Antes de empezar".
+    await page.getByRole('button', { name: /Empezamos/ }).click()
     await expect(page.getByText('Hola, cuéntame qué está pasando con tu trabajo.')).toBeVisible()
+    await expect(page.getByText('Antes de empezar')).toHaveCount(0)
+    await expect(page.getByText('Etapa 0')).toHaveCount(0)
+    await expect(page.getByRole('progressbar', { name: 'Avance de la etapa' })).toBeVisible()
+    await expect(page.getByText('Etapa 1 de 3 · Diagnóstico')).toBeVisible()
+    // Si cuesta empezar, hay frases para tomar debajo de la primera pregunta.
+    await expect(page.getByRole('button', { name: 'Siento que estoy estancado/a' })).toBeVisible()
 
     // La persona responde y el coach contesta.
     await page.getByRole('textbox').fill('Siento que me estanqué en mi trabajo')

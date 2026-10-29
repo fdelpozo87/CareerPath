@@ -58,7 +58,7 @@ export async function mockBackend(page: Page, opts: { loginEmail?: string } = {}
     mocks.turnos++
     return json(route, {
       data: {
-        mensaje: mocks.turnos === 1 ? 'Hola, cuéntame qué está pasando con tu trabajo.' : 'Gracias por contarlo. ¿Qué es lo que más te pesa hoy?',
+        mensaje: 'Gracias por contarlo. ¿Qué es lo que más te pesa hoy?',
         objetivosCubiertos: [],
         temasOmitidos: [],
         listoParaAvanzar: false,

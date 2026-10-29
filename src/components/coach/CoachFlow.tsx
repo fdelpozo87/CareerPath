@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { STAGE_COLOR, STAGE_ORDER, stageName } from '../../../shared/stages'
 import { getLang, stageLabel, tr, type Key } from '../../lib/i18n'
 import { extractPdfText, requestReport, requestTurn } from '../../lib/coach/api'
+import { scriptedOpening } from '../../lib/coach/opening'
 import SessionIntro from './SessionIntro'
 import { saveSession } from '../../lib/coach/session'
 import type { DocTipo, Session, Stage, TurnResult, UiMessage } from '../../lib/coach/types'
@@ -139,17 +140,27 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
     }
   }, [])
 
+  // Abre la etapa: con el texto fijo si el camino lo tiene (Camino A) y, si no, le pide la primera pregunta al coach.
+  const openStage = useCallback(
+    (opened: Session) => {
+      const scripted = scriptedOpening(opened.path, opened.stage)
+      if (scripted) setSession((prev) => applyTurn(prev, opened.stage, scripted))
+      else void runTurn(opened)
+    },
+    [runTurn],
+  )
+
   useEffect(() => {
     if (!openingPending.current) return
     openingPending.current = false
     if (session.stage === 'diagnostico') trackEvent('diagnosis_started', { path: session.path })
-    void runTurn(session)
-  }, [session, runTurn])
+    openStage(session)
+  }, [session, openStage])
 
   const startStage = (next: Session) => {
     const opened = withOpening(next)
     setSession(opened)
-    if (opened !== next) void runTurn(opened)
+    if (opened !== next) openStage(opened)
   }
 
   // "¿Empezamos?": en los caminos que arrancan con el chat se pide la primera pregunta; en el de perfil sigue la lectura del perfil.
@@ -172,6 +183,8 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
 
   const handleRetry = () => {
     if (session.phase === 'informe') void generateReport(session)
+    // Si la etapa quedó recién abierta (solo el mensaje de control), se vuelve a abrir en lugar de pedir una respuesta.
+    else if (session.messages.at(-1)?.hidden) openStage(session)
     else void runTurn(session)
   }
 

@@ -48,7 +48,10 @@ test.describe('entrada a Bivio', () => {
 
     // "¿Empezamos?" abre la conversación directamente con la primera pregunta: sin etapa 0 ni bloque "Antes de empezar".
     await page.getByRole('button', { name: /Empezamos/ }).click()
-    await expect(page.getByText('Hola, cuéntame qué está pasando con tu trabajo.')).toBeVisible()
+    await expect(page.getByText('Hola. Te acompaño en este espacio: aquí voy a preguntar más de lo que voy a responder')).toBeVisible()
+    await expect(page.getByText('¿Qué es lo que te trae por aquí y qué esperas poder destrabar en este momento?')).toBeVisible()
+    // La apertura del Camino A es un texto fijo: tampoco gasta una llamada al coach.
+    expect(mocks.turnos).toBe(0)
     await expect(page.getByText('Antes de empezar')).toHaveCount(0)
     await expect(page.getByText('Etapa 0')).toHaveCount(0)
     await expect(page.getByRole('progressbar', { name: 'Avance de la etapa' })).toBeVisible()
@@ -60,7 +63,7 @@ test.describe('entrada a Bivio', () => {
     await page.getByRole('textbox').fill('Siento que me estanqué en mi trabajo')
     await page.getByRole('button', { name: 'Enviar' }).click()
     await expect(page.getByText('Gracias por contarlo.')).toBeVisible()
-    expect(mocks.turnos).toBeGreaterThanOrEqual(2)
+    expect(mocks.turnos).toBe(1)
   })
 
   test('olvidé mi contraseña manda el email de recuperación', async ({ page }) => {

@@ -42,10 +42,54 @@ export function responseText(response: GeminiResponse, where: string): string {
 
 const TRANSIENT = new Set([429, 500, 502, 503, 504])
 
+/**
+ * Arregla las dos roturas más comunes de un JSON que escribe el modelo: saltos de línea sueltos dentro de un texto y
+ * comillas sin escapar ("por ejemplo "esto" o "aquello""). Pasa cuando la respuesta trae ejemplos o enumeraciones.
+ * No inventa ni completa nada: si el JSON está cortado sigue sin parsear.
+ */
+export function repairJson(text: string): string {
+  let out = ''
+  let inString = false
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (!inString) {
+      if (c === '"') inString = true
+      out += c
+      continue
+    }
+    if (c === '\\') {
+      out += c + (text[i + 1] ?? '')
+      i++
+    } else if (c === '"') {
+      const next = text.slice(i + 1).match(/^\s*(.)?/)?.[1]
+      if (next === undefined || ',:}]'.includes(next)) {
+        inString = false
+        out += c
+      } else {
+        out += '\\"'
+      }
+    } else if (c === '\n') out += '\\n'
+    else if (c === '\r') out += '\\r'
+    else if (c === '\t') out += '\\t'
+    else out += c
+  }
+  return out
+}
+
 export function parseJson<T>(text: string): T {
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) throw new Error('La IA no devolvió una respuesta válida.')
-  return JSON.parse(match[0]) as T
+  try {
+    return JSON.parse(match[0]) as T
+  } catch (err) {
+    try {
+      const fixed = JSON.parse(repairJson(match[0])) as T
+      logEvent('warn', 'gemini_json_reparado')
+      return fixed
+    } catch {
+      throw err
+    }
+  }
 }
 
 /** Respuesta sin JSON o con JSON cortado (el caso que la persona ve como "llegó incompleta"). */

@@ -24,3 +24,20 @@ export function neutralizeGender(text: string, lang: Lang): string {
     .replace(/^\s*¡?bienvenid[ao]s?\s*[,.!]?\s*(.)/i, (_m, c: string) => `Hola. ${c.toUpperCase()}`)
     .replace(/(?<![\p{L}])juntas(?![\p{L}])|(?<![\p{L}])juntos(?![\p{L}])/giu, 'en conjunto')
 }
+
+// Adjetivos y participios con marca de género que el modelo suele usar para describir a la persona.
+const GENDERED_ADJ =
+  '(?:estancad|cansad|dispuest|atrapad|perdid|agotad|frustrad|abrumad|motivad|desmotivad|convencid|preparad|bloquead|agobiad|estresad|insegur|content|decidid|confundid|sobrecargad|capacitad|sol)[ao]s?'
+const GENDERED_SELF = new RegExp(
+  `(?<![\\p{L}])(?:est[aá]s|estés|estar|eres|seas|ser|sientes|sientas|sentirte|te\\s+ves|te\\s+notas|te\\s+sent[ií]s|llevas|andas|vienes|tan|muy|bastante|demasiado|sigas|seguir(?:lo)?|intent[aá]ndolo|intentarlo|hacerlo|vas|ir|tú|tu)\\s+(?:(?:muy|bastante|tan|algo|más|menos|un\\s+poco|ya|todavía|siempre)\\s+)?(${GENDERED_ADJ})(?![\\p{L}])`,
+  'giu',
+)
+
+/**
+ * Formas con género con las que el mensaje se refiere a la persona ("seguir sola", "estás estancada"). El modelo
+ * las suelta aunque se le pida lo contrario; si aparece alguna se le pide reformular una vez. Solo español.
+ */
+export function genderedWords(text: string, lang: Lang): string[] {
+  if (lang !== 'es') return []
+  return Array.from(new Set(Array.from(text.matchAll(GENDERED_SELF), (m) => m[1].toLowerCase())))
+}

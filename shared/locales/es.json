@@ -529,6 +529,8 @@
   "srv.incomplete": "La respuesta del coach llegó incompleta. Inténtalo de nuevo.",
   "srv.langNote": "(Responde en español neutro latinoamericano.)",
   "srv.compact": "(IMPORTANTE: responde de forma breve. Completa solo \"mensaje\" (hasta 3 frases), \"temaEnFoco\" y \"objetivosCubiertos\"; deja \"listoParaAvanzar\" en false y no armes mapa ni síntesis en este turno.)",
+  "srv.genderNote": "(No sabes el género de la persona: no uses adjetivos ni participios con género para referirte a ella, como \"sola\", \"estancada\" o \"dispuesta\"; di \"por tu cuenta\", \"en pausa\", \"con ganas de\".)",
+  "srv.genderRetry": "(IMPORTANTE: reescribe tu mensaje sin formas con género para referirte a la persona; usaste: {words}. Reformula con sustantivos o verbos, por ejemplo \"por tu cuenta\" en lugar de \"sola\" o \"con sensación de estancamiento\" en lugar de \"estancada\".)",
   "srv.langRetry": "(IMPORTANTE: tu respuesta debe estar solo en español neutro latinoamericano.)",
   "srv.leftLater": "Dejó para más adelante: {topics}.",
   "srv.lockout": "Demasiados intentos con un código incorrecto. Espera unos minutos y vuelve a intentarlo.",

@@ -11,7 +11,7 @@ import {
 import { DEFAULT_LANG, isLang, translate, type Lang } from '../shared/i18n.js'
 import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type Ikigai, type SynthesisItem } from '../shared/stages.js'
 import { generateJson, isIncompleteResponse, responseText, resilientModel } from './gemini.js'
-import { neutralizeGender, wrongLanguage } from './lang.js'
+import { genderedWords, neutralizeGender, wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
 import { MAX_MARKET_PER_CONVERSATION, fetchMarketData, looksLikeMarketQuestion, type MarketData, type MarketSource } from './market.js'
 
@@ -160,7 +160,7 @@ function toContents(history: ChatMessage[], lang: Lang, extra = ''): Content[] {
   // El historial puede estar en otro idioma (la persona cambió el idioma de la interfaz a mitad de la
   // charla) y el modelo tiende a seguir al historial: una nota en el último mensaje fija el idioma.
   const last = contents.at(-1)
-  if (last && last.role === 'user') last.parts = [{ text: `${last.parts[0].text}\n\n${translate(lang, 'srv.langNote')}${extra ? `\n${extra}` : ''}` }]
+  if (last && last.role === 'user') last.parts = [{ text: `${last.parts[0].text}\n\n${translate(lang, 'srv.langNote')} ${translate(lang, 'srv.genderNote')}${extra ? `\n${extra}` : ''}` }]
   return contents
 }
 
@@ -479,6 +479,12 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
       if (typeof raw.mensaje === 'string' && wrongLanguage(raw.mensaje, lang) && !wrongLanguage(lastUser, lang)) {
         logEvent('warn', 'coach_idioma_equivocado', { lang })
         raw = await run(translate(lang, 'srv.langRetry'))
+      }
+      // Habló de la persona con género ("seguir sola"): se pide reformular una vez, nombrando la palabra.
+      const gendered = typeof raw.mensaje === 'string' ? genderedWords(raw.mensaje, lang) : []
+      if (gendered.length > 0) {
+        logEvent('warn', 'coach_genero', { palabras: gendered.length })
+        raw = await run(translate(lang, 'srv.genderRetry', { words: gendered.join(', ') }))
       }
       // El coach pidió datos de mercado: se busca con fuente y se le vuelve a pedir el turno con el resultado.
       let consulta = typeof raw.consultaMercado === 'string' ? raw.consultaMercado.trim() : ''

@@ -22,6 +22,10 @@ export function responseText(response: GeminiResponse, where: string): string {
   } catch {
     // Respuesta bloqueada: el SDK lanza al pedir el texto. Se registra abajo.
   }
+  const finishReason = response.candidates?.[0]?.finishReason
+  if (text.includes('{') && finishReason && finishReason !== 'STOP') {
+    logEvent('warn', 'gemini_corte', { where, finishReason, chars: text.length, outputTokens: response.usageMetadata?.candidatesTokenCount ?? -1, thoughtTokens: response.usageMetadata?.thoughtsTokenCount ?? -1 })
+  }
   if (!text.includes('{')) {
     logEvent('warn', 'gemini_sin_json', {
       where,
@@ -44,11 +48,14 @@ export function parseJson<T>(text: string): T {
   return JSON.parse(match[0]) as T
 }
 
+/** Respuesta sin JSON o con JSON cortado (el caso que la persona ve como "llegó incompleta"). */
+export function isIncompleteResponse(err: unknown): boolean {
+  return err instanceof SyntaxError || (err instanceof Error && err.message.startsWith('La IA no devolvió'))
+}
+
 function isTransient(err: unknown): boolean {
-  if (err instanceof SyntaxError) return true // JSON incompleto
-  if (err instanceof Error && (err.message.startsWith('La IA no devolvió') || /timeout|aborted|fetch failed/i.test(err.message))) {
-    return true
-  }
+  if (isIncompleteResponse(err)) return true // sin JSON o JSON incompleto
+  if (err instanceof Error && /timeout|aborted|fetch failed/i.test(err.message)) return true
   const status = upstreamStatus(err)
   return status !== undefined && TRANSIENT.has(status)
 }

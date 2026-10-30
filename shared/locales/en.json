@@ -528,6 +528,7 @@
   "srv.generic": "Something went wrong on our end. Please try again.",
   "srv.incomplete": "The coach’s reply arrived incomplete. Please try again.",
   "srv.langNote": "(Reply in English.)",
+  "srv.compact": "(IMPORTANT: keep it short. Fill in only \"mensaje\" (up to 3 sentences), \"temaEnFoco\" and \"objetivosCubiertos\"; leave \"listoParaAvanzar\" false and do not build a map or synthesis this turn.)",
   "srv.langRetry": "(IMPORTANT: your reply must be in English only, not in Spanish.)",
   "srv.leftLater": "Left for later: {topics}.",
   "srv.lockout": "Too many attempts with an incorrect code. Wait a few minutes and try again.",

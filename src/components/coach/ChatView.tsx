@@ -9,6 +9,7 @@ import { CoachAvatar } from '../Logo'
 import { DocsPanel } from './DocInputs'
 import { ProfileRecap } from './ProfileRecap'
 import { StageMap } from './StageMap'
+import { DocsOffer, PathOffer } from './Offers'
 import { StageWave } from './StageWave'
 
 const formatDate = (iso?: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString(getLang() === 'en' ? 'en-US' : 'es') : '')
@@ -29,9 +30,13 @@ interface ChatViewProps {
   onAttachDoc: (tipo: DocTipo, file: File) => void
   onResumeTopic: (id: string) => void
   docStatus: string | null
+  /** La persona dejó pasar una sugerencia del coach (índice del mensaje en la sesión). */
+  onCloseOffer: (index: number) => void
+  /** Empieza otro camino (la sugerencia de pasar al Camino B). */
+  onStartPath?: (path: Path) => void
 }
 
-export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAdvance, onAttachDoc, onResumeTopic, docStatus }: ChatViewProps) {
+export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAdvance, onAttachDoc, onResumeTopic, docStatus, onCloseOffer, onStartPath }: ChatViewProps) {
   const synced = useSyncEnabled()
   const [draft, setDraft] = useState('')
   // En pantallas táctiles Enter da un salto de línea (se envía con el botón): ahí se escriben textos largos.
@@ -104,6 +109,20 @@ export function ChatView({ session, thinking, error, demo, onSend, onRetry, onAd
                 {(i === 0 || (prevStage && prevStage !== m.stage)) && <StageDivider stage={m.stage} />}
                 {m.role === 'user' ? <UserBubble text={m.text} /> : <CoachBubble text={m.text} sources={m.fuentes} date={m.fechaDatos} />}
                 {m.derivacion && <DerivationCard />}
+                {/* Sugerencias del coach (Camino A): sumar el CV o el LinkedIn, o pasar al Camino B. Siempre opcionales. */}
+                {m.pideDocumentos?.some((t) => !session.documentos.some((d) => d.tipo === t)) && !m.ofertaCerrada && (
+                  <DocsOffer docs={session.documentos} status={docStatus} onAttach={onAttachDoc} onSkip={() => onCloseOffer(session.messages.indexOf(m))} />
+                )}
+                {m.sugiereCamino && !m.ofertaCerrada && onStartPath && (
+                  <PathOffer
+                    path={m.sugiereCamino}
+                    onGo={(p) => {
+                      onCloseOffer(session.messages.indexOf(m))
+                      onStartPath(p)
+                    }}
+                    onStay={() => onCloseOffer(session.messages.indexOf(m))}
+                  />
+                )}
                 {/* El mapa de una etapa ya cerrada queda en el hilo, plegado, para poder releerlo. */}
                 {m.cierraEtapa && m.stage !== session.stage && session.mapas?.[m.stage] && (
                   <details className="rounded-2xl border border-border-color bg-secondary/40 p-3 text-sm">
@@ -225,6 +244,8 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
           <p className="truncate font-display text-lg leading-tight text-foreground">{tr('chat.title')}</p>
           <p className="truncate text-xs text-text-muted [@media(max-height:560px)]:hidden">{tr('chat.subtitle')}</p>
         </div>
+        {/* En el Camino A el CV y el LinkedIn no se piden de entrada: el coach los sugiere en la charla si le sirven. */}
+        {session.path !== 'quiebre' && (
         <button
           type="button"
           onClick={() => setDocsOpen((o) => !o)}
@@ -236,9 +257,10 @@ function CardHeader({ session, docStatus, onAttachDoc }: Pick<ChatViewProps, 'se
           {/* En celular solo el ícono (el texto queda para lectores de pantalla). */}
           <span className="sr-only sm:not-sr-only">{docsLabel}</span>
         </button>
+        )}
       </div>
 
-      {docsOpen && (
+      {docsOpen && session.path !== 'quiebre' && (
         <div id="panel-documentos" className="mt-3 rounded-2xl bg-secondary p-4">
           <DocsPanel docs={session.documentos} status={docStatus} onAttach={onAttachDoc} />
         </div>

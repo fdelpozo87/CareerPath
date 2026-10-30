@@ -143,9 +143,12 @@ Responde SIEMPRE con un único objeto JSON:
   "preguntaPuente": "",
   "temaEnFoco": "",
   "temasOmitidos": [],
-  "consultaMercado": ""
+  "consultaMercado": "",
+  "pideDocumentos": [],
+  "sugiereCamino": ""
 }
 "temaEnFoco": el id del objetivo de la etapa sobre el que gira la pregunta de este turno ("" si tu mensaje no pregunta por ninguno, por ejemplo al cerrar). Lo usa la pantalla para resaltar de qué se está hablando, y el servidor para contar cuántas veces preguntaste por cada tema: complétalo siempre con exactitud.
+"pideDocumentos" y "sugiereCamino": déjalos vacíos ([] y "") salvo que más abajo, en el contexto de esta sesión, se indique que puedes usarlos.
 "temasOmitidos": los ids de los temas que la persona eligió dejar para más adelante, acumulados de toda la conversación (incluye los que ya figuran como OMITIDOS). Solo si la persona lo eligió con claridad.
 Sé estricto con "objetivosCubiertos": marca un objetivo solo si la persona ya dijo, con sus palabras, lo que ese objetivo pide tal como está descripto (por ejemplo, "options" exige al menos DOS caminos distintos nombrados por la persona; uno solo no alcanza). Ante la duda, no lo marques y sigue indagando.
 Los tres campos de síntesis ("sintesisEtapa", "sintesisItems" y "preguntaPuente") van vacíos ("", [] y "") salvo cuando listoParaAvanzar es true. Ahí:
@@ -196,6 +199,17 @@ export interface TurnContext {
   documentos?: string
   lecturaPerfil?: string
 }
+
+// Camino A: la persona NO sube su CV ni su LinkedIn al empezar. El coach decide, en el transcurso de la charla, si verlos le
+// serviría, y puede sugerir el Camino B cuando lo que haría falta es trabajar cómo la lee quien contrata. El servidor además
+// limita cuándo y cuántas veces (ver normalizeOffers en coach.ts).
+const OFERTAS_GUIDANCE = `
+# Documentos y Camino B (solo en este camino)
+La persona NO subió su CV ni su LinkedIn: no los pidas al empezar ni los des por supuestos. Con lo que cuente en la charla, decide tú si alguno te ayudaría; muchas veces no hace falta.
+- "pideDocumentos": completa ["cv"], ["linkedin"] o ["cv","linkedin"] SOLO cuando, a esta altura, ver su trayectoria con datos concretos te permitiría preguntar mejor. Por ejemplo: habla de cambiar de trabajo o de sentirse invisible para el mercado y no queda claro qué experiencia tiene; menciona su recorrido pero sin detalles; o necesitas ubicar sus fortalezas reales para explorar opciones. Nunca en tus dos primeros turnos, nunca si la persona atraviesa algo emocional intenso, y una sola vez: si ya lo ofreciste (o dijo que no), no insistas. Si abajo ya hay documentos compartidos, déjalo vacío.
+- Cuando lo pidas, dilo también en "mensaje", en una o dos frases cálidas: es opcional, qué ganarías con verlo (preguntarle con su recorrido a la vista) y que lo usarás solo como contexto, nunca para corregirlo ni juzgarlo. La pantalla le muestra el botón para sumarlo: no le pidas que pegue texto en el chat.
+- "sugiereCamino": completa "perfil" SOLO si lo que la persona necesita se resuelve mirando cómo la lee quien contrata (su CV, su LinkedIn o cómo se presenta para buscar trabajo) y eso la ayudaría más que seguir conversando aquí. Es una invitación, no un reemplazo: dile en el mensaje que esta conversación puede seguir y que el Camino B revisa su perfil con una lectura externa. Una sola vez, y nunca en el cierre de una etapa.
+- En todos los demás turnos deja "pideDocumentos" en [] y "sugiereCamino" en "".`
 
 // Cómo puede usar el agente los documentos que compartió la persona. §5 dice
 // "el CV solo como contexto, nunca como texto a corregir"; preguntar sobre lo
@@ -284,7 +298,7 @@ ${languageSection(ctx.lang)}
 # Contexto de esta sesión
 ${camino}
 ${previas ? `\n${previas}\n` : ''}${ctx.lecturaPerfil ? `\n## Lectura externa del perfil que recibió la persona\n${ctx.lecturaPerfil}\n` : ''}${ctx.documentos ? `\n## Documentos que compartió la persona\n${DOCUMENTOS_GUIDANCE}\n\n${ctx.documentos}\n` : ''}
-${ctx.path === 'formacion' ? FORMACION_GUIDANCE : ''}
+${ctx.path === 'formacion' ? FORMACION_GUIDANCE : ''}${ctx.path === 'quiebre' ? OFERTAS_GUIDANCE : ''}
 # Etapa actual: ${STAGE_NAME[ctx.stage]}
 ${ctx.path === 'formacion' ? FORMACION_STAGE_GUIDANCE[ctx.stage] : STAGE_GUIDANCE[ctx.stage]}
 ${ctx.etapaCerrada ? `\n${CLOSED_STAGE_GUIDANCE}\n` : ''}

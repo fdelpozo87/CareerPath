@@ -529,6 +529,8 @@
   "srv.incomplete": "The coach’s reply arrived incomplete. Please try again.",
   "srv.langNote": "(Reply in English.)",
   "srv.compact": "(IMPORTANT: keep it short. Fill in only \"mensaje\" (up to 3 sentences), \"temaEnFoco\" and \"objetivosCubiertos\"; leave \"listoParaAvanzar\" false and do not build a map or synthesis this turn.)",
+  "srv.genderNote": "(You don't know the person's gender: don't assume it.)",
+  "srv.genderRetry": "(IMPORTANT: rewrite your message without assuming the person's gender; you used: {words}.)",
   "srv.langRetry": "(IMPORTANT: your reply must be in English only, not in Spanish.)",
   "srv.leftLater": "Left for later: {topics}.",
   "srv.lockout": "Too many attempts with an incorrect code. Wait a few minutes and try again.",

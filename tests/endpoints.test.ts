@@ -433,6 +433,33 @@ describe('el cierre es en dos pasos: primero la pregunta, después el mapa', () 
     expect(d.listoParaAvanzar).toBe(true)
   })
 
+  it('si la persona responde la pregunta de cierre con otra pregunta, no cierra aunque el modelo lo pida', async () => {
+    const history = [...first, closingAsked(ALL_A), { role: 'user', text: 'algo como que?' }]
+    const d = await run({ mensaje: 'Algo que sientas que quedó afuera, por ejemplo. Si no hay nada, seguimos.', listoParaAvanzar: true, sintesisItems: [{ id: 'goal', texto: 'x', cita: '' }] }, history)
+    expect(d.listoParaAvanzar).toBe(false)
+    expect(d.sintesisItems).toEqual([])
+    expect(d.mensaje).toContain('seguimos')
+  })
+
+  it('un "no, ¿seguimos?" sí cuenta como respuesta y cierra', async () => {
+    const history = [...first, closingAsked(ALL_A), { role: 'user', text: 'No, nada más, ¿seguimos?' }]
+    const d = await run({ mensaje: 'Listo.', listoParaAvanzar: true, sintesisItems: [{ id: 'goal', texto: 'x', cita: '' }] }, history)
+    expect(d.listoParaAvanzar).toBe(true)
+  })
+
+  it('si el modelo devuelve algo cortado dos veces, un tercer intento más corto evita el error', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const history = [...first, closingAsked(ALL_A), { role: 'user', text: 'algo como que?' }]
+    gemini.generateContent
+      .mockResolvedValueOnce({ response: { text: () => '{"mensaje": "Algo como' } })
+      .mockResolvedValueOnce({ response: { text: () => '{"mensaje": "Algo como' } })
+      .mockResolvedValueOnce(modelReply({ mensaje: 'Por ejemplo, lo de la concentración. Si no hay nada, seguimos.', objetivosCubiertos: ALL_A }))
+    const r = await runEndpoint('coach', makeReq(turnBody({ history, cubiertos: ['goal', 'reality', 'options'] })), KEY)
+    expect(r.status).toBe(200)
+    expect((r.body as { data: { mensaje: string } }).data.mensaje).toContain('concentración')
+    expect(gemini.generateContent).toHaveBeenCalledTimes(3)
+  })
+
   it('si el modelo no hace la pregunta de ajuste, el servidor la agrega', async () => {
     const d = await run({ mensaje: '¿Querés contarme algo más sobre tu jefe?', listoParaAvanzar: false })
     expect(d.mensaje).toBe('¿Hay algo que quieras ajustar o sumar antes de que te arme el mapa?')

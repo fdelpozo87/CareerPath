@@ -10,7 +10,7 @@ import {
 } from './prompts.js'
 import { DEFAULT_LANG, isLang, translate, type Lang } from '../shared/i18n.js'
 import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type Ikigai, type SynthesisItem } from '../shared/stages.js'
-import { generateJson, responseText, resilientModel } from './gemini.js'
+import { generateJson, isIncompleteResponse, responseText, resilientModel } from './gemini.js'
 import { neutralizeGender, wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
 import { MAX_MARKET_PER_CONVERSATION, fetchMarketData, looksLikeMarketQuestion, type MarketData, type MarketSource } from './market.js'
@@ -203,6 +203,12 @@ function previousTurnWasComplete(history: ChatMessage[], valid: string[]): boole
   }
 }
 
+/** ¿Lo último que escribió la persona es una pregunta (y no un "no, nada más, ¿seguimos?")? */
+export function isClarification(history: ChatMessage[]): boolean {
+  const last = [...history].reverse().find((m) => m.role === 'user')?.text.trim() ?? ''
+  return last.endsWith('?') && last.length <= 120 && !/^(no\b|nada\b|todo bien|listo|dale|s[ií]\b|yes\b|nope|nothing)/i.test(last)
+}
+
 const MAP_WORD: Record<Lang, RegExp> = { es: /\bmapa\b/i, en: /\bmap\b/i }
 
 /**
@@ -360,7 +366,10 @@ function normalizeTurn(
   // y recién después, con la respuesta de la persona, el mapa. El modelo a veces lo junta en un solo
   // turno y deja el mapa vacío: el servidor no lo permite.
   const preguntaDeCierrePendiente = completos && !etapaCerrada && !previousTurnWasComplete(history, valid)
-  const listo = completos && (Boolean(raw.listoParaAvanzar) || etapaCerrada) && !preguntaDeCierrePendiente
+  // Si la persona contesta la pregunta de cierre con otra pregunta ("¿algo como qué?") no está diciendo que no:
+  // el coach aclara y la etapa sigue abierta hasta que responda.
+  const pideAclaracion = completos && !etapaCerrada && !preguntaDeCierrePendiente && isClarification(history)
+  const listo = completos && (Boolean(raw.listoParaAvanzar) || etapaCerrada) && !preguntaDeCierrePendiente && !pideAclaracion
 
   const userText = fold(history.filter((m) => m.role === 'user' && !m.text.startsWith('(')).map((m) => m.text).join(' \n '))
   const modelItems = listo ? cleanItems(raw.sintesisItems, stage, userText, path).filter((i) => !omitidos.includes(i.id)) : []
@@ -457,7 +466,13 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
         generateJson<Partial<TurnResult> & { consultaMercado?: unknown }>(async () =>
           responseText((await model.generateContent({ contents: toContents(req.history, lang, extra) })).response, 'turno'),
         )
-      let raw = await run()
+      // Si el modelo devuelve algo sin JSON o cortado dos veces seguidas, un último intento más corto
+      // (solo el mensaje, sin armar mapa) antes de dejar a la persona con un error en medio de la charla.
+      let raw = await run().catch((e) => {
+        if (!isIncompleteResponse(e)) throw e
+        logEvent('warn', 'coach_turno_compacto', { stage: req.stage })
+        return run(translate(lang, 'srv.compact'))
+      })
       // Salió en el idioma equivocado (suele pasar si el historial está en el otro idioma): una segunda vez, con más énfasis.
       // Si la persona misma está escribiendo en el otro idioma, el coach le contesta en el suyo y no se reintenta.
       const lastUser = [...req.history].reverse().find((m) => m.role === 'user')?.text ?? ''

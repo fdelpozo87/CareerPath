@@ -412,7 +412,9 @@ function normalizeTurn(
       .trim()
     mensaje = `${ack ? `${ack} ` : ''}${translate(lang, 'srv.close.question')}`
   }
-  if (!completos) {
+  // En el primer turno de una etapa el coach puede nombrar el mapa de la etapa anterior: no es una promesa.
+  const esApertura = !history.some((m) => m.role === 'model')
+  if (!completos && !esApertura) {
     // Mientras falte un tema no hay mapa que prometer. Se nombra primero el tema por el que más veces se preguntó.
     const pendientes = valid.filter((id) => !cubiertos.includes(id) && !omitidos.includes(id))
     const masPreguntado = [...pendientes].sort((x, y) => (asked[y] ?? 0) - (asked[x] ?? 0))[0]

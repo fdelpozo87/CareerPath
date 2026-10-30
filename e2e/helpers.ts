@@ -29,7 +29,7 @@ export interface Mocks {
 }
 
 /** Prepara los mocks. `loginEmail`: con qué email "entra" la contraseña. */
-export async function mockBackend(page: Page, opts: { loginEmail?: string } = {}): Promise<Mocks> {
+export async function mockBackend(page: Page, opts: { loginEmail?: string; /** Campos extra de la respuesta del coach en el turno N (1 = la primera respuesta a la persona). */ turnExtras?: Record<number, Record<string, unknown>> } = {}): Promise<Mocks> {
   const mocks: Mocks = { signups: [], turnos: 0 }
   const email = opts.loginEmail ?? 'persona@example.com'
 
@@ -63,6 +63,7 @@ export async function mockBackend(page: Page, opts: { loginEmail?: string } = {}
         temasOmitidos: [],
         listoParaAvanzar: false,
         derivacion: false,
+        ...opts.turnExtras?.[mocks.turnos],
       },
     })
   })

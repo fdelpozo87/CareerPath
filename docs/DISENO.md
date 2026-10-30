@@ -64,6 +64,21 @@ como tarjeta y un fondo `#150E24`.
 - El progreso es una **onda** (`StageWave.tsx`): una ondulación por etapa, con puntos de cierre y el punto mandarina del logo que
   avanza según los temas cubiertos. Es un `progressbar` accesible y respeta "reducir movimiento".
 
+## Camino A: el CV y el LinkedIn se piden en la charla, no al empezar
+
+- En el Camino A **no hay** botón "Sumar mi CV o LinkedIn" en el encabezado (en B y C sigue). El coach decide en cada turno si
+  ver el CV o el LinkedIn le serviría y, si es así, devuelve `pideDocumentos` (`["cv"]`, `["linkedin"]` o ambos) y lo dice en su
+  mensaje; la pantalla muestra debajo la tarjeta para sumarlo (`Offers.tsx`), con "Ahora no". También puede devolver
+  `sugiereCamino: "perfil"`: aparece la tarjeta "Esto también se puede trabajar en el Camino B", con "Ir al Camino B" (la conversación
+  queda guardada) y "Seguir aquí".
+- **El servidor limita las ofertas** (`normalizeOffers` en `server/coach.ts`, probado en `tests/ofertas.test.ts`), sin depender de que
+  el modelo se acuerde: solo en el Camino A; documentos a partir de la 2.ª respuesta de la persona y sugerencia del Camino B a partir
+  de la 3.ª; nunca en el cierre de una etapa, ante una derivación ni en el Plan de Acción; cada oferta una sola vez por conversación
+  (se mira el historial) y nunca los documentos que ya se sumaron; si el mismo turno trae las dos, solo la de documentos.
+- Las instrucciones al modelo están en `OFERTAS_GUIDANCE` (`server/prompts.ts`): cuándo conviene, que sea opcional, que el
+  documento es solo contexto (nunca para corregir) y que no insista.
+- Para afinar el criterio del modelo con casos reales (cuándo pide y cuándo no) conviene sumar escenarios a `scripts/eval/escenarios.mjs`.
+
 ## Dónde más hay colores
 
 - `public/favicon.svg` y `web_jaspr/web/favicon.svg` (violeta en claro, violeta claro en oscuro).

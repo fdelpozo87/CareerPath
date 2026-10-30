@@ -41,7 +41,13 @@ export interface TurnResult {
   /** Si este turno usó datos de mercado: de dónde salieron y cuándo se consultaron. */
   fuentes?: MarketSource[]
   fechaDatos?: string
+  /** Camino A: el coach sugiere sumar el CV y/o el LinkedIn, porque a esta altura de la charla le serviría. */
+  pideDocumentos?: DocKind[]
+  /** Camino A: el coach sugiere pasar al Camino B (cómo te lee quien contrata) para trabajar el perfil. */
+  sugiereCamino?: 'perfil'
 }
+
+export type DocKind = 'cv' | 'linkedin'
 
 type CoachRequest =
   | {
@@ -249,6 +255,50 @@ function cleanItems(raw: unknown, stage: Stage, userText: string, path: Path): S
 
 // El servidor no confía ciegamente en el modelo para avanzar de etapa (§3):
 // acumula los objetivos cubiertos y solo habilita el avance si están todos.
+// ── Ofertas del Camino A: documentos y Camino B ───────────────────────────────
+// El modelo decide cuándo le serviría ver el CV o el LinkedIn, o cuándo conviene el Camino B. El servidor no se fía de eso
+// a ciegas: solo vale en el Camino A, nunca al arrancar, nunca en un cierre ni ante una derivación, y cada oferta se hace
+// una sola vez por conversación (si la persona la dejó pasar, no se insiste).
+
+const MIN_TURNS_TO_ASK_DOCS = 2
+const MIN_TURNS_TO_SUGGEST_PATH = 3
+
+const realUserTurns = (history: ChatMessage[]) => history.filter((m) => m.role === 'user' && !m.text.startsWith('(')).length
+
+/** ¿Algún turno anterior del coach ya traía esta oferta? (el historial guarda el JSON de cada turno) */
+function alreadyOffered(history: ChatMessage[], field: 'pideDocumentos' | 'sugiereCamino'): boolean {
+  return history.some((m) => {
+    if (m.role !== 'model') return false
+    try {
+      const v = (JSON.parse(m.text) as Record<string, unknown>)[field]
+      return Array.isArray(v) ? v.length > 0 : typeof v === 'string' && v !== ''
+    } catch {
+      return false
+    }
+  })
+}
+
+export function sharedDocKinds(documentos?: string): DocKind[] {
+  const kinds: DocKind[] = []
+  if (documentos?.includes('=== CV ===')) kinds.push('cv')
+  if (documentos?.includes('=== LINKEDIN ===')) kinds.push('linkedin')
+  return kinds
+}
+
+export function normalizeOffers(
+  raw: Partial<TurnResult>,
+  o: { path: Path; stage: Stage; listo: boolean; derivacion: boolean; history: ChatMessage[]; documentos?: string },
+): Pick<TurnResult, 'pideDocumentos' | 'sugiereCamino'> {
+  if (o.path !== 'quiebre' || o.listo || o.derivacion) return {}
+  const turns = realUserTurns(o.history)
+  const shared = sharedDocKinds(o.documentos)
+  const asked = (Array.isArray(raw.pideDocumentos) ? raw.pideDocumentos : []).filter((k): k is DocKind => (k === 'cv' || k === 'linkedin') && !shared.includes(k))
+  const docs = Array.from(new Set(asked))
+  if (docs.length > 0 && o.stage !== 'plan' && turns >= MIN_TURNS_TO_ASK_DOCS && !alreadyOffered(o.history, 'pideDocumentos')) return { pideDocumentos: docs }
+  if (raw.sugiereCamino === 'perfil' && turns >= MIN_TURNS_TO_SUGGEST_PATH && !alreadyOffered(o.history, 'sugiereCamino')) return { sugiereCamino: 'perfil' }
+  return {}
+}
+
 function normalizeTurn(
   raw: Partial<TurnResult>,
   stage: Stage,
@@ -258,6 +308,7 @@ function normalizeTurn(
   prevOmitidos: string[] = [],
   path: Path = 'quiebre',
   lang: Lang = DEFAULT_LANG,
+  documentos?: string,
 ): TurnResult {
   const objetivos = objectivesFor(stage, path)
   const valid = objetivos.map((o) => o.id)
@@ -343,6 +394,7 @@ function normalizeTurn(
     objetivosCubiertos: cubiertos,
     listoParaAvanzar: listo,
     derivacion: Boolean(raw.derivacion),
+    ...normalizeOffers(raw, { path, stage, listo, derivacion: Boolean(raw.derivacion), history, documentos }),
     sintesisEtapa: listo ? sintesis : '',
     sintesisItems: items,
     preguntaPuente: listo && typeof raw.preguntaPuente === 'string' ? raw.preguntaPuente.trim().slice(0, MAX_BRIDGE) : '',
@@ -421,7 +473,7 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
           raw = await run(translate(lang, 'srv.market.none'))
         }
       }
-      const turn = normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path, lang)
+      const turn = normalizeTurn(raw, req.stage, req.cubiertos, req.history, req.etapaCerrada, req.omitidos, req.path, lang, req.documentos)
       const clean = { ...turn, mensaje: neutralizeGender(turn.mensaje, lang) }
       return market ? { ...clean, fuentes: market.fuentes, fechaDatos: market.fecha } : clean
     }

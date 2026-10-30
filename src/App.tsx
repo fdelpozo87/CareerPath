@@ -461,7 +461,10 @@ function AppInner() {
   if (view === 'coach' && session) {
     return (
       <CoachFlow
+        // Cada proceso tiene su propia conversación: al pasar de uno a otro (por ejemplo, del Camino A al B) se arma de nuevo.
+        key={session.id}
         initialSession={session}
+        onStartPath={startPath}
         onExit={() => setView('landing')}
         onRestart={() => deleteOne(session.id)}
         account={account}

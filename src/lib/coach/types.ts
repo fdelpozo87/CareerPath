@@ -17,6 +17,10 @@ export interface TurnResult {
   /** Si este turno usó datos de mercado: de dónde salieron y cuándo se consultaron. */
   fuentes?: MarketSource[]
   fechaDatos?: string
+  /** Camino A: el coach sugiere sumar el CV y/o el LinkedIn (la pantalla muestra cómo). */
+  pideDocumentos?: DocTipo[]
+  /** Camino A: el coach sugiere pasar al Camino B para trabajar el perfil. */
+  sugiereCamino?: 'perfil'
 }
 
 export interface MarketSource {
@@ -45,6 +49,12 @@ export interface UiMessage {
   /** Fuentes de los datos de mercado que usó este mensaje (AAAA-MM-DD en `fechaDatos`). */
   fuentes?: MarketSource[]
   fechaDatos?: string
+  /** El coach sugirió sumar estos documentos en este mensaje. */
+  pideDocumentos?: DocTipo[]
+  /** El coach sugirió pasar a este camino en este mensaje. */
+  sugiereCamino?: 'perfil'
+  /** La persona ya respondió a la sugerencia (la dejó pasar): la tarjeta no se vuelve a mostrar. */
+  ofertaCerrada?: boolean
 }
 
 export type DocTipo = 'cv' | 'linkedin'

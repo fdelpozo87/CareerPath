@@ -5,7 +5,7 @@ import { extractPdfText, requestReport, requestTurn } from '../../lib/coach/api'
 import { scriptedOpening } from '../../lib/coach/opening'
 import SessionIntro from './SessionIntro'
 import { saveSession } from '../../lib/coach/session'
-import type { DocTipo, Session, Stage, TurnResult, UiMessage } from '../../lib/coach/types'
+import type { DocTipo, Path, Session, Stage, TurnResult, UiMessage } from '../../lib/coach/types'
 import { trackEvent, type FunnelEvent } from '../../lib/tracking'
 import AccountMenu, { type AccountInfo } from '../AccountMenu'
 import Logo from '../Logo'
@@ -53,6 +53,8 @@ function applyTurn(prev: Session, stage: Stage, turn: TurnResult): Session {
     cierraEtapa: entregaMapa || undefined,
     fuentes: turn.fuentes?.length ? turn.fuentes : undefined,
     fechaDatos: turn.fuentes?.length ? turn.fechaDatos : undefined,
+    pideDocumentos: turn.pideDocumentos?.length ? turn.pideDocumentos : undefined,
+    sugiereCamino: turn.sugiereCamino || undefined,
   }
   return {
     ...prev,
@@ -79,12 +81,14 @@ interface CoachFlowProps {
   account: AccountInfo
   /** Diálogo de confirmación del nivel de App (borrar conversación). */
   confirmDialog?: ReactNode
+  /** Empieza otro camino (la sugerencia del coach de pasar al Camino B). Esta conversación queda guardada. */
+  onStartPath?: (path: Path) => void
 }
 
 /** Un proceso recién empezado: todavía no hay conversación, perfil ni informe. Antes de la primera pregunta va la pantalla de inicio. */
 const isNew = (s: Session) => s.messages.length === 0 && !s.perfil && !s.informe
 
-export function CoachFlow({ initialSession, onExit, onRestart, account, confirmDialog }: CoachFlowProps) {
+export function CoachFlow({ initialSession, onExit, onRestart, account, confirmDialog, onStartPath }: CoachFlowProps) {
   // En un proceso nuevo no se le pide nada al coach hasta que la persona toca "¿Empezamos?".
   const [intro, setIntro] = useState(() => isNew(initialSession))
   const [session, setSession] = useState<Session>(() => (isNew(initialSession) ? initialSession : withOpening(initialSession)))
@@ -211,6 +215,10 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
     }))
   }
 
+  // La persona deja pasar una sugerencia del coach (sumar documentos o ir al Camino B): la tarjeta no vuelve a aparecer.
+  const handleCloseOffer = (index: number) =>
+    setSession((prev) => ({ ...prev, messages: prev.messages.map((m, i) => (i === index ? { ...m, ofertaCerrada: true } : m)) }))
+
   const handleAttachDoc = async (tipo: DocTipo, file: File) => {
     setDocStatus(tipo === 'cv' ? tr('flow.reading.cv') : tr('flow.reading.linkedin'))
     try {
@@ -322,6 +330,8 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
             onResumeTopic={handleResumeTopic}
             onAttachDoc={handleAttachDoc}
             docStatus={docStatus}
+            onCloseOffer={handleCloseOffer}
+            onStartPath={onStartPath}
           />
         )}
 

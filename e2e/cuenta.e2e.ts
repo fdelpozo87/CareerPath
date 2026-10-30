@@ -89,4 +89,45 @@ test.describe('entrada a Bivio', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Good to see you again')
     await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', /\/en\/$/)
   })
+
+  /** Entra, abre el Camino A, empieza y manda `n` respuestas, esperando la contestación del coach cada vez. */
+  async function entrarYConversar(page: import('@playwright/test').Page, n: number) {
+    await page.goto('/es/')
+    await page.getByLabel('Tu email').fill('persona@example.com')
+    await page.getByLabel('Contraseña').fill('una frase larga y segura')
+    await page.getByRole('button', { name: 'Ingresar', exact: true }).last().click()
+    await page.locator('#profesional').getByRole('button', { name: /^Empezar/ }).first().click()
+    await page.getByRole('button', { name: /Empezamos/ }).click()
+    await expect(page.getByText('Hola. Te acompaño en este espacio')).toBeVisible()
+    // En el Camino A el CV no se pide de entrada: no hay botón de documentos en el encabezado.
+    await expect(page.getByRole('button', { name: /Sumar mi CV o LinkedIn/ })).toHaveCount(0)
+    for (let i = 1; i <= n; i++) {
+      await page.getByRole('textbox').fill(`Respuesta número ${i}`)
+      await page.getByRole('button', { name: 'Enviar' }).click()
+      await expect(page.getByText(`Respuesta número ${i}`)).toBeVisible()
+      await expect(page.getByRole('textbox')).toBeEnabled()
+    }
+  }
+
+  test('camino A: el coach sugiere sumar el CV cuando lo amerita, y se puede dejar pasar', async ({ page }) => {
+    await mockBackend(page, { turnExtras: { 2: { pideDocumentos: ['cv'] } } })
+    await entrarYConversar(page, 1)
+    await expect(page.getByText('Si quieres, comparte tu CV o tu LinkedIn')).toHaveCount(0)
+    await page.getByRole('textbox').fill('Respuesta número 2')
+    await page.getByRole('button', { name: 'Enviar' }).click()
+    await expect(page.getByText('Si quieres, comparte tu CV o tu LinkedIn')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sumar mi CV' })).toBeVisible()
+    await page.getByRole('button', { name: 'Ahora no' }).click()
+    await expect(page.getByText('Si quieres, comparte tu CV o tu LinkedIn')).toHaveCount(0)
+  })
+
+  test('camino A: el coach sugiere el Camino B y la persona puede pasar a él', async ({ page }) => {
+    await mockBackend(page, { turnExtras: { 3: { sugiereCamino: 'perfil' } } })
+    await entrarYConversar(page, 3)
+    await expect(page.getByText('Esto también se puede trabajar en el Camino B')).toBeVisible()
+    await page.getByRole('button', { name: 'Ir al Camino B' }).click()
+    // Arranca el Camino B desde su pantalla de inicio.
+    await expect(page.getByRole('heading', { level: 1, name: 'Esto es lo que vamos a hacer' })).toBeVisible()
+    await expect(page.getByText('Subes tu CV o tu perfil de LinkedIn.')).toBeVisible()
+  })
 })

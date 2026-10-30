@@ -9,7 +9,7 @@ import {
   type Stage,
 } from './prompts.js'
 import { DEFAULT_LANG, isLang, translate, type Lang } from '../shared/i18n.js'
-import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type SynthesisItem } from '../shared/stages.js'
+import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type Ikigai, type SynthesisItem } from '../shared/stages.js'
 import { generateJson, responseText, resilientModel } from './gemini.js'
 import { neutralizeGender, wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
@@ -231,23 +231,47 @@ function fold(text: string): string {
 // El "mapa" de cierre. Las citas tienen que ser TEXTUALES de lo que la persona
 // escribió (guardrail §5: anclar todo en lo que dijo): si el modelo inventa una
 // frase, se descarta la cita y se conserva el resto.
-function cleanItems(raw: unknown, stage: Stage, userText: string, path: Path): SynthesisItem[] {
+/** ¿Esta frase sale de lo que la persona escribió? Al menos la mitad de sus palabras (de 4 letras o más) aparecen en su texto. */
+function groundedPhrase(phrase: string, userText: string): boolean {
+  const words = fold(phrase).split(' ').filter((w) => w.length >= 4)
+  if (words.length === 0) return false
+  const hits = words.filter((w) => userText.includes(w.slice(0, 5))).length
+  return hits / words.length >= 0.5
+}
+
+const MAX_IKIGAI_PHRASE = 90
+
+/**
+ * Las cuatro miradas del ikigai. Cada frase tiene que apoyarse en lo que la persona dijo (si el modelo inventa una, queda
+ * en blanco) y hacen falta al menos dos con contenido: con menos no hay gráfico, solo el texto del tema.
+ */
+export function cleanIkigai(raw: unknown, userText: string): Ikigai | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined
+  const r = raw as Record<string, unknown>
+  const pick = (v: unknown) => (typeof v === 'string' && v.trim() && groundedPhrase(v, userText) ? v.trim().slice(0, MAX_IKIGAI_PHRASE) : '')
+  const ikigai: Ikigai = { ama: pick(r.ama), bueno: pick(r.bueno), mundo: pick(r.mundo), pagan: pick(r.pagan) }
+  return Object.values(ikigai).filter(Boolean).length >= 2 ? ikigai : undefined
+}
+
+export function cleanItems(raw: unknown, stage: Stage, userText: string, path: Path): SynthesisItem[] {
   if (!Array.isArray(raw)) return []
   const order = objectivesFor(stage, path).map((o) => o.id)
   const seen = new Set<string>()
   const items: SynthesisItem[] = []
   for (const it of raw) {
     if (typeof it !== 'object' || it === null) continue
-    const { id, texto, cita } = it as Record<string, unknown>
+    const { id, texto, cita, ikigai } = it as Record<string, unknown>
     if (typeof id !== 'string' || !order.includes(id) || seen.has(id)) continue
     if (typeof texto !== 'string' || !texto.trim()) continue
     seen.add(id)
     const quote = typeof cita === 'string' ? fold(cita) : ''
     const literal = quote.length >= 4 && userText.includes(quote)
+    const petals = id === 'ikigai' ? cleanIkigai(ikigai, userText) : undefined
     items.push({
       id,
       texto: texto.trim().slice(0, MAX_ITEM_TEXT),
       cita: literal ? (cita as string).trim().slice(0, MAX_QUOTE) : '',
+      ...(petals ? { ikigai: petals } : {}),
     })
   }
   return items.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))

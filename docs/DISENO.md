@@ -79,6 +79,22 @@ como tarjeta y un fondo `#150E24`.
   documento es solo contexto (nunca para corregir) y que no insista.
 - Para afinar el criterio del modelo con casos reales (cuándo pide y cuándo no) conviene sumar escenarios a `scripts/eval/escenarios.mjs`.
 
+## Ikigai (Caminos A y C)
+
+- Es un **tema más de la Exploración** (`ikigai`, se puede dejar para más adelante) y no existe en el Camino B ni en las otras etapas
+  (`objectivesFor` en `shared/stages.ts`). En A va tras el obstáculo reencuadrado; en C, tras intereses y aptitudes, así no se
+  repiten preguntas.
+- El coach **pregunta, no lo nombra por la persona**: una mirada por turno (lo que ama, en qué se le da bien, qué necesita el mundo,
+  por qué podrían pagarle). Nunca dice cuál es su ikigai ni qué camino le corresponde; el centro lo nombra ella. Las instrucciones
+  están en `IKIGAI_GUIDANCE` (`server/prompts.ts`).
+- Al cerrar la etapa, el mapa trae `ikigai: { ama, bueno, mundo, pagan }` con una frase corta por mirada. **El servidor verifica que
+  cada frase salga de lo que la persona escribió** (`cleanIkigai` en `server/coach.ts`): una frase inventada queda en blanco, y con
+  menos de dos frases no hay gráfico, solo el texto del tema.
+- Se ve en el **mapa de la Exploración** y en el **informe final** (`IkigaiChart.tsx`): cuatro círculos que se cruzan en pantallas
+  medianas y grandes, y una lista en celular y para lectores de pantalla. Las miradas que la persona no dijo dicen "Todavía no lo
+  dijiste". El centro dice "Lo nombras tú". Es una herramienta para pensar, no un resultado, y así se aclara debajo.
+- Una Exploración que ya estaba en curso cuando se sumó el tema lo suma como pendiente (se puede dejar para más adelante). El servidor no da por cerrada una etapa solo porque el cliente lo diga: sigue exigiendo todos los temas cubiertos u omitidos.
+
 ## Dónde más hay colores
 
 - `public/favicon.svg` y `web_jaspr/web/favicon.svg` (violeta en claro, violeta claro en oscuro).

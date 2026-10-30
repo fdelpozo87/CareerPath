@@ -153,7 +153,7 @@ Responde SIEMPRE con un único objeto JSON:
 Sé estricto con "objetivosCubiertos": marca un objetivo solo si la persona ya dijo, con sus palabras, lo que ese objetivo pide tal como está descripto (por ejemplo, "options" exige al menos DOS caminos distintos nombrados por la persona; uno solo no alcanza). Ante la duda, no lo marques y sigue indagando.
 Los tres campos de síntesis ("sintesisEtapa", "sintesisItems" y "preguntaPuente") van vacíos ("", [] y "") salvo cuando listoParaAvanzar es true. Ahí:
 - "sintesisEtapa": 3 a 5 oraciones en segunda persona que resumen lo que la persona construyó en esta etapa, usando sus palabras.
-- "sintesisItems": un elemento por cada objetivo de la etapa, con la forma { "id": <id del objetivo>, "texto": 1 o 2 oraciones en segunda persona con las palabras de la persona, "cita": una frase breve (hasta 25 palabras) copiada TEXTUAL de lo que la persona escribió, o "" si ninguna sirve }. Es el "mapa" que la persona va a ver en pantalla: tiene que sonar a la persona, no a un informe.
+- "sintesisItems": (si entre los objetivos figura "ikigai", su elemento lleva además "ikigai": { "ama": "", "bueno": "", "mundo": "", "pagan": "" } con una frase corta, de hasta 8 palabras y con las palabras de la persona, por cada mirada, o "" si no la dijo) un elemento por cada objetivo de la etapa, con la forma { "id": <id del objetivo>, "texto": 1 o 2 oraciones en segunda persona con las palabras de la persona, "cita": una frase breve (hasta 25 palabras) copiada TEXTUAL de lo que la persona escribió, o "" si ninguna sirve }. Es el "mapa" que la persona va a ver en pantalla: tiene que sonar a la persona, no a un informe.
 - "preguntaPuente": una sola pregunta abierta, basada en lo que dijo, para que se lleve a la próxima etapa. Es una pregunta, no un diagnóstico: nunca afirmes un "tipo de freno" ni la causa del problema.
 En los tres, no agregues rasgos, causas ni conclusiones que la persona no dijo.`
 
@@ -199,6 +199,14 @@ export interface TurnContext {
   documentos?: string
   lecturaPerfil?: string
 }
+
+// El ikigai (Exploración de los caminos A y C): cuatro miradas con las palabras de la persona. El coach pregunta; nunca lo nombra por ella.
+const IKIGAI_GUIDANCE = (path: Path) => `
+# Un tema de esta etapa: el ikigai
+Ayuda a la persona a mirar, con sus propias palabras, cuatro cosas: (1) lo que ama o disfruta hacer, (2) en qué se le da bien, (3) qué necesita el mundo o su entorno de lo que ella podría ofrecer y (4) por qué podrían pagarle (o ya le pagan). Es el tema "ikigai".
+- Pregunta una mirada por turno, abierta y con ejemplos de su vida ("¿qué actividades te hacen perder la noción del tiempo?", "¿qué te piden los demás que hagas bien?", "¿qué problema cercano te gustaría ayudar a resolver?", "¿por qué cosas te pagan hoy o te pagarían?"). Si no conoce la palabra "ikigai", no la uses: dile que vas a pedirle cuatro miradas sobre lo que hace.
+${path === 'formacion' ? '- Reutiliza lo que ya contó sobre sus intereses y aptitudes: no se lo preguntes de nuevo; pregunta solo lo que falte.\n' : ''}- NUNCA le digas cuál es su ikigai, ni qué profesión, carrera o camino le corresponde, ni lo que "sale" del cruce: el centro lo nombra ella (si quiere, pregúntale qué ve ella donde se cruzan). No puntúes ni compares: es una herramienta para pensar, no un diagnóstico.
+- El tema está cubierto con al menos TRES de las cuatro miradas dichas por ella; la que no dijo queda en blanco, no la completes tú. Si le cuesta una mirada, puedes ofrecer dos ejemplos para que reaccione, sin completar por ella.`
 
 // Camino A: la persona NO sube su CV ni su LinkedIn al empezar. El coach decide, en el transcurso de la charla, si verlos le
 // serviría, y puede sugerir el Camino B cuando lo que haría falta es trabajar cómo la lee quien contrata. El servidor además
@@ -301,6 +309,7 @@ ${previas ? `\n${previas}\n` : ''}${ctx.lecturaPerfil ? `\n## Lectura externa de
 ${ctx.path === 'formacion' ? FORMACION_GUIDANCE : ''}${ctx.path === 'quiebre' ? OFERTAS_GUIDANCE : ''}
 # Etapa actual: ${STAGE_NAME[ctx.stage]}
 ${ctx.path === 'formacion' ? FORMACION_STAGE_GUIDANCE[ctx.stage] : STAGE_GUIDANCE[ctx.stage]}
+${ctx.stage === 'discovery' && ctx.path !== 'perfil' ? IKIGAI_GUIDANCE(ctx.path) : ''}
 ${ctx.etapaCerrada ? `\n${CLOSED_STAGE_GUIDANCE}\n` : ''}
 Objetivos de indagación de esta etapa (ids válidos para "objetivosCubiertos" y "temaEnFoco"), con su estado hoy:
 ${objetivos}${EVASION_GUIDANCE}${obligatorios}

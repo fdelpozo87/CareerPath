@@ -70,8 +70,28 @@ export const FORMACION_OBJECTIVES: Record<Stage, StageObjective[]> = {
 }
 
 /** Los temas de indagación de una etapa según el camino elegido. */
+// El ikigai: un tema más de la Exploración de los caminos A y C (el B no lo trabaja). Va después del tema que lo alimenta: en A,
+// el obstáculo reencuadrado; en C, los intereses y aptitudes que la persona ya contó (así no se le vuelve a preguntar lo mismo).
+const IKIGAI_OBJECTIVE: StageObjective = {
+  id: 'ikigai',
+  omitible: true,
+  descripcion:
+    'Ikigai, armado con SUS palabras (lo descubres preguntando, no lo deduces): qué ama o disfruta hacer, en qué se le da bien (con ejemplos), qué necesita el mundo o su entorno de lo que ella podría ofrecer, y por qué podrían pagarle (o ya le pagan). Está cubierto cuando nombró, aquí o antes en la conversación, al menos TRES de las cuatro; la que no dijo queda vacía (no la inventes). Nunca le digas cuál es su ikigai ni qué profesión o camino le corresponde: lo que hay en el cruce lo nombra ella.',
+}
+const IKIGAI_AFTER: Partial<Record<Path, string>> = { quiebre: 'reencuadre', formacion: 'aptitudes' }
+
+const objectivesCache = new Map<string, StageObjective[]>()
+
 export function objectivesFor(stage: Stage, path: Path = 'quiebre'): StageObjective[] {
-  return path === 'formacion' ? FORMACION_OBJECTIVES[stage] : STAGE_OBJECTIVES[stage]
+  const key = `${stage}:${path}`
+  const cached = objectivesCache.get(key)
+  if (cached) return cached
+  const base = path === 'formacion' ? FORMACION_OBJECTIVES[stage] : STAGE_OBJECTIVES[stage]
+  const after = IKIGAI_AFTER[path]
+  const at = stage === 'discovery' && after ? base.findIndex((o) => o.id === after) : -1
+  const list = at === -1 ? base : [...base.slice(0, at + 1), IKIGAI_OBJECTIVE, ...base.slice(at + 1)]
+  objectivesCache.set(key, list)
+  return list
 }
 
 export const STAGE_ORDER: Stage[] = ['diagnostico', 'discovery', 'plan']
@@ -104,6 +124,20 @@ export interface SynthesisItem {
   cita: string
   /** La persona eligió dejar este tema para más adelante: no es un tema cubierto. */
   omitido?: boolean
+  /** Solo en el tema "ikigai": una frase corta de la persona por cada dimensión ("" si no la dijo). */
+  ikigai?: Ikigai
+}
+
+/** Las cuatro miradas del ikigai, con las palabras de la persona. El cruce del centro no lo completa nadie más que ella. */
+export interface Ikigai {
+  /** Lo que ama o disfruta hacer. */
+  ama: string
+  /** En lo que se le da bien. */
+  bueno: string
+  /** Lo que el mundo o su entorno necesita. */
+  mundo: string
+  /** Por lo que podrían pagarle. */
+  pagan: string
 }
 
 /** Cuántos temas puede dejar para después la persona en una misma etapa. Decisión de producto. */

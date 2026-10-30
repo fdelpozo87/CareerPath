@@ -1,6 +1,7 @@
 import { introFor, objectiveLabel } from '../../../shared/stages'
 import { getLang, tr } from '../../lib/i18n'
 import type { Path, Stage, StageMap as StageMapData } from '../../lib/coach/types'
+import { IkigaiChart } from './IkigaiChart'
 
 // Cierre de cada etapa: el "mapa" de lo que la persona fue diciendo, con sus
 // propias frases. Reemplaza al párrafo único de antes: se ve de un vistazo qué
@@ -44,6 +45,15 @@ export function StageMap({ stage, path, map, fallbackText, onAdjust, onResume, r
                 <button type="button" onClick={() => onResume(item.id)} className="mt-3 text-sm font-semibold text-primary underline underline-offset-2">
                   {tr('map.resume')}
                 </button>
+              </li>
+            ) : item.id === 'ikigai' && item.ikigai ? (
+              // El ikigai ocupa todo el ancho: son cuatro miradas con lo que la persona dijo y un centro que nombra ella.
+              <li key={item.id} className="rounded-2xl border border-border-color bg-card p-4 sm:col-span-2">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">{labelOf(item.id)}</p>
+                <p className="mb-4 text-sm leading-relaxed text-text-muted">{tr('ikigai.lede')}</p>
+                <IkigaiChart ikigai={item.ikigai} />
+                <p className="mt-4 text-[15px] leading-relaxed text-foreground">{item.texto}</p>
+                <p className="mt-2 text-xs text-text-muted">{tr('ikigai.note')}</p>
               </li>
             ) : (
             <li key={item.id} className="rounded-2xl border border-border-color bg-card p-4">

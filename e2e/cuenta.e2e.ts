@@ -130,4 +130,27 @@ test.describe('entrada a Bivio', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Esto es lo que vamos a hacer' })).toBeVisible()
     await expect(page.getByText('Subes tu CV o tu perfil de LinkedIn.')).toBeVisible()
   })
+
+  test('el mapa de la Exploración muestra el ikigai con las palabras de la persona y deja el centro para ella', async ({ page }) => {
+    const ikigai = { ama: 'enseñar a mis compañeros', bueno: 'ordenar procesos', mundo: '', pagan: 'mantener los reportes' }
+    await mockBackend(page, {
+      turnExtras: {
+        1: {
+          listoParaAvanzar: true,
+          sintesisEtapa: 'Resumen de lo que dijiste.',
+          sintesisItems: [{ id: 'ikigai', texto: 'Disfrutas enseñar y se te da bien ordenar procesos.', cita: '', ikigai }],
+          preguntaPuente: '¿Qué ves en el cruce?',
+        },
+      },
+    })
+    await entrarYConversar(page, 1)
+    const chart = page.getByTestId('ikigai-chart')
+    await expect(chart).toBeVisible()
+    await expect(chart.getByText('enseñar a mis compañeros').first()).toBeVisible()
+    await expect(chart.getByText('mantener los reportes').first()).toBeVisible()
+    // La mirada que la persona no dijo queda en blanco, sin inventarla; el centro lo nombra ella.
+    await expect(chart.getByText('Todavía no lo dijiste').first()).toBeVisible()
+    await expect(chart.getByText('Lo nombras tú')).toBeVisible()
+    await expect(page.getByText('Es una herramienta para pensar, no un resultado')).toBeVisible()
+  })
 })

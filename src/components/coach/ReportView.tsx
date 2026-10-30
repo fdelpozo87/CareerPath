@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ConfirmDialog from '../ConfirmDialog'
+import { IkigaiChart } from './IkigaiChart'
 import { SaveCard } from './SaveCard'
 import { getLang, tr, trn, type Key } from '../../lib/i18n'
 import type { Report, ReportAction, Session } from '../../lib/coach/types'
@@ -26,6 +27,8 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
   const [confirmRestart, setConfirmRestart] = useState(false)
   const toggle = (i: number) => setSelected((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]))
   const hasPedido = report.acciones.some((a) => a.tipo === 'pedido')
+  // El ikigai que la persona armó en la Exploración (Caminos A y C), con sus propias palabras.
+  const ikigai = session?.mapas?.discovery?.items.find((i) => i.id === 'ikigai' && !i.omitido)?.ikigai
 
   return (
     <div className="ai-result mx-auto max-w-2xl">
@@ -52,6 +55,15 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
             ))}
           </ul>
         </div>
+
+        {ikigai && (
+          <div className="card break-inside-avoid">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary">{tr('ikigai.title')}</p>
+            <p className="mb-4 text-sm text-text-muted">{tr('ikigai.lede')}</p>
+            <IkigaiChart ikigai={ikigai} />
+            <p className="mt-4 text-xs text-text-muted">{tr('ikigai.note')}</p>
+          </div>
+        )}
 
         <div className="card">
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">

@@ -50,7 +50,7 @@ jobs:
         if: always()
         run: |
           { echo '## Evaluación del coach'; echo; echo '### Español'; echo '```'; tail -n 25 eval-es.log; echo '```'; echo '### English'; echo '```'; tail -n 25 eval-en.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: eval-coach

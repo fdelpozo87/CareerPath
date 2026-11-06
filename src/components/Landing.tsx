@@ -183,26 +183,37 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
             </div>
 
             <div className="mx-auto mt-14 max-w-4xl">
-              <div className="glass-stage px-5 py-10 text-center sm:px-10 sm:py-12">
-                <p className="glass-kicker mb-7 text-xs font-semibold uppercase tracking-widest text-text-muted">
-                  {tr('landing.steps.title')}
+              <div className="rounded-3xl bg-accent-soft px-6 py-8 sm:px-10 sm:py-10">
+                <p className="mb-6 text-xs font-semibold uppercase tracking-widest text-text-muted">
+                  {tr('landing.out.title')}
                 </p>
-                <ol className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-3">
-                  {(['diagnostico', 'discovery', 'plan'] as const).map((s, i) => (
-                    <li key={s} className="flex items-center gap-3">
-                      <span className="glass-pill" style={{ animationDelay: `${i * 1.1}s` }}>
-                        <span className="glass-dot" aria-hidden="true">
-                          {i + 1}
-                        </span>
-                        <span className="text-sm font-medium">{s === 'discovery' ? tr('landing.steps.discovery') : stageLabel(s)}</span>
-                      </span>
-                      {i < 2 && <span aria-hidden="true" className="glass-link hidden h-px w-6 sm:block" />}
+                <ul className="flex flex-col gap-5 sm:flex-row sm:gap-8">
+                  {([
+                    { key: 'landing.out.1', icon: (
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-primary" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" />
+                        <line x1="12" y1="2" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="22" />
+                        <line x1="2" y1="12" x2="5" y2="12" /><line x1="19" y1="12" x2="22" y2="12" />
+                      </svg>
+                    )},
+                    { key: 'landing.out.2', icon: (
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-primary" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" />
+                      </svg>
+                    )},
+                    { key: 'landing.out.3', icon: (
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-primary" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+                        <polyline points="3 6 4 7 6 5" /><polyline points="3 12 4 13 6 11" /><polyline points="3 18 4 19 6 17" />
+                      </svg>
+                    )},
+                  ] as const).map(({ key, icon }) => (
+                    <li key={key} className="flex items-start gap-3 sm:flex-1">
+                      {icon}
+                      <span className="text-sm font-medium text-foreground">{tr(key)}</span>
                     </li>
                   ))}
-                </ol>
-                <p className="glass-pill glass-pill--quiet mt-8 text-sm">
-                  {tr('landing.steps.note')}
-                </p>
+                </ul>
               </div>
             </div>
           </>

@@ -11,9 +11,9 @@ export interface AdminUser {
   estado: Estado
   created_at: string
   last_seen_at: string | null
-  /** Puede usar "Para profesionales" y "Para empresas". */
   acceso_profesionales: boolean
   acceso_empresas: boolean
+  cantidad_empleados: number | null
   isSelf: boolean
 }
 
@@ -63,3 +63,19 @@ export interface ComentarioItem {
 }
 export const listComentarios = async (): Promise<ComentarioItem[]> => (await call<{ entries: ComentarioItem[] }>({ action: 'comentarios' })).entries
 export const marcarComentario = (id: string, leido: boolean) => call<{ ok: true }>({ action: 'comentarioLeido', id, leido })
+export const notifyUser = (id: string) => call<{ ok: true; notified: boolean }>({ action: 'notify', id })
+export const setCantidadEmpleados = (id: string, cantidad: number | null) => call<{ ok: true }>({ action: 'setCantidadEmpleados', id, cantidad })
+
+export interface Skill {
+  id: string
+  nombre: string
+  tipo: 'soft' | 'hard'
+  descripcion: string
+  empresa_id: string | null
+  created_at: string
+}
+export const listSkills = async (empresaId?: string | null): Promise<Skill[]> =>
+  (await call<{ skills: Skill[] }>({ action: 'listSkills', ...(empresaId !== undefined ? { empresaId } : {}) })).skills
+export const createSkill = (data: Omit<Skill, 'id' | 'created_at'>) => call<{ ok: true; skill: Skill }>({ action: 'createSkill', ...data })
+export const updateSkill = (id: string, patch: Partial<Pick<Skill, 'nombre' | 'tipo' | 'descripcion'>>) => call<{ ok: true }>({ action: 'updateSkill', id, ...patch })
+export const deleteSkill = (id: string) => call<{ ok: true }>({ action: 'deleteSkill', id })

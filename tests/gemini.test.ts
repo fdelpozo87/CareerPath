@@ -56,3 +56,26 @@ describe('resilientModel', () => {
     expect(used).toEqual(['principal'])
   })
 })
+
+describe('parseJson', () => {
+  it('recupera un JSON con comillas y saltos de línea sin escapar dentro del mensaje', async () => {
+    const { parseJson } = await import('../server/gemini')
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const raw = '{"mensaje": "Por ejemplo, "laborales" o "personales" a la vez:\n- el celular\n- las reuniones", "temaEnFoco": "ama"}'
+    expect(() => JSON.parse(raw)).toThrow()
+    expect(parseJson<{ mensaje: string; temaEnFoco: string }>(raw)).toEqual({
+      mensaje: 'Por ejemplo, "laborales" o "personales" a la vez:\n- el celular\n- las reuniones',
+      temaEnFoco: 'ama',
+    })
+  })
+
+  it('un JSON cortado sigue fallando', async () => {
+    const { parseJson } = await import('../server/gemini')
+    expect(() => parseJson('{"mensaje": "Algo como')).toThrow()
+  })
+
+  it('no toca un JSON válido', async () => {
+    const { parseJson } = await import('../server/gemini')
+    expect(parseJson('{"a": "dijo \\"hola\\"", "b": [1, 2]}')).toEqual({ a: 'dijo "hola"', b: [1, 2] })
+  })
+})

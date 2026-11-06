@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 import { translate, type Lang } from '../shared/i18n.js'
 import { adminMfaRequired, authorize, resetAuthCache } from './auth.js'
-import { ESTADOS, cloudEnv, createUser, listComentarios, setComentarioLeido, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, setAreas, setEstado, type AuditAction, type Estado } from './cloud.js'
+import { ESTADOS, cloudEnv, createUser, listComentarios, setComentarioLeido, deleteUser, ensurePerfil, findPerfilByEmail, getPerfil, listAudit, listPerfiles, logAudit, setAreas, setEstado, setCantidadEmpleados, listSkills, createSkill, updateSkill, deleteSkill, type AuditAction, type Estado } from './cloud.js'
 import { RATE_RULES, clientIp, ipTag, isAllowedOrigin, logEvent, requestLang } from './guard.js'
 import { durableLimit } from './limits.js'
 import { notifyAccess, notifyActivated } from './accessMail.js'
@@ -125,6 +125,58 @@ export async function handleAdmin(req: Req): Promise<AdminResult> {
       if (ok) await audit('eliminar', target?.email ?? id, { estadoAnterior: target?.estado })
       logEvent(ok ? 'info' : 'error', 'admin_borrar', { ok })
       return ok ? { status: 200, body: { ok: true } } : { status: 502, body: { error: msg('srv.upstream') } }
+    }
+    // Skills CRUD
+    if (body.action === 'listSkills') {
+      const skills = await listSkills(env, (body as { empresaId?: unknown }).empresaId === undefined ? undefined : ((body as { empresaId: string | null }).empresaId ?? null))
+      return { status: 200, body: { skills } }
+    }
+    if (body.action === 'createSkill') {
+      const b = body as { nombre?: unknown; tipo?: unknown; descripcion?: unknown; empresaId?: unknown }
+      if (typeof b.nombre !== 'string' || !b.nombre.trim()) return { status: 400, body: { error: msg('srv.badPayload') } }
+      if (b.tipo !== 'soft' && b.tipo !== 'hard') return { status: 400, body: { error: msg('srv.badPayload') } }
+      const skill = await createSkill(env, {
+        nombre: b.nombre.trim(),
+        tipo: b.tipo,
+        descripcion: typeof b.descripcion === 'string' ? b.descripcion.trim() : '',
+        empresa_id: typeof b.empresaId === 'string' ? b.empresaId : null,
+        created_by: gate.user.id,
+      })
+      logEvent('info', 'admin_skill_create', { tipo: b.tipo })
+      return { status: 200, body: { ok: true, skill } }
+    }
+    if (body.action === 'updateSkill') {
+      const b = body as { id?: unknown; nombre?: unknown; tipo?: unknown; descripcion?: unknown }
+      if (typeof b.id !== 'string' || !UUID.test(b.id)) return { status: 400, body: { error: msg('srv.badPayload') } }
+      const patch: Record<string, unknown> = {}
+      if (typeof b.nombre === 'string') patch.nombre = b.nombre.trim()
+      if (b.tipo === 'soft' || b.tipo === 'hard') patch.tipo = b.tipo
+      if (typeof b.descripcion === 'string') patch.descripcion = b.descripcion.trim()
+      const ok = await updateSkill(env, b.id, patch)
+      return ok ? { status: 200, body: { ok: true } } : { status: 502, body: { error: msg('srv.upstream') } }
+    }
+    if (body.action === 'deleteSkill') {
+      if (typeof body.id !== 'string' || !UUID.test(body.id)) return { status: 400, body: { error: msg('srv.badPayload') } }
+      const ok = await deleteSkill(env, body.id)
+      return ok ? { status: 200, body: { ok: true } } : { status: 502, body: { error: msg('srv.upstream') } }
+    }
+    if (body.action === 'setCantidadEmpleados') {
+      const b = body as { cantidad?: unknown }
+      const cantidad = b.cantidad === null ? null : typeof b.cantidad === 'number' && Number.isInteger(b.cantidad) && b.cantidad >= 0 ? b.cantidad : undefined
+      if (cantidad === undefined) return { status: 400, body: { error: msg('srv.badPayload') } }
+      const ok = await setCantidadEmpleados(env, id, cantidad)
+      return ok ? { status: 200, body: { ok: true } } : { status: 502, body: { error: msg('srv.upstream') } }
+    }
+    // Notificación: (re)enviar enlace de acceso
+    if (body.action === 'notify') {
+      if (!id) return { status: 400, body: { error: msg('srv.badPayload') } }
+      const target = await getPerfil(env, id)
+      if (!target) return { status: 404, body: { error: msg('srv.badPayload') } }
+      const origin = typeof req.headers.origin === 'string' ? req.headers.origin : ''
+      if (!origin) return { status: 400, body: { error: msg('srv.badPayload') } }
+      const notified = await notifyAccess(env, target.email, origin, lang).catch(() => false)
+      logEvent(notified ? 'info' : 'error', 'admin_notify', { notified })
+      return { status: 200, body: { ok: true, notified } }
     }
     return { status: 400, body: { error: msg('srv.badPayload') } }
   } catch (e) {

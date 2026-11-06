@@ -460,6 +460,16 @@ describe('el cierre es en dos pasos: primero la pregunta, después el mapa', () 
     expect(gemini.generateContent).toHaveBeenCalledTimes(3)
   })
 
+  it('si el mensaje habla de la persona con género ("sola"), se pide reformularlo una vez', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    gemini.generateContent
+      .mockResolvedValueOnce(modelReply({ mensaje: '¿Seguir intentándolo sola o buscar apoyo?', objetivosCubiertos: [] }))
+      .mockResolvedValueOnce(modelReply({ mensaje: '¿Seguir intentándolo por tu cuenta o buscar apoyo?', objetivosCubiertos: [] }))
+    const r = await runEndpoint('coach', makeReq(turnBody({ history: first, cubiertos: [] })), KEY)
+    expect((r.body as { data: { mensaje: string } }).data.mensaje).toBe('¿Seguir intentándolo por tu cuenta o buscar apoyo?')
+    expect(gemini.generateContent).toHaveBeenCalledTimes(2)
+  })
+
   it('si el modelo no hace la pregunta de ajuste, el servidor la agrega', async () => {
     const d = await run({ mensaje: '¿Querés contarme algo más sobre tu jefe?', listoParaAvanzar: false })
     expect(d.mensaje).toBe('¿Hay algo que quieras ajustar o sumar antes de que te arme el mapa?')
@@ -495,6 +505,13 @@ describe('no se promete un mapa que no puede existir', () => {
     expect(m).toContain('Dónde estás hoy')
     expect(m).toContain('queda guardada')
     expect(m.toLowerCase()).not.toContain('te dejo armado')
+  })
+
+  it('en la apertura de una etapa no reemplaza el mensaje: puede nombrar el mapa de la etapa anterior', async () => {
+    const mensaje = 'Con tu mapa de Diagnóstico a la vista, empecemos: ¿qué obstáculo sientes hoy?'
+    gemini.generateContent.mockResolvedValue(modelReply({ mensaje, objetivosCubiertos: [], listoParaAvanzar: false }))
+    const r = await runEndpoint('coach', makeReq(turnBody({ history: [{ role: 'user', text: '(apertura)' }], cubiertos: [] })), KEY)
+    expect((r.body as { data: { mensaje: string } }).data.mensaje).toBe(mensaje)
   })
 
   it('no toca el mensaje cuando la etapa sí puede cerrarse (la pregunta de cierre menciona el mapa)', async () => {
@@ -641,7 +658,7 @@ describe('idiomas: español neutro latinoamericano e inglés', () => {
     expect((r.body as { data: { mensaje: string } }).data.mensaje).toBe('Is there anything you’d like to adjust or add before I put your map together?')
 
     gemini.generateContent.mockResolvedValue(modelReply({ mensaje: 'I will leave your map ready for later.', objetivosCubiertos: ['goal'], listoParaAvanzar: false }))
-    const r2 = await runEndpoint('coach', makeReq(turnBody({ history: [{ role: 'user', text: 'x' }], cubiertos: ['goal'], lang: 'en' })), KEY)
+    const r2 = await runEndpoint('coach', makeReq(turnBody({ history: [{ role: 'user', text: 'x' }, { role: 'model', text: '{"temaEnFoco":"reality"}' }, { role: 'user', text: 'y' }], cubiertos: ['goal'], lang: 'en' })), KEY)
     const msg = (r2.body as { data: { mensaje: string } }).data.mensaje
     expect(msg).toContain('Where you are today')
     expect(msg.toLowerCase()).not.toContain('leave your map')

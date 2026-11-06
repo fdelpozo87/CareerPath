@@ -83,6 +83,49 @@ export async function emailOf(env: CloudEnv, userId: string): Promise<string | n
   return ((await res.json()) as { email?: string }).email ?? null
 }
 
+export interface Skill {
+  id: string
+  nombre: string
+  tipo: 'soft' | 'hard'
+  descripcion: string
+  empresa_id: string | null
+  created_at: string
+}
+
+export async function listSkills(env: CloudEnv, empresaId?: string | null): Promise<Skill[]> {
+  const q = new URLSearchParams({ select: 'id,nombre,tipo,descripcion,empresa_id,created_at', order: 'created_at.desc', limit: '500' })
+  if (empresaId !== undefined) {
+    q.set('empresa_id', empresaId === null ? 'is.null' : `eq.${empresaId}`)
+  }
+  const res = await call(env, `/rest/v1/bivio_skills?${q}`)
+  if (!res.ok) throw new Error(`skills ${res.status}`)
+  return (await res.json()) as Skill[]
+}
+
+export async function createSkill(env: CloudEnv, skill: Omit<Skill, 'id' | 'created_at'> & { created_by?: string }): Promise<Skill> {
+  const res = await call(env, '/rest/v1/bivio_skills?select=id,nombre,tipo,descripcion,empresa_id,created_at', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(skill),
+  })
+  if (!res.ok) throw new Error(`skill_create ${res.status}`)
+  const rows = (await res.json()) as Skill[]
+  return rows[0]
+}
+
+export async function updateSkill(env: CloudEnv, id: string, patch: Partial<Pick<Skill, 'nombre' | 'tipo' | 'descripcion'>>): Promise<boolean> {
+  const res = await call(env, `/rest/v1/bivio_skills?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+  return res.ok
+}
+
+export async function deleteSkill(env: CloudEnv, id: string): Promise<boolean> {
+  const res = await call(env, `/rest/v1/bivio_skills?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' })
+  return res.ok
+}
+
 export async function markReminderSent(env: CloudEnv, id: string, at: Date): Promise<void> {
   await call(env, `/rest/v1/bivio_recordatorios?id=eq.${encodeURIComponent(id)}`, {
     method: 'PATCH',
@@ -106,9 +149,11 @@ export interface Perfil {
   acceso_profesionales: boolean
   /** Puede usar "Para empresas". */
   acceso_empresas: boolean
+  /** Cantidad de empleados declarada por la empresa (null si no se informó). */
+  cantidad_empleados: number | null
 }
 
-const PERFIL_COLS = 'user_id,email,estado,created_at,last_seen_at,acceso_profesionales,acceso_empresas'
+const PERFIL_COLS = 'user_id,email,estado,created_at,last_seen_at,acceso_profesionales,acceso_empresas,cantidad_empleados'
 
 export async function getPerfil(env: CloudEnv, userId: string): Promise<Perfil | null> {
   const res = await call(env, `/rest/v1/bivio_perfiles?select=${PERFIL_COLS}&user_id=eq.${encodeURIComponent(userId)}&limit=1`)
@@ -151,6 +196,15 @@ export async function setEstado(env: CloudEnv, userId: string, estado: Estado): 
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({ estado }),
+  })
+  return res.ok
+}
+
+export async function setCantidadEmpleados(env: CloudEnv, userId: string, cantidad: number | null): Promise<boolean> {
+  const res = await call(env, `/rest/v1/bivio_perfiles?user_id=eq.${encodeURIComponent(userId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ cantidad_empleados: cantidad }),
   })
   return res.ok
 }

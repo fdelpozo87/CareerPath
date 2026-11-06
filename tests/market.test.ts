@@ -101,3 +101,21 @@ describe('informe con plan completo', () => {
     expect(normalizeReport({ faltaParaCompletar: 'no es lista' }).faltaParaCompletar).toEqual([])
   })
 })
+
+describe('genderedWords', () => {
+  it('detecta formas con género que describen a la persona', async () => {
+    const { genderedWords } = await import('../server/lang')
+    expect(genderedWords('Con esos dos caminos —seguir intentándolo sola o buscar apoyo—, imagina tu día.', 'es')).toEqual(['sola'])
+    expect(genderedWords('¿Qué es lo que te hace sentir que estás estancada?', 'es')).toEqual(['estancada'])
+    expect(genderedWords('¿Qué tan dispuesta estás?', 'es')).toEqual(['dispuesta'])
+    expect(genderedWords('Si sigues muy cansado, cuéntame.', 'es')).toEqual(['cansado'])
+    expect(genderedWords('Vas a seguir solo con esto', 'es')).toEqual(['solo'])
+  })
+
+  it('no marca usos sin género ni otros idiomas', async () => {
+    const { genderedWords } = await import('../server/lang')
+    expect(genderedWords('Una sola pregunta: ¿qué intentaste por tu cuenta?', 'es')).toEqual([])
+    expect(genderedWords('Estás en pausa y con ganas de avanzar.', 'es')).toEqual([])
+    expect(genderedWords('You are tired', 'en')).toEqual([])
+  })
+})

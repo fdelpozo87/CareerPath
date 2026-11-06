@@ -179,20 +179,6 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
                 </button>
               </li>
             )}
-            {account.onAdmin && (
-              <li>
-                <button
-                  type="button"
-                  className={`${ITEM} font-semibold`}
-                  onClick={() => {
-                    setOpen(false)
-                    account.onAdmin?.()
-                  }}
-                >
-                  {tr('admin.link')}
-                </button>
-              </li>
-            )}
             {account.onFeedback && (
               <li>
                 <button
@@ -247,6 +233,23 @@ export default function AccountMenu({ account }: { account: AccountInfo }) {
                   }}
                 >
                   {tr('account.logout')}
+                </button>
+              </li>
+            )}
+            {account.onAdmin && (
+              <li className="mt-2 border-t border-border-color pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false)
+                    account.onAdmin?.()
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-left text-sm font-semibold text-on-primary transition hover:opacity-90"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                  {tr('admin.link')}
                 </button>
               </li>
             )}

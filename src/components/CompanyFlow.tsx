@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { callCompanyAnalysis, fileToBase64 } from '../lib/aiClient'
 import { tr, type Key } from '../lib/i18n'
+import CompanySection from './CompanySection'
 import LanguageToggle from './LanguageToggle'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
@@ -817,7 +818,7 @@ function ResultScreen({
 
 // ── Main: CompanyFlow ────────────────────────────────────────────────────────
 
-export function CompanyFlow({ onBack }: { onBack: () => void }) {
+export function CompanyFlow({ onBack, onEvaluaciones }: { onBack: () => void; onEvaluaciones?: () => void }) {
   const [step, setStep] = useState<CompanyStep>('intro')
   const [ctx, setCtx] = useState<CollaboratorContext | null>(null)
   const [answers, setAnswers] = useState<Answers>({})
@@ -890,7 +891,7 @@ export function CompanyFlow({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        {step === 'intro' && <IntroScreen onStart={() => setStep('context')} />}
+        {step === 'intro' && <CompanySection onStart={() => setStep('context')} onEvaluaciones={onEvaluaciones} />}
 
         {step === 'context' && (
           <ContextForm

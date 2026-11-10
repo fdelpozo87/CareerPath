@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { documentsToText, extractPdfText, requestProfileReading } from '../../lib/coach/api'
-import { draftReady, emptyDraft, type DocDraft } from '../../lib/coach/docs'
+import { checkPdf, emptyDraft, type DocDraft } from '../../lib/coach/docs'
 import type { DocTipo, Observation, ProfileDoc, ProfileReading, ProfileSignal, SignalState } from '../../lib/coach/types'
 import { tr, type Key } from '../../lib/i18n'
 import { trackEvent } from '../../lib/tracking'
 import { CoachAvatar } from '../Logo'
-import { DocSlot } from './DocInputs'
+import { LinkedInHowTo } from './DocInputs'
 
 // Camino B — "cómo te lee un reclutador" (§4). La lectura no reemplaza el
 // proceso: la persona elige qué recomendaciones toma y eso alimenta el Diagnóstico.
@@ -21,37 +21,36 @@ export function ProfileStep({ initial, onReading, onContinue }: ProfileStepProps
   return <ProfileForm onReading={onReading} />
 }
 
-const TIPOS: DocTipo[] = ['cv', 'linkedin']
-
 function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
   const [puesto, setPuesto] = useState('')
-  const [drafts, setDrafts] = useState<Record<DocTipo, DocDraft>>({ cv: emptyDraft(), linkedin: emptyDraft() })
+  // Un único slot: PDF (CV) o texto pegado (LinkedIn)
+  const [draft, setDraft] = useState<DocDraft>(emptyDraft())
+  const [textMode, setTextMode] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
 
-  const listos = TIPOS.filter((t) => draftReady(drafts[t]))
   const hasPuesto = puesto.trim().length >= 3
-  const ready = hasPuesto && listos.length > 0
-  // Si el botón está apagado, se le dice a la persona qué falta (en vez de dejarla adivinar).
-  const missing = !hasPuesto ? tr('profile.missing.role') : listos.length === 0 ? tr('profile.missing.doc') : null
+  const hasDoc = textMode ? draft.texto.trim().length > 0 : !!draft.file
+  const ready = hasPuesto && hasDoc
+  const missing = !hasPuesto ? tr('profile.missing.role') : !hasDoc ? tr('profile.missing.doc') : null
 
   const submit = async () => {
     setError(null)
     try {
-      const documentos: ProfileDoc[] = []
-      for (const tipo of listos) {
-        const d = drafts[tipo]
-        if (d.mode === 'pdf' && d.file) {
-          setStatus(tipo === 'cv' ? tr('flow.reading.cv') : tr('flow.reading.linkedin'))
-          documentos.push({ tipo, nombre: d.file.name, texto: await extractPdfText(d.file) })
-        } else {
-          documentos.push({ tipo, nombre: 'Texto pegado', texto: d.texto.trim() })
-        }
+      const tipo: DocTipo = textMode ? 'linkedin' : 'cv'
+      let doc: ProfileDoc
+      if (!textMode && draft.file) {
+        setStatus(tr('flow.reading.cv'))
+        doc = { tipo, nombre: draft.file.name, texto: await extractPdfText(draft.file) }
+      } else {
+        doc = { tipo, nombre: 'Texto pegado', texto: draft.texto.trim() }
       }
-      setStatus(documentos.length > 1 ? tr('profile.busy.both') : tr('profile.busy.one'))
-      const { data } = await requestProfileReading(puesto.trim(), documentsToText(documentos) ?? '')
-      trackEvent('profile_reading_completed', { docs: listos.join('+') })
-      onReading(puesto.trim(), data, documentos)
+      setStatus(tr('profile.busy.one'))
+      const { data } = await requestProfileReading(puesto.trim(), documentsToText([doc]) ?? '')
+      trackEvent('profile_reading_completed', { docs: tipo })
+      onReading(puesto.trim(), data, [doc])
     } catch (e) {
       setError(e instanceof Error ? e.message : tr('flow.err.generic'))
     } finally {
@@ -75,13 +74,10 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <header className="mb-8 text-center">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{tr('profile.eyebrow')}</p>
-        <h2 className="mb-3">{tr('profile.title')}</h2>
-        <p className="mx-auto max-w-xl text-lg leading-relaxed text-text-muted">
-          {tr('profile.lede')}
-        </p>
+    <div className="mx-auto max-w-xl">
+      <header className="mb-8">
+        <h2 className="mb-2 text-2xl leading-snug">{tr('profile.form.title')}</h2>
+        <p className="text-base leading-relaxed text-text-muted">{tr('profile.form.lede')}</p>
       </header>
 
       {error && (
@@ -90,66 +86,117 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
         </div>
       )}
 
-      <section aria-labelledby="que-recibis" className="card mb-5">
-        <h3 id="que-recibis" className="mb-4">
-          {tr('profile.receive')}
-        </h3>
-        <ul role="list" className="grid gap-4 sm:grid-cols-3">
-          {[
-            [<EyeIcon key="e" />, tr('profile.b1.title'), tr('profile.b1.body')],
-            [<QuoteIcon key="q" />, tr('profile.b2.title'), tr('profile.b2.body')],
-            [<PickIcon key="p" />, tr('profile.b3.title'), tr('profile.b3.body')],
-          ].map(([icon, title, body]) => (
-            <li key={title as string} className="flex gap-3 sm:block">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary sm:mb-2" aria-hidden="true">
-                {icon}
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-foreground">{title}</p>
-                <p className="mt-0.5 text-sm leading-relaxed text-text-muted">{body}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-5 rounded-2xl bg-secondary p-3.5 text-sm leading-relaxed text-text-muted">
-          <strong className="font-semibold text-foreground">{tr('profile.wont.strong')}</strong>
-          {tr('profile.wont.rest')}
-        </p>
-      </section>
-
-      <section aria-labelledby="paso-puesto" className="card mb-5">
-        <StepTitle n={1} id="paso-puesto" title={tr('profile.step1.title')} />
-        <p className="mb-3 text-sm text-text-muted">{tr('profile.step1.hint')}</p>
+      {/* Puesto o área */}
+      <div className="mb-6">
+        <label htmlFor="puesto" className="mb-1.5 block text-sm font-semibold text-foreground">
+          {tr('profile.form.role.label')}
+        </label>
         <input
           id="puesto"
-          aria-labelledby="paso-puesto"
           value={puesto}
           onChange={(e) => setPuesto(e.target.value)}
           maxLength={200}
-          placeholder={tr('profile.step1.placeholder')}
+          placeholder={tr('profile.form.role.placeholder')}
           className="w-full rounded-2xl border border-border-color bg-background p-3.5 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
-      </section>
-
-      <section aria-labelledby="paso-perfil" className="card mb-5">
-        <StepTitle n={2} id="paso-perfil" title={tr('profile.step2.title')} />
-        <p className="mb-4 text-sm text-text-muted">
-          {tr('profile.step2.hint')}
-        </p>
-        <div className="space-y-3">
-          {TIPOS.map((t) => (
-            <DocSlot key={t} tipo={t} draft={drafts[t]} onChange={(d) => setDrafts((prev) => ({ ...prev, [t]: d }))} />
-          ))}
-        </div>
-        <p className="mt-4 text-xs leading-relaxed text-text-muted">
-          {tr('profile.step2.privacy')}{' '}
-          <a href="#privacidad" target="_blank" rel="noopener" className="underline underline-offset-2">
-            {tr('chat.onb.3.link')}
+        <p className="mt-1.5 text-xs text-text-muted">{tr('profile.form.role.hint')}</p>
+        <p className="mt-2 text-xs text-text-muted">
+          {tr('profile.form.unclear')}{' '}
+          <a href="#profesional" className="font-medium text-primary underline-offset-2 hover:underline">
+            {tr('profile.form.unclear.link')} →
           </a>
         </p>
-      </section>
+      </div>
 
-      <button onClick={submit} disabled={!ready} aria-describedby={missing ? 'falta' : undefined} className="btn-primary w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-40">
+      {/* Documento único: CV (PDF) o LinkedIn (texto) */}
+      <div className="mb-6">
+        <p className="mb-3 text-sm font-semibold text-foreground">{tr('profile.form.doc.title')}</p>
+
+        {!textMode ? (
+          <div>
+            <button
+              type="button"
+              onClick={() => { setFileError(null); fileInputRef.current?.click() }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                const f = e.dataTransfer.files[0]
+                if (!f) return
+                const err = checkPdf(f)
+                setFileError(err)
+                if (!err) setDraft((prev) => ({ ...prev, file: f }))
+              }}
+              className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed p-7 text-center transition"
+              style={{
+                borderColor: draft.file ? 'var(--color-primary)' : 'var(--color-border-color)',
+                background: draft.file ? 'var(--color-primary-soft)' : 'var(--color-card)',
+              }}
+            >
+              {draft.file ? (
+                <span className="text-sm font-semibold text-primary">✓ {draft.file.name}</span>
+              ) : (
+                <>
+                  <UploadIcon />
+                  <span className="text-sm font-medium text-foreground">{tr('profile.form.doc.pdf')}</span>
+                </>
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="hidden"
+              tabIndex={-1}
+              aria-hidden="true"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (!f) return
+                const err = checkPdf(f)
+                setFileError(err)
+                if (!err) setDraft((prev) => ({ ...prev, file: f }))
+              }}
+            />
+            {fileError && <p role="alert" className="mt-2 text-xs text-danger">{fileError}</p>}
+            <p className="mt-3 text-center text-xs text-text-muted">
+              También puedes{' '}
+              <button
+                type="button"
+                onClick={() => { setDraft(emptyDraft()); setTextMode(true) }}
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                pegar el texto o el link de tu LinkedIn
+              </button>
+            </p>
+          </div>
+        ) : (
+          <div>
+            <textarea
+              value={draft.texto}
+              onChange={(e) => setDraft((prev) => ({ ...prev, texto: e.target.value }))}
+              rows={8}
+              maxLength={15000}
+              placeholder={tr('docs.linkedin.placeholder')}
+              className="w-full resize-y rounded-2xl border border-border-color bg-card p-3.5 text-sm outline-none focus:border-primary"
+            />
+            <button
+              type="button"
+              onClick={() => { setDraft(emptyDraft()); setTextMode(false) }}
+              className="mt-2 text-xs font-medium text-primary underline-offset-2 hover:underline"
+            >
+              ← Volver a subir PDF
+            </button>
+            <LinkedInHowTo compact />
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={() => void submit()}
+        disabled={!ready}
+        aria-describedby={missing ? 'falta' : undefined}
+        className="btn-primary w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-40"
+      >
         {tr('profile.submit')}
       </button>
       <p id="falta" className="mt-3 min-h-5 text-center text-sm text-text-muted">
@@ -161,40 +208,13 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
 
 const ico = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', className: 'h-4 w-4' } as const
 
-function EyeIcon() {
+function UploadIcon() {
   return (
-    <svg viewBox="0 0 24 24" {...ico}>
-      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
-      <circle cx="12" cy="12" r="3" />
+    <svg viewBox="0 0 24 24" className="h-8 w-8 text-text-muted" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
     </svg>
-  )
-}
-
-function QuoteIcon() {
-  return (
-    <svg viewBox="0 0 24 24" {...ico}>
-      <path d="M7 7h4v5a4 4 0 0 1-4 4M15 7h4v5a4 4 0 0 1-4 4" />
-    </svg>
-  )
-}
-
-function PickIcon() {
-  return (
-    <svg viewBox="0 0 24 24" {...ico}>
-      <rect x="4" y="4" width="16" height="16" rx="3" />
-      <path d="m8.5 12 2.5 2.5 4.5-5" />
-    </svg>
-  )
-}
-
-function StepTitle({ n, id, title }: { n: number; id: string; title: string }) {
-  return (
-    <h3 id={id} className="mb-1.5 flex items-center gap-2.5 text-lg">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary font-sans" aria-hidden="true">
-        {n}
-      </span>
-      {title}
-    </h3>
   )
 }
 

@@ -114,6 +114,27 @@ export function introFor(stage: Stage, path: Path = 'quiebre', lang: Lang = 'es'
   return { titulo: at('titulo'), queHacemos: at('queHacemos'), despues: at('despues') }
 }
 
+/** Una celda de la tabla de comparación del Camino C: lo que la persona dijo sobre una opción para un criterio dado. */
+export interface ComparisonCell {
+  texto: string
+  /** Faltan datos para completar esta celda: se muestra como "A averiguar". */
+  pendiente?: boolean
+  /** Fuente de datos de mercado (si el dato viene de una búsqueda, no de lo que dijo la persona). */
+  fuente?: string
+}
+
+/** Tabla de comparación del Camino C: criterios × opciones de formación. */
+export interface ComparisonData {
+  criterios: string[]
+  opciones: Array<{
+    nombre: string
+    /** Modalidad, duración, etc. — detalles cortos para el encabezado de la columna. */
+    detalles?: string
+    /** Una celda por criterio, en el mismo orden que `criterios`. */
+    celdas: ComparisonCell[]
+  }>
+}
+
 /** Una pieza del "mapa" con el que cierra cada etapa: lo que la persona dijo, ordenado. */
 export interface SynthesisItem {
   /** id del objetivo de la etapa (ver STAGE_OBJECTIVES). */
@@ -126,6 +147,8 @@ export interface SynthesisItem {
   omitido?: boolean
   /** Solo en el tema "ikigai": una frase corta de la persona por cada dimensión ("" si no la dijo). */
   ikigai?: Ikigai
+  /** Solo en el tema "comparacion" del Camino C: tabla criterios × opciones armada con lo que dijo la persona. */
+  comparativa?: ComparisonData
 }
 
 /** Las cuatro miradas del ikigai, con las palabras de la persona. El cruce del centro no lo completa nadie más que ella. */

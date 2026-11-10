@@ -46,6 +46,54 @@ export function StageMap({ stage, path, map, fallbackText, onAdjust, onResume, r
                   {tr('map.resume')}
                 </button>
               </li>
+            ) : item.id === 'comparacion' && item.comparativa ? (
+              // Tabla de comparación del Camino C: criterios × opciones, todo ancho.
+              <li key={item.id} className="rounded-2xl border border-border-color bg-card p-4 sm:col-span-2">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">{labelOf(item.id)}</p>
+                <p className="mb-1 text-[15px] leading-relaxed text-foreground">{item.texto}</p>
+                <p className="mb-4 text-sm leading-relaxed text-text-muted">{tr('compare.table.lede')}</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr>
+                        <th className="pb-2 pr-4 text-left text-xs font-semibold text-text-muted" />
+                        {item.comparativa.opciones.map((op, oi) => (
+                          <th key={oi} className="pb-2 pr-4 text-left text-xs font-semibold text-foreground">
+                            {op.nombre}
+                            {op.detalles && <span className="ml-1 font-normal text-text-muted">({op.detalles})</span>}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {item.comparativa.criterios.map((criterio, ci) => (
+                        <tr key={ci} className="border-t border-border-color">
+                          <td className="py-2 pr-4 align-top text-xs font-semibold text-text-muted">{criterio}</td>
+                          {item.comparativa!.opciones.map((op, oi) => {
+                            const celda = op.celdas[ci]
+                            return (
+                              <td key={oi} className="py-2 pr-4 align-top text-xs leading-relaxed text-foreground">
+                                {celda?.pendiente ? (
+                                  <span className="italic text-text-muted">{tr('compare.table.pending')}</span>
+                                ) : celda?.texto ? (
+                                  celda.texto
+                                ) : (
+                                  <span className="text-text-muted">—</span>
+                                )}
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {item.cita && (
+                  <blockquote className="mt-3 border-l-2 border-accent pl-3 text-sm italic leading-relaxed text-text-muted">
+                    <span className="sr-only">{tr('map.youSaid')}</span>"{item.cita}"
+                  </blockquote>
+                )}
+              </li>
             ) : item.id === 'ikigai' && item.ikigai ? (
               // El ikigai ocupa todo el ancho: son cuatro miradas con lo que la persona dijo y un centro que nombra ella.
               <li key={item.id} className="rounded-2xl border border-border-color bg-card p-4 sm:col-span-2">

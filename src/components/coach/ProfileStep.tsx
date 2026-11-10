@@ -206,8 +206,6 @@ function ProfileForm({ onReading }: Pick<ProfileStepProps, 'onReading'>) {
   )
 }
 
-const ico = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', className: 'h-4 w-4' } as const
-
 function UploadIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-8 w-8 text-text-muted" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

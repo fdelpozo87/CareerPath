@@ -174,50 +174,6 @@ async function analyzeWithGemini(
   return response.data as CompanyDiagnosisResult
 }
 
-// ── Step: Intro ─────────────────────────────────────────────────────────────
-
-function IntroScreen({ onStart }: { onStart: () => void }) {
-  return (
-    <div className="mx-auto max-w-lg py-12">
-      <div className="mb-8 text-center">
-        <div
-          className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-card shadow-sm"
-          style={{ border: '1px solid var(--color-border-color)' }}
-        >
-          <span className="text-2xl">◈</span>
-        </div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{tr('cf.intro.eyebrow')}</p>
-        <h2 className="mb-3">{tr('cf.intro.title')}</h2>
-        <p className="leading-relaxed text-text-muted">
-          {tr('cf.intro.lede.a')}
-          <strong className="text-foreground font-semibold">{tr('cf.intro.lede.b')}</strong>
-          {tr('cf.intro.lede.c')}
-        </p>
-      </div>
-
-      <div className="card mb-6">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('cf.intro.get')}</p>
-        <ul className="space-y-3">
-          {[1, 2, 3, 4, 5].map((n) => tr(`company.out.${n}` as Key)).map((item) => (
-            <li key={item} className="flex items-start gap-2.5 text-sm text-text-muted">
-              <span className="mt-0.5 font-bold text-primary">→</span>
-              {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <p className="mb-6 text-center text-xs text-text-muted">
-        {tr('cf.intro.meta')}
-      </p>
-
-      <button onClick={onStart} className="btn-primary w-full py-3.5 text-base">
-        {tr('cf.intro.start')}
-      </button>
-    </div>
-  )
-}
-
 // ── Step: Context form ──────────────────────────────────────────────────────
 
 // Los colores de categoría se usan también como color de texto. Mezclados con el color de texto del

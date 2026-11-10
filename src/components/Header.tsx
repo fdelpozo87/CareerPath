@@ -16,11 +16,10 @@ export default function Header({ account, areas, onCompany }: { account: Account
                 {tr('nav.professionals')}
               </a>
             )}
-            {areas?.empresas !== false && (
-              onCompany
-                ? <button type="button" onClick={onCompany} className="text-sm text-text-muted transition-colors hover:text-foreground">{tr('nav.companies')}</button>
-                : <a href="#empresa" className="text-sm text-text-muted transition-colors hover:text-foreground">{tr('nav.companies')}</a>
-            )}
+            {onCompany
+              ? <button type="button" onClick={onCompany} className="text-sm text-text-muted transition-colors hover:text-foreground">{tr('nav.companies')}</button>
+              : <a href="#empresa" className="text-sm text-text-muted transition-colors hover:text-foreground">{tr('nav.companies')}</a>
+            }
           </nav>
           <div className="flex items-center gap-2">
             <LanguageToggle />

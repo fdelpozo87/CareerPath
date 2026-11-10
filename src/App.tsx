@@ -486,12 +486,31 @@ function AppInner() {
     : undefined
 
   if (view === 'company') {
+    if (!areas.empresas) {
+      return (
+        <div className="flex min-h-screen flex-col bg-background font-sans">
+          <Header account={account} areas={areas} onCompany={() => setView('company')} />
+          <main className="flex flex-1 items-center justify-center px-6 py-20">
+            <div className="mx-auto max-w-md text-center">
+              <span className="mb-6 inline-block rounded-full bg-primary-soft px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary">
+                {tr('nav.companies')}
+              </span>
+              <h1 className="mb-4 text-3xl leading-snug">{tr('empresa.soon.title')}</h1>
+              <p className="mb-8 leading-relaxed text-text-muted">{tr('empresa.soon.lede')}</p>
+              <button onClick={() => setView('landing')} className="btn-secondary px-6 py-3">
+                {tr('empresa.soon.back')}
+              </button>
+            </div>
+          </main>
+        </div>
+      )
+    }
     return <CompanyFlow onBack={() => setView('landing')} onEvaluaciones={onEvaluaciones} />
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans">
-      <Header account={account} areas={areas} onCompany={areas.empresas ? () => { setView('company'); window.scrollTo(0, 0) } : undefined} />
+      <Header account={account} areas={areas} onCompany={() => { setView('company'); window.scrollTo(0, 0) }} />
       <main className="flex-1">
         {notice && (
           <div role="status" className="mx-auto mt-6 flex max-w-6xl items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-sm text-foreground">

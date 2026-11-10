@@ -35,6 +35,26 @@ function Arrow({ className = '' }: { className?: string }) {
   )
 }
 
+/** Ítem compacto para la barra lateral (cuando ya hay sesiones activas). */
+function PathItem({ id, letter, onChoose }: { id: Path; letter: 'A' | 'B' | 'C'; onChoose: (p: Path) => void }) {
+  const { tag, title } = textOf(letter)
+  return (
+    <button
+      onClick={() => onChoose(id)}
+      className="group flex w-full items-center gap-3 rounded-2xl border border-border-color bg-card p-4 text-left transition hover:border-primary/30 hover:shadow-sm"
+    >
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-display text-xs font-bold text-primary ${illustrationBg[id]}`}>
+        {letter}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-text-muted">{tag}</p>
+        <p className="text-sm font-semibold leading-snug text-foreground">{title}</p>
+      </div>
+      <Arrow className="shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transition-none" />
+    </button>
+  )
+}
+
 /** Tarjeta grande: dibujo arriba, texto y botón. Toda la tarjeta es el botón (el enlace se estira). */
 function PathCard({ id, letter, onChoose }: { id: Path; letter: 'A' | 'B' | 'C'; onChoose: (p: Path) => void }) {
   const { title, body } = textOf(letter)
@@ -138,19 +158,6 @@ interface LandingProps {
 
 export default function Landing({ onChoosePath, processes, onResume, onDelete, showPaths = true, name }: LandingProps) {
   const hasProcesses = processes.length > 0
-  const sessions = hasProcesses && (
-    <section aria-labelledby="mis-procesos">
-      <h2 id="mis-procesos" className="mb-1 text-2xl">
-        {tr('process.title')}
-      </h2>
-      <p className="mb-4 text-sm text-text-muted">{tr('process.lede')}</p>
-      <ul role="list" className="grid gap-4 md:grid-cols-2">
-        {processes.map((p, i) => (
-          <ProcessCard key={p.id} process={p} latest={i === 0} onResume={onResume} onDelete={onDelete} />
-        ))}
-      </ul>
-    </section>
-  )
 
   return (
     <section id="profesional" className="py-16 md:py-24">
@@ -161,26 +168,48 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
               {tr(name ? 'landing.hello' : 'landing.helloAnon', { name: name ?? '' })} <span className="text-primary-dark">{tr('landing.ask')}</span>
             </h1>
 
-            {sessions && <div className="mx-auto mb-14 max-w-6xl">{sessions}</div>}
+            {hasProcesses ? (
+              /* Dos columnas: sesiones activas a la izquierda, opciones compactas a la derecha */
+              <div className="mx-auto mb-14 max-w-6xl lg:grid lg:grid-cols-[1fr_300px] lg:items-start lg:gap-12 xl:grid-cols-[1fr_320px] xl:gap-16">
+                <section aria-labelledby="mis-procesos">
+                  <h2 id="mis-procesos" className="mb-1 text-2xl">
+                    {tr('process.title')}
+                  </h2>
+                  <p className="mb-4 text-sm text-text-muted">{tr('process.lede')}</p>
+                  <ul role="list" className="grid gap-4">
+                    {processes.map((p, i) => (
+                      <ProcessCard key={p.id} process={p} latest={i === 0} onResume={onResume} onDelete={onDelete} />
+                    ))}
+                  </ul>
+                </section>
 
-            <div className="mx-auto max-w-6xl">
-              {hasProcesses ? (
-                <h2 id="empezar-nueva" className="mb-5 text-2xl">
-                  {tr('landing.newSession')}
-                </h2>
-              ) : (
+                <aside aria-labelledby="empezar-nueva" className="mt-10 lg:mt-0">
+                  <h2 id="empezar-nueva" className="mb-4 text-xl">
+                    {tr('landing.newSession')}
+                  </h2>
+                  <div className="flex flex-col gap-3">
+                    {PATHS.map((p) => (
+                      <PathItem key={p.id} {...p} onChoose={onChoosePath} />
+                    ))}
+                  </div>
+                  <p className="mt-3 text-xs text-text-muted">{tr('landing.pathC.note')}</p>
+                </aside>
+              </div>
+            ) : (
+              /* Primera vez: tarjetas grandes a todo ancho */
+              <div className="mx-auto max-w-6xl">
                 <div className="mb-6">
                   <h2 className="mb-2 text-2xl">{tr('landing.first.title')}</h2>
                   <p className="text-text-muted">{tr('landing.first.lede')}</p>
                 </div>
-              )}
-              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {PATHS.map((p) => (
-                  <PathCard key={p.id} {...p} onChoose={onChoosePath} />
-                ))}
+                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                  {PATHS.map((p) => (
+                    <PathCard key={p.id} {...p} onChoose={onChoosePath} />
+                  ))}
+                </div>
+                <p className="mt-4 text-xs font-semibold text-text-muted">{tr('landing.pathC.note')}</p>
               </div>
-              <p className="mt-4 text-xs font-semibold text-text-muted">{tr('landing.pathC.note')}</p>
-            </div>
+            )}
 
             <div className="mx-auto mt-14 max-w-4xl">
               <div className="rounded-3xl bg-accent-soft px-6 py-8 sm:px-10 sm:py-10">
@@ -218,7 +247,19 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
             </div>
           </>
         )}
-        {!showPaths && hasProcesses && <div className="mx-auto max-w-3xl">{sessions}</div>}
+        {!showPaths && hasProcesses && (
+          <div className="mx-auto max-w-3xl">
+            <section aria-labelledby="mis-procesos-alt">
+              <h2 id="mis-procesos-alt" className="mb-1 text-2xl">{tr('process.title')}</h2>
+              <p className="mb-4 text-sm text-text-muted">{tr('process.lede')}</p>
+              <ul role="list" className="grid gap-4">
+                {processes.map((p, i) => (
+                  <ProcessCard key={p.id} process={p} latest={i === 0} onResume={onResume} onDelete={onDelete} />
+                ))}
+              </ul>
+            </section>
+          </div>
+        )}
       </div>
     </section>
   )

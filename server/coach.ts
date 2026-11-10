@@ -9,7 +9,7 @@ import {
   type Stage,
 } from './prompts.js'
 import { DEFAULT_LANG, isLang, translate, type Lang } from '../shared/i18n.js'
-import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type Ikigai, type SynthesisItem } from '../shared/stages.js'
+import { MAX_OMITIDOS_POR_ETAPA, objectiveLabel, type ComparisonData, type Ikigai, type SynthesisItem } from '../shared/stages.js'
 import { generateJson, isIncompleteResponse, responseText, resilientModel } from './gemini.js'
 import { genderedWords, neutralizeGender, wrongLanguage } from './lang.js'
 import { logEvent, publicError } from './guard.js'
@@ -259,6 +259,39 @@ export function cleanIkigai(raw: unknown, userText: string): Ikigai | undefined 
   return Object.values(ikigai).filter(Boolean).length >= 2 ? ikigai : undefined
 }
 
+function cleanComparativa(raw: unknown): ComparisonData | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined
+  const r = raw as Record<string, unknown>
+  if (!Array.isArray(r.criterios) || !Array.isArray(r.opciones)) return undefined
+  const criterios = (r.criterios as unknown[])
+    .filter((c): c is string => typeof c === 'string' && !!c.trim())
+    .map((c) => c.trim())
+  if (criterios.length === 0) return undefined
+  const opciones = (r.opciones as unknown[]).flatMap((op) => {
+    if (typeof op !== 'object' || op === null) return []
+    const o = op as Record<string, unknown>
+    if (typeof o.nombre !== 'string' || !o.nombre.trim()) return []
+    if (!Array.isArray(o.celdas)) return []
+    const celdas = (o.celdas as unknown[]).map((c) => {
+      if (typeof c !== 'object' || c === null) return { texto: '' }
+      const cell = c as Record<string, unknown>
+      return {
+        texto: typeof cell.texto === 'string' ? cell.texto.trim() : '',
+        ...(cell.pendiente === true ? { pendiente: true as const } : {}),
+        ...(typeof cell.fuente === 'string' && cell.fuente.trim() ? { fuente: cell.fuente.trim() } : {}),
+      }
+    })
+    while (celdas.length < criterios.length) celdas.push({ texto: '' })
+    return [{
+      nombre: o.nombre.trim(),
+      ...(typeof o.detalles === 'string' && o.detalles.trim() ? { detalles: o.detalles.trim() } : {}),
+      celdas: celdas.slice(0, criterios.length),
+    }]
+  })
+  if (opciones.length === 0) return undefined
+  return { criterios, opciones }
+}
+
 export function cleanItems(raw: unknown, stage: Stage, userText: string, path: Path): SynthesisItem[] {
   if (!Array.isArray(raw)) return []
   const order = objectivesFor(stage, path).map((o) => o.id)
@@ -266,18 +299,20 @@ export function cleanItems(raw: unknown, stage: Stage, userText: string, path: P
   const items: SynthesisItem[] = []
   for (const it of raw) {
     if (typeof it !== 'object' || it === null) continue
-    const { id, texto, cita, ikigai } = it as Record<string, unknown>
+    const { id, texto, cita, ikigai, comparativa } = it as Record<string, unknown>
     if (typeof id !== 'string' || !order.includes(id) || seen.has(id)) continue
     if (typeof texto !== 'string' || !texto.trim()) continue
     seen.add(id)
     const quote = typeof cita === 'string' ? fold(cita) : ''
     const literal = quote.length >= 4 && userText.includes(quote)
     const petals = id === 'ikigai' ? cleanIkigai(ikigai, userText) : undefined
+    const tabla = id === 'comparacion' && path === 'formacion' ? cleanComparativa(comparativa) : undefined
     items.push({
       id,
       texto: texto.trim().slice(0, MAX_ITEM_TEXT),
       cita: literal ? (cita as string).trim().slice(0, MAX_QUOTE) : '',
       ...(petals ? { ikigai: petals } : {}),
+      ...(tabla ? { comparativa: tabla } : {}),
     })
   }
   return items.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))

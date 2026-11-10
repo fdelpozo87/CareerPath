@@ -1,7 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import Header from './components/Header'
 import Landing from './components/Landing'
-import CompanySection from './components/CompanySection'
 import Footer from './components/Footer'
 import AccessGate from './components/AccessGate'
 import { AccountStatus, LoginGate, MfaGate, SetPasswordScreen } from './components/LoginGate'
@@ -478,13 +477,21 @@ function AppInner() {
     )
   }
 
+  const onEvaluaciones = cloudUser
+    ? () => {
+        window.location.hash = '#evaluaciones'
+        setView('evaluaciones')
+        window.scrollTo(0, 0)
+      }
+    : undefined
+
   if (view === 'company') {
-    return <CompanyFlow onBack={() => setView('landing')} />
+    return <CompanyFlow onBack={() => setView('landing')} onEvaluaciones={onEvaluaciones} />
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans">
-      <Header account={account} areas={areas} />
+      <Header account={account} areas={areas} onCompany={areas.empresas ? () => { setView('company'); window.scrollTo(0, 0) } : undefined} />
       <main className="flex-1">
         {notice && (
           <div role="status" className="mx-auto mt-6 flex max-w-6xl items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-sm text-foreground">
@@ -508,20 +515,6 @@ function AppInner() {
           }}
           onDelete={(id) => setPending({ kind: 'deleteOne', id })}
         />
-        {areas.empresas && (
-          <CompanySection
-            onStart={() => setView('company')}
-            onEvaluaciones={
-              cloudUser
-                ? () => {
-                    window.location.hash = '#evaluaciones'
-                    setView('evaluaciones')
-                    window.scrollTo(0, 0)
-                  }
-                : undefined
-            }
-          />
-        )}
       </main>
       <Footer areas={areas} />
       {confirmDialog}

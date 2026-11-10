@@ -4,7 +4,7 @@ import LanguageToggle from './LanguageToggle'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 
-export default function Header({ account, areas }: { account: AccountInfo; areas?: { profesionales: boolean; empresas: boolean } }) {
+export default function Header({ account, areas, onCompany }: { account: AccountInfo; areas?: { profesionales: boolean; empresas: boolean }; onCompany?: () => void }) {
   return (
     <header className="sticky top-0 z-50 border-b border-border-color bg-background/90 backdrop-blur-sm">
       <div className="section-container flex items-center justify-between py-4">
@@ -17,9 +17,9 @@ export default function Header({ account, areas }: { account: AccountInfo; areas
               </a>
             )}
             {areas?.empresas !== false && (
-              <a href="#empresa" className="text-sm text-text-muted transition-colors hover:text-foreground">
-                {tr('nav.companies')}
-              </a>
+              onCompany
+                ? <button type="button" onClick={onCompany} className="text-sm text-text-muted transition-colors hover:text-foreground">{tr('nav.companies')}</button>
+                : <a href="#empresa" className="text-sm text-text-muted transition-colors hover:text-foreground">{tr('nav.companies')}</a>
             )}
           </nav>
           <div className="flex items-center gap-2">

@@ -28,6 +28,9 @@ export const getClient = (): SupabaseClient | null => sb()
 
 export const cloudEnabled = (): boolean => Boolean(__SUPABASE_URL__ && __SUPABASE_ANON_KEY__)
 
+/** Máximo de recorridos terminados que una persona puede guardar en su cuenta. */
+export const MAX_SAVED_REPORTS = 2
+
 let client: SupabaseClient | null | undefined
 function sb(): SupabaseClient | null {
   if (client === undefined) {

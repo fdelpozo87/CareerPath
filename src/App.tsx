@@ -533,6 +533,14 @@ function AppInner() {
             window.scrollTo(0, 0)
           }}
           onDelete={(id) => setPending({ kind: 'deleteOne', id })}
+          onPdf={(id) => {
+            const saved = processes.find((p) => p.id === id)
+            if (!saved) return
+            try { localStorage.setItem('cp_print_next', id) } catch {}
+            setSession(saved)
+            setView('coach')
+            window.scrollTo(0, 0)
+          }}
         />
       </main>
       <Footer areas={areas} />

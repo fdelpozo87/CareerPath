@@ -25,6 +25,19 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
   const [selected, setSelected] = useState<number[]>(compromisos ?? [])
   const [editing, setEditing] = useState(!compromisos)
   const [confirmRestart, setConfirmRestart] = useState(false)
+
+  useEffect(() => {
+    if (compromisos && session) {
+      try {
+        const pending = localStorage.getItem('cp_print_next')
+        if (pending === session.id) {
+          localStorage.removeItem('cp_print_next')
+          setTimeout(() => window.print(), 200)
+        }
+      } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const toggle = (i: number) => setSelected((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]))
   const hasPedido = report.acciones.some((a) => a.tipo === 'pedido')
   // El ikigai que la persona armó en la Exploración (Caminos A y C), con sus propias palabras.
@@ -182,7 +195,7 @@ export function ReportView({ report, compromisos, compromisosFecha, onSave, onRe
         ) : (
           <>
             <button onClick={() => window.print()} className="btn-primary flex-1 py-3.5">
-              {tr('report.print')}
+              {tr('report.pdf')}
             </button>
             <button onClick={() => setEditing(true)} className="btn-secondary py-3.5">
               {tr('report.edit')}

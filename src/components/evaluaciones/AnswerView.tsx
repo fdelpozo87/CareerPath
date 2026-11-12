@@ -186,7 +186,7 @@ export function AnswerView({ id, onBack, onChanged, isAdmin = false }: { id: str
               <h3 id="informe-titulo" className="mb-3 text-xl print:break-after-avoid">
                 {tr('eval.report.title')}
               </h3>
-              <InformeView informe={data.informe} isAdmin={isAdmin} />
+              <InformeView informe={data.informe} />
             </section>
           )}
 
@@ -378,6 +378,17 @@ export function AnswerView({ id, onBack, onChanged, isAdmin = false }: { id: str
         <p role="alert" className="mt-4 text-sm text-danger">
           {error}
         </p>
+      )}
+
+      {isAdmin && data.estado === 'completada' && (
+        <div className="mt-8 flex justify-end print:hidden">
+          <button onClick={() => window.print()} className="flex items-center gap-1.5 btn-secondary px-5 py-2.5 text-sm">
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 17V3" /><path d="m6 11 6 6 6-6" /><path d="M19 21H5" />
+            </svg>
+            {tr('report.pdf')}
+          </button>
+        </div>
       )}
 
       <ConfirmDialog

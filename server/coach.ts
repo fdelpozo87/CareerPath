@@ -3,6 +3,7 @@ import {
   objectivesFor,
   EXTRACT_PROMPT,
   buildProfilePrompt,
+  buildLecturaVersionPrompt,
   buildReportPrompt,
   buildTurnSystemPrompt,
   type Path,
@@ -76,6 +77,7 @@ type CoachRequest =
       lang?: Lang
     }
   | { mode: 'perfil'; puesto: string; perfilTexto: string; lang?: Lang }
+  | { mode: 'lectura_nueva'; puestoObjetivo: string; perfilTexto: string; lang?: Lang }
   | { mode: 'extraer'; pdfBase64: string }
 
 export type CoachResponse = { status: number; body: unknown }
@@ -145,6 +147,10 @@ function validate(body: unknown): CoachRequest | null {
       return null
     case 'perfil':
       if (isStr(b.puesto, 200) && (b.puesto as string).trim() && isStr(b.perfilTexto, MAX_CONTEXT) && (b.perfilTexto as string).trim().length >= 80 && (b.lang === undefined || isLang(b.lang)))
+        return b as CoachRequest
+      return null
+    case 'lectura_nueva':
+      if (isStr(b.puestoObjetivo, 200) && (b.puestoObjetivo as string).trim() && isStr(b.perfilTexto, MAX_CONTEXT) && (b.perfilTexto as string).trim().length >= 80 && (b.lang === undefined || isLang(b.lang)))
         return b as CoachRequest
       return null
     case 'extraer':
@@ -582,6 +588,17 @@ async function runWithGemini(apiKey: string, req: CoachRequest, lang: Lang): Pro
       )
       return normalizeReading(reading)
     }
+    case 'lectura_nueva': {
+      const model = resilientModel(genAI, { model: modelName, generationConfig: { ...generationConfig, temperature: 0.3 } }, requestOptions)
+      return await generateJson<Record<string, unknown>>(async () =>
+        (
+          await model.generateContent([
+            { text: `PERFIL:\n"""\n${req.perfilTexto}\n"""` },
+            { text: buildLecturaVersionPrompt(req.puestoObjetivo, lang) },
+          ])
+        ).response.text(),
+      )
+    }
     case 'extraer': {
       const model = resilientModel(genAI, { model: modelName, generationConfig: { ...generationConfig, temperature: 0 } }, requestOptions)
       const { texto } = await generateJson<{ texto?: string }>(async () =>
@@ -758,6 +775,13 @@ function runDemo(req: CoachRequest): unknown {
           { tema: 'Resultados medibles', estado: 'ausente', comentario: 'No aparecen cifras ni impacto.', cita: '' },
         ],
         comunicaHoy: 'Tu perfil hoy comunica más "especialista técnico" que "líder de equipo".',
+      }
+    case 'lectura_nueva':
+      return {
+        queCambio: '— MODO DEMO — El nuevo CV muestra más orientación al puesto objetivo.',
+        comoSeLeeAhora: 'El titular ahora está alineado y los resultados son más visibles.',
+        queSigueAbierto: 'La sección de habilidades todavía no refleja el enfoque nuevo.',
+        ideasNuevas: 'Podría sumarse una línea sobre el impacto en equipos.',
       }
     case 'extraer':
       return { texto: '(Modo demo: el texto del CV aparecería aquí.)' }

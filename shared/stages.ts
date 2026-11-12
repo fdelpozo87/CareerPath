@@ -69,6 +69,23 @@ export const FORMACION_OBJECTIVES: Record<Stage, StageObjective[]> = {
   ],
 }
 
+// Camino B (perfil): el Plan de Acción no es un plan genérico sino un ciclo de trabajo
+// sobre el CV con versiones (§4.6 del guardrail v3). Los objetivos reflejan ese ciclo.
+export const PERFIL_PLAN_OBJECTIVES: StageObjective[] = [
+  {
+    id: 'decision_modo',
+    omitible: false,
+    descripcion:
+      'La persona eligió cómo seguir después de la lectura: trabajar el CV por su cuenta (con una fecha para volver a subirlo) o junto con el coach (una recomendación por vez). La elección es suya; no la asignes ni la supongas.',
+  },
+  {
+    id: 'trabajo_cv',
+    omitible: false,
+    descripcion:
+      'El compromiso concreto: si eligió por su cuenta, una fecha en la que va a volver a subir el CV; si eligió con el coach, recorriste con ella las recomendaciones de la lectura (una por vez, preguntando qué quiere poner antes de ofrecer una redacción). No se da por cubierto solo con acordar el modo: tiene que haber un compromiso concreto.',
+  },
+]
+
 /** Los temas de indagación de una etapa según el camino elegido. */
 // El ikigai: un tema más de la Exploración de los caminos A y C (el B no lo trabaja). Va después del tema que lo alimenta: en A,
 // el obstáculo reencuadrado; en C, los intereses y aptitudes que la persona ya contó (así no se le vuelve a preguntar lo mismo).
@@ -86,6 +103,11 @@ export function objectivesFor(stage: Stage, path: Path = 'quiebre'): StageObject
   const key = `${stage}:${path}`
   const cached = objectivesCache.get(key)
   if (cached) return cached
+  // Camino B: el plan usa sus propios objetivos (ciclo de versiones del CV, §4.6).
+  if (path === 'perfil' && stage === 'plan') {
+    objectivesCache.set(key, PERFIL_PLAN_OBJECTIVES)
+    return PERFIL_PLAN_OBJECTIVES
+  }
   const base = path === 'formacion' ? FORMACION_OBJECTIVES[stage] : STAGE_OBJECTIVES[stage]
   const after = IKIGAI_AFTER[path]
   const at = stage === 'discovery' && after ? base.findIndex((o) => o.id === after) : -1

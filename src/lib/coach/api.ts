@@ -19,11 +19,20 @@ function toHistory(messages: UiMessage[]) {
   return history.length > MAX_HISTORY ? [history[0], ...history.slice(-(MAX_HISTORY - 1))] : history
 }
 
+// §4.4: agrupa las recomendaciones por grupo para darle al coach el contexto completo.
+const GRUPO_LABEL: Record<NonNullable<NonNullable<Session['perfil']>['lectura']['recomendaciones'][0]['grupo']>, string> = {
+  queHacesYQueOfreces: 'Qué buscas y qué ofreces',
+  experienciaQuePodriaSumar: 'Experiencia que podría sumar',
+  loQueFaltaONoCuenta: 'Lo que falta o no se encuentra',
+  detallesForma: 'Detalles de forma',
+  convencionesMercado: 'Convenciones del mercado',
+}
+
 function perfilContext(session: Session): string | undefined {
   if (!session.perfil) return undefined
-  const { puesto, lectura, elegidas } = session.perfil
-  const recs = lectura.recomendaciones.slice(0, 3)
-    .map((r, i) => `- ${r.cambio}${elegidas.includes(i) ? ' [la persona eligió tomarla]' : ' [la persona no la eligió]'}`)
+  const { puesto, lectura } = session.perfil
+  const recsTexto = lectura.recomendaciones
+    .map((r) => `- [${r.grupo ? GRUPO_LABEL[r.grupo] ?? r.grupo : 'Recomendación'}] ${r.cambio}`)
     .join('\n')
   return `Puesto al que apunta: ${puesto}
 Primera impresión: ${lectura.primeraImpresion}
@@ -31,8 +40,8 @@ Consistencia de marca: ${lectura.consistenciaMarca}
 Qué comunica hoy: ${lectura.comunicaHoy ?? lectura.notaComunica ?? ''}
 Señales (qué comunica el perfil, no cuánto vale la persona):
 ${(lectura.senales ?? []).map((s) => `- ${s.tema}: ${s.estado} — ${s.comentario}`).join('\n')}
-Recomendaciones:
-${recs}`
+Recomendaciones de la lectura (todas, para trabajar en el Plan de Acción una por vez):
+${recsTexto}`
 }
 
 const DOC_HEADER: Record<ProfileDoc['tipo'], string> = { cv: '=== CV ===', linkedin: '=== LINKEDIN ===' }

@@ -310,10 +310,10 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
             onReading={(puesto, lectura, documentos) =>
               setSession((prev) => ({ ...prev, perfil: { puesto, lectura, elegidas: [] }, documentos }))
             }
-            onContinue={(elegidas) => {
+            onContinue={() => {
               if (!session.perfil) return
               trackEvent('diagnosis_started', { path: session.path })
-              startStage({ ...session, perfil: { ...session.perfil, elegidas }, phase: 'chat' })
+              startStage({ ...session, perfil: session.perfil, phase: 'chat' })
             }}
           />
         )}

@@ -7,17 +7,18 @@ import { trackEvent } from '../../lib/tracking'
 import { CoachAvatar } from '../Logo'
 import { LinkedInHowTo } from './DocInputs'
 
-// Camino B — "cómo te lee un reclutador" (§4). La lectura no reemplaza el
-// proceso: la persona elige qué recomendaciones toma y eso alimenta el Diagnóstico.
+// Camino B — "cómo te lee un reclutador" (§4 guardrail v3). La lectura alimenta el Diagnóstico.
+// La persona no selecciona recomendaciones de una lista: reacciona a la lectura y luego
+// decide en conversación si trabaja por su cuenta o junto al coach (§4.6.1).
 
 interface ProfileStepProps {
-  initial?: { puesto: string; lectura: ProfileReading; elegidas: number[] }
+  initial?: { puesto: string; lectura: ProfileReading; elegidas?: number[] }
   onReading: (puesto: string, lectura: ProfileReading, documentos: ProfileDoc[]) => void
-  onContinue: (elegidas: number[]) => void
+  onContinue: () => void
 }
 
 export function ProfileStep({ initial, onReading, onContinue }: ProfileStepProps) {
-  if (initial) return <ReadingView {...initial} onContinue={onContinue} />
+  if (initial) return <ReadingView puesto={initial.puesto} lectura={initial.lectura} onContinue={onContinue} />
   return <ProfileForm onReading={onReading} />
 }
 
@@ -226,26 +227,38 @@ function Cita({ cita, fuente, label }: { cita: string; fuente?: string; label?: 
   )
 }
 
+const GRUPO_LABEL: Record<string, string> = {
+  queHacesYQueOfreces: 'Qué buscas y qué ofreces',
+  experienciaQuePodriaSumar: 'Experiencia que podría sumar',
+  loQueFaltaONoCuenta: 'Lo que falta o no se encuentra',
+  detallesForma: 'Detalles de forma',
+  convencionesMercado: 'Convenciones del mercado',
+}
+
+const GRUPO_ORDER = ['queHacesYQueOfreces', 'experienciaQuePodriaSumar', 'loQueFaltaONoCuenta', 'detallesForma', 'convencionesMercado']
+
+// §4.6.1 — La persona no selecciona recomendaciones de una lista: reacciona a la lectura
+// y en la conversación con el coach decide si trabaja por su cuenta o junto al coach.
 function ReadingView({
   puesto,
   lectura,
-  elegidas: initialElegidas,
   onContinue,
 }: {
   puesto: string
   lectura: ProfileReading
-  elegidas: number[]
-  onContinue: (elegidas: number[]) => void
+  onContinue: () => void
 }) {
-  const [elegidas, setElegidas] = useState<number[]>(initialElegidas)
-  // Al pasar del formulario a la lectura el botón desaparece: se lleva el foco al título.
   const titleRef = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
     titleRef.current?.focus()
   }, [])
-  const toggle = (i: number) => setElegidas((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]))
-  // §4: máximo tres cambios concretos, aunque el modelo devuelva más.
-  const recomendaciones = lectura.recomendaciones.slice(0, 3)
+
+  // Agrupa las recomendaciones. Si la lectura no tiene campo "grupo" (versiones anteriores),
+  // se muestran todas juntas bajo un grupo genérico.
+  const tieneGrupos = lectura.recomendaciones.some((r) => r.grupo)
+  const gruposConRecs = tieneGrupos
+    ? GRUPO_ORDER.filter((g) => lectura.recomendaciones.some((r) => r.grupo === g))
+    : lectura.recomendaciones.length > 0 ? ['_todas'] : []
 
   return (
     <div className="ai-result mx-auto max-w-2xl">
@@ -279,33 +292,49 @@ function ReadingView({
           <ObservationList title={tr('profile.read.missing')} items={lectura.ausencias} citeLabel={tr('profile.read.closest')} />
         </div>
 
-        <div className="card">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('profile.read.changes')}</p>
-          <p className="mb-4 text-sm text-text-muted">{tr('profile.read.changesHint')}</p>
-          <ul className="space-y-3">
-            {recomendaciones.map((r, i) => (
-              <li key={i}>
-                <label className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition hover:bg-secondary ${elegidas.includes(i) ? 'border-accent bg-accent-soft' : 'border-border-color'}`}>
-                  <input type="checkbox" checked={elegidas.includes(i)} onChange={() => toggle(i)} className="mt-1 accent-primary" />
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{r.cambio}</p>
-                    <p className="mt-1 text-sm text-text-muted">{r.porQue}</p>
-                    {r.cita && (
-                      <p className="mt-2 border-l-2 border-border-color pl-3">
-                        <Cita cita={r.cita} fuente={r.fuente} />
-                      </p>
+        {gruposConRecs.length > 0 && (
+          <div className="card">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('profile.read.changes')}</p>
+            <p className="mb-4 text-sm text-text-muted">{tr('profile.read.changesHint.v3')}</p>
+            <div className="space-y-5">
+              {gruposConRecs.map((grupo) => {
+                const recs = grupo === '_todas'
+                  ? lectura.recomendaciones
+                  : lectura.recomendaciones.filter((r) => r.grupo === grupo)
+                return (
+                  <div key={grupo}>
+                    {tieneGrupos && (
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{GRUPO_LABEL[grupo]}</p>
                     )}
-                    {r.tipo === 'decision_personal' && (
-                      <p className="mt-2 inline-block rounded-full bg-secondary px-2.5 py-0.5 text-xs text-text-muted">
-                        {tr('profile.read.convention')}
-                      </p>
-                    )}
+                    <ul className="space-y-3">
+                      {recs.map((r, i) => (
+                        <li key={i} className="rounded-xl border border-border-color p-4">
+                          <p className="text-sm font-semibold text-foreground">{r.cambio}</p>
+                          <p className="mt-1 text-sm text-text-muted">{r.porQue}</p>
+                          {r.cita && (
+                            <p className="mt-2 border-l-2 border-border-color pl-3">
+                              <Cita cita={r.cita} fuente={r.fuente} />
+                            </p>
+                          )}
+                          {r.tipo === 'decision_personal' && (
+                            <p className="mt-2 inline-block rounded-full bg-secondary px-2.5 py-0.5 text-xs text-text-muted">
+                              {tr('profile.read.convention')}
+                            </p>
+                          )}
+                          {r.grupo === 'experienciaQuePodriaSumar' && (
+                            <p className="mt-2 inline-block rounded-full border border-dashed border-text-muted/60 px-2.5 py-0.5 text-xs text-text-muted">
+                              {tr('profile.read.toConfirm')}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-8 rounded-2xl bg-ink p-6 text-center text-white">
@@ -313,7 +342,7 @@ function ReadingView({
           {tr('profile.read.cta')}
         </p>
         <button
-          onClick={() => onContinue(elegidas)}
+          onClick={onContinue}
           className="btn-advance px-7 py-3"
         >
           {tr('profile.read.start')}

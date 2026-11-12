@@ -78,7 +78,16 @@ export interface ProfileReading {
   fortalezas: Observation[]
   ausencias: Observation[]
   consistenciaMarca: string
-  recomendaciones: { cambio: string; porQue: string; cita: string; fuente?: string; tipo: 'mercado' | 'decision_personal' }[]
+  /** §4.4: recomendaciones agrupadas por tipo. Campo "grupo" presente en lecturas generadas con v3+. */
+  recomendaciones: {
+    cambio: string
+    porQue: string
+    cita: string
+    fuente?: string
+    tipo: 'mercado' | 'decision_personal'
+    /** §4.4 grupo al que pertenece (v3+). Undefined en lecturas guardadas con versiones anteriores. */
+    grupo?: 'queHacesYQueOfreces' | 'experienciaQuePodriaSumar' | 'loQueFaltaONoCuenta' | 'detallesForma' | 'convencionesMercado'
+  }[]
   /** Qué busca quien filtra perfiles para ese puesto y en qué estado está en el perfil. Reemplaza a la nota. */
   senales?: ProfileSignal[]
   /** "Tu perfil hoy comunica…" */
@@ -151,7 +160,8 @@ export interface Session {
   stageReady: boolean
   /** CV y/o LinkedIn: como mucho uno de cada tipo. */
   documentos: ProfileDoc[]
-  perfil?: { puesto: string; lectura: ProfileReading; elegidas: number[] }
+  /** elegidas: deprecated desde v3 del guardrail (§4.6.1). Se mantiene para backward compat con sesiones guardadas. */
+  perfil?: { puesto: string; lectura: ProfileReading; elegidas?: number[] }
   informe?: Report
   /** Índices de acciones del informe que la persona asumió como compromiso. */
   compromisos?: number[]

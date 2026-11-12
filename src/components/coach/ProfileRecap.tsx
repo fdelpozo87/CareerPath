@@ -1,18 +1,15 @@
 import { useId, useState } from 'react'
 import type { Session } from '../../lib/coach/types'
-import { tr, trn } from '../../lib/i18n'
+import { tr } from '../../lib/i18n'
 import { SignalList } from './ProfileStep'
 
-// Camino B: la lectura del perfil y los cambios que la persona eligió quedan a mano arriba del chat
-// (cerrados, para no quitar lugar a la conversación) en vez de desaparecer al pasar al Diagnóstico.
+// Camino B: la lectura del perfil queda a mano arriba del chat (cerrada, para no quitar lugar
+// a la conversación). El coach trabaja las recomendaciones una por vez en la etapa de Plan de Acción (§4.6.3).
 
 export function ProfileRecap({ perfil }: { perfil: NonNullable<Session['perfil']> }) {
   const [open, setOpen] = useState(false)
   const panelId = useId()
   const { lectura, puesto } = perfil
-  const recs = lectura.recomendaciones.slice(0, 3)
-  const chosen = recs.filter((_, i) => perfil.elegidas.includes(i))
-  const skipped = recs.filter((_, i) => !perfil.elegidas.includes(i))
 
   return (
     <div className="mt-2.5">
@@ -25,7 +22,7 @@ export function ProfileRecap({ perfil }: { perfil: NonNullable<Session['perfil']
       >
         <span className="min-w-0">
           <span className="block font-semibold text-foreground">{tr('chat.profile.title')}</span>
-          <span className="block truncate text-text-muted">{trn('chat.profile.sub', chosen.length, { role: puesto })}</span>
+          <span className="block truncate text-text-muted">{tr('chat.profile.sub.v3', { role: puesto })}</span>
         </span>
         <span aria-hidden="true" className="text-text-muted">{open ? '−' : '+'}</span>
       </button>
@@ -34,23 +31,11 @@ export function ProfileRecap({ perfil }: { perfil: NonNullable<Session['perfil']
         <div id={panelId} className="mt-2 max-h-64 space-y-4 overflow-y-auto rounded-xl bg-secondary p-4 text-sm leading-relaxed text-foreground">
           <p>{lectura.comunicaHoy ?? lectura.notaComunica}</p>
           {(lectura.senales?.length ?? 0) > 0 && <SignalList signals={lectura.senales ?? []} />}
-          <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('chat.profile.changes')}</p>
-            {chosen.length > 0 ? (
-              <ul className="list-disc space-y-1 pl-5">
-                {chosen.map((r, i) => (
-                  <li key={i}>{r.cambio}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-text-muted">{tr('chat.profile.none')}</p>
-            )}
-          </div>
-          {skipped.length > 0 && (
+          {lectura.recomendaciones.length > 0 && (
             <div>
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('chat.profile.skipped')}</p>
-              <ul className="list-disc space-y-1 pl-5 text-text-muted">
-                {skipped.map((r, i) => (
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('chat.profile.changes')}</p>
+              <ul className="list-disc space-y-1 pl-5">
+                {lectura.recomendaciones.map((r, i) => (
                   <li key={i}>{r.cambio}</li>
                 ))}
               </ul>

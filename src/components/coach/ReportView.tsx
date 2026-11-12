@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ConfirmDialog from '../ConfirmDialog'
 import { IkigaiChart } from './IkigaiChart'
 import { SaveCard } from './SaveCard'

@@ -11,7 +11,7 @@ import { InformeView } from './InformeView'
 
 const MIN_EVIDENCIA = 20
 
-export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () => void; onChanged: () => void }) {
+export function AnswerView({ id, onBack, onChanged, isAdmin = false }: { id: string; onBack: () => void; onChanged: () => void; isAdmin?: boolean }) {
   const [data, setData] = useState<Abierta | null>(null)
   const [answers, setAnswers] = useState<Respuestas>({})
   const [error, setError] = useState<string | null>(null)
@@ -186,7 +186,7 @@ export function AnswerView({ id, onBack, onChanged }: { id: string; onBack: () =
               <h3 id="informe-titulo" className="mb-3 text-xl print:break-after-avoid">
                 {tr('eval.report.title')}
               </h3>
-              <InformeView informe={data.informe} />
+              <InformeView informe={data.informe} isAdmin={isAdmin} />
             </section>
           )}
 

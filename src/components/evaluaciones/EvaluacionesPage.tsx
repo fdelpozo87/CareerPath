@@ -101,7 +101,7 @@ export function EvaluacionesPage({ canCreate, canSelf, isAdmin = false, onBack, 
       <main className="section-container max-w-3xl flex-1 py-10">
         {view.kind === 'builder' && view.modo === 'jefe' && <Builder onBack={home} isAdmin={isAdmin} />}
         {view.kind === 'builder' && view.modo === 'propia' && <SelfStart onBack={home} onOpen={(id) => setView({ kind: 'open', id })} />}
-        {view.kind === 'open' && <AnswerView id={view.id} onBack={home} onChanged={() => void load()} />}
+        {view.kind === 'open' && <AnswerView id={view.id} onBack={home} onChanged={() => void load()} isAdmin={isAdmin} />}
 
         {view.kind === 'home' && (
           <>

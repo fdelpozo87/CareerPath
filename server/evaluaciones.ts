@@ -419,7 +419,7 @@ export async function handleEvaluaciones(req: Req, apiKey: string | undefined): 
         const incompleta = ev.competencias.find((c) => !(respuestas[c.id] as { nivel?: number; evidencia?: string } | undefined)?.nivel || ((respuestas[c.id] as { evidencia?: string } | undefined)?.evidencia ?? '').trim().length < 20)
         if (incompleta) return fail(400, 'srv.evalIncomplete', { competencia: incompleta.nombre })
         const informe = apiKey
-          ? normalizeInforme(await askModel<Record<string, unknown>>(apiKey, buildReportPrompt({ titulo: ev.titulo, area: ev.area, rol: ev.rol, periodo: ev.periodo, competencias: ev.competencias, respuestas: respuestas as ReportRespuestas, lang: ev.lang }), 0.3))
+          ? normalizeInforme(await askModel<Record<string, unknown>>(apiKey, buildReportPrompt({ titulo: ev.titulo, area: ev.area, rol: ev.rol, periodo: ev.periodo, competencias: ev.competencias, respuestas: respuestas as ReportRespuestas, lang }), 0.3))
           : DEMO_INFORME
         await db(env, `/rest/v1/bivio_asignaciones?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ respuestas, informe, estado: 'completada', completada_at: new Date().toISOString() }) })
         logEvent('info', 'evaluacion_completada', { tipo: ev.tipo })

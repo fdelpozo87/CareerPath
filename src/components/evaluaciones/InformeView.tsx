@@ -3,7 +3,7 @@ import { tr } from '../../lib/i18n'
 
 // El informe de una autoevaluación: lo que la persona escribió, ordenado. Sin puntaje ni veredicto.
 
-export function InformeView({ informe }: { informe: Informe }) {
+export function InformeView({ informe, isAdmin = false }: { informe: Informe; isAdmin?: boolean }) {
   return (
     <div className="space-y-4">
       <div className="card break-inside-avoid print:shadow-none">
@@ -57,11 +57,16 @@ export function InformeView({ informe }: { informe: Informe }) {
         </div>
       )}
 
-      <div className="flex justify-end print:hidden">
-        <button onClick={() => window.print()} className="btn-secondary px-5 py-2.5 text-sm">
-          {tr('report.print')}
-        </button>
-      </div>
+      {isAdmin && (
+        <div className="flex justify-end print:hidden">
+          <button onClick={() => window.print()} className="flex items-center gap-1.5 btn-secondary px-5 py-2.5 text-sm">
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 17V3" /><path d="m6 11 6 6 6-6" /><path d="M19 21H5" />
+            </svg>
+            {tr('report.pdf')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

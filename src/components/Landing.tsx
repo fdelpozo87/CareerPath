@@ -102,27 +102,47 @@ function ProcessCard({
   latest,
   onResume,
   onDelete,
+  onPdf,
 }: {
   process: Session
   latest: boolean
   onResume: (id: string) => void
   onDelete: (id: string) => void
+  onPdf?: (id: string) => void
 }) {
   const name = tr(`process.name.${p.path}` as Key)
   const progress = progressOf(p)
+  const finished = p.compromisos !== undefined
   return (
     <li className="card rounded-3xl p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-text-muted">{name}</p>
+          <div className="mb-1 flex items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">{name}</p>
+            {finished && (
+              <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                {tr('process.finished')}
+              </span>
+            )}
+          </div>
           <p className="font-display text-lg font-bold leading-snug text-foreground">{statusOf(p)}</p>
           <p className="mt-1 text-xs text-text-muted">{tr('process.updated', { date: new Date(p.updatedAt).toLocaleDateString(getLang() === 'en' ? 'en-US' : 'es') })}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-4">
-          {/* Solo el proceso más reciente lleva el color de "seguir": un único punto de mandarina en la pantalla. */}
-          <button onClick={() => onResume(p.id)} className={`${latest ? 'btn-advance' : 'btn-primary'} px-5 py-2.5 text-sm`}>
-            {tr('landing.resume.button')}
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
+          <button onClick={() => onResume(p.id)} className={`${latest && !finished ? 'btn-advance' : 'btn-primary'} px-5 py-2.5 text-sm`}>
+            {finished ? tr('process.viewReport') : tr('landing.resume.button')}
           </button>
+          {finished && onPdf && (
+            <button
+              onClick={() => onPdf(p.id)}
+              className="flex items-center gap-1.5 rounded-full border border-border-color bg-card px-4 py-2 text-sm font-medium text-text-muted transition hover:border-primary/30 hover:text-primary"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 17V3" /><path d="m6 11 6 6 6-6" /><path d="M19 21H5" />
+              </svg>
+              {tr('process.pdf')}
+            </button>
+          )}
           <button
             onClick={() => onDelete(p.id)}
             aria-label={tr('process.deleteAria', { name })}
@@ -154,9 +174,11 @@ interface LandingProps {
   showPaths?: boolean
   /** Nombre de quien tiene la sesión iniciada, para saludarla. Sin nombre, el saludo va sin él. */
   name?: string
+  /** Descarga el PDF de un proceso terminado (abre el informe y dispara window.print). */
+  onPdf?: (id: string) => void
 }
 
-export default function Landing({ onChoosePath, processes, onResume, onDelete, showPaths = true, name }: LandingProps) {
+export default function Landing({ onChoosePath, processes, onResume, onDelete, showPaths = true, name, onPdf }: LandingProps) {
   const hasProcesses = processes.length > 0
 
   return (
@@ -178,7 +200,7 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
                   <p className="mb-4 text-sm text-text-muted">{tr('process.lede')}</p>
                   <ul role="list" className="grid gap-4">
                     {processes.map((p, i) => (
-                      <ProcessCard key={p.id} process={p} latest={i === 0} onResume={onResume} onDelete={onDelete} />
+                      <ProcessCard key={p.id} process={p} latest={i === 0} onResume={onResume} onDelete={onDelete} onPdf={onPdf} />
                     ))}
                   </ul>
                 </section>
@@ -254,7 +276,7 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
               <p className="mb-4 text-sm text-text-muted">{tr('process.lede')}</p>
               <ul role="list" className="grid gap-4">
                 {processes.map((p, i) => (
-                  <ProcessCard key={p.id} process={p} latest={i === 0} onResume={onResume} onDelete={onDelete} />
+                  <ProcessCard key={p.id} process={p} latest={i === 0} onResume={onResume} onDelete={onDelete} onPdf={onPdf} />
                 ))}
               </ul>
             </section>

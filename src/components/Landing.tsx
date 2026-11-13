@@ -41,14 +41,14 @@ function PathItem({ id, letter, onChoose }: { id: Path; letter: 'A' | 'B' | 'C';
   return (
     <button
       onClick={() => onChoose(id)}
-      className="group flex w-full items-center gap-3 rounded-2xl border border-border-color bg-card p-4 text-left transition hover:border-primary/30 hover:shadow-sm"
+      className="group flex w-full items-center gap-4 rounded-2xl border border-border-color bg-card p-5 text-left transition hover:border-primary/30 hover:shadow-sm"
     >
-      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-display text-xs font-bold text-primary ${illustrationBg[id]}`}>
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-display text-sm font-bold text-primary ${illustrationBg[id]}`}>
         {letter}
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-semibold text-text-muted">{tag}</p>
-        <p className="text-sm font-semibold leading-snug text-foreground">{title}</p>
+        <p className="text-base font-semibold leading-snug text-foreground">{title}</p>
       </div>
       <Arrow className="shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transition-none" />
     </button>
@@ -192,7 +192,7 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
 
             {hasProcesses ? (
               /* Dos columnas: sesiones activas a la izquierda, opciones compactas a la derecha */
-              <div className="mx-auto mb-14 max-w-6xl lg:grid lg:grid-cols-[1fr_300px] lg:items-start lg:gap-12 xl:grid-cols-[1fr_320px] xl:gap-16">
+              <div className="mx-auto mb-14 max-w-6xl lg:grid lg:grid-cols-[1fr_380px] lg:items-start lg:gap-12 xl:grid-cols-[1fr_420px] xl:gap-16">
                 <section aria-labelledby="mis-procesos">
                   <h2 id="mis-procesos" className="mb-1 text-2xl">
                     {tr('process.title')}
@@ -233,7 +233,7 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
               </div>
             )}
 
-            <div className="mx-auto mt-14 max-w-4xl">
+            <div className="mx-auto mt-14 max-w-6xl">
               <div className="rounded-3xl bg-accent-soft px-6 py-8 sm:px-10 sm:py-10">
                 <p className="mb-6 text-xs font-semibold uppercase tracking-widest text-text-muted">
                   {tr('landing.out.title')}

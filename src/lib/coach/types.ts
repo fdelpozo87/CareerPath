@@ -75,11 +75,17 @@ export interface Observation {
 
 export interface ProfileReading {
   primeraImpresion: string
+  /** Cita textual del perfil que resume lo que se ve primero (v3.1+). */
+  primeraImpresionCita?: string
   fortalezas: Observation[]
   ausencias: Observation[]
   consistenciaMarca: string
+  /** Cita textual que ilustra el hilo conductor (v3.1+). */
+  consistenciaMarcaCita?: string
   /** §4.4: recomendaciones agrupadas por tipo. Campo "grupo" presente en lecturas generadas con v3+. */
   recomendaciones: {
+    /** Etiqueta corta del elemento a mejorar: "Titular", "Aptitudes", etc. (v3.1+). */
+    elemento?: string
     cambio: string
     porQue: string
     cita: string

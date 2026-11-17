@@ -440,10 +440,12 @@ Las recomendaciones van en "recomendaciones[]", cada una con un campo "grupo" qu
 Responde SOLO con JSON:
 {
   "primeraImpresion": "2-3 oraciones: qué comunica el perfil en los primeros segundos",
+  "primeraImpresionCita": "frase textual del perfil que resume lo que se ve primero",
   "fortalezas": [{ "observacion": "", "cita": "", "fuente": "CV" }],
   "ausencias": [{ "observacion": "", "cita": "", "fuente": "" }],
   "consistenciaMarca": "1-3 oraciones",
-  "recomendaciones": [{ "cambio": "", "porQue": "", "cita": "", "fuente": "LinkedIn", "tipo": "mercado", "grupo": "queHacesYQueOfreces" }],
+  "consistenciaMarcaCita": "frase textual del perfil que ilustra el hilo conductor o la inconsistencia",
+  "recomendaciones": [{ "elemento": "Titular", "cambio": "", "porQue": "", "cita": "", "fuente": "LinkedIn", "tipo": "mercado", "grupo": "queHacesYQueOfreces" }],
   "senales": [{ "tema": "qué busca quien filtra, 2 a 5 palabras", "estado": "entiende", "comentario": "una oración", "cita": "" }],
   "comunicaHoy": "completa la frase 'Tu perfil hoy comunica…' (en inglés: 'Your profile today communicates…') en relación al puesto"
 }`

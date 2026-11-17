@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { documentsToText, extractPdfText, requestProfileReading } from '../../lib/coach/api'
 import { checkPdf, emptyDraft, type DocDraft } from '../../lib/coach/docs'
-import type { DocTipo, Observation, ProfileDoc, ProfileReading, ProfileSignal, SignalState } from '../../lib/coach/types'
+import type { DocTipo, ProfileDoc, ProfileReading, ProfileSignal, SignalState } from '../../lib/coach/types'
 import { tr, type Key } from '../../lib/i18n'
 import { trackEvent } from '../../lib/tracking'
 import { CoachAvatar } from '../Logo'
@@ -222,8 +222,31 @@ function Cita({ cita, fuente, label }: { cita: string; fuente?: string; label?: 
   return (
     <span className="mt-1 block text-xs italic text-text-muted">
       {label && <span className="mr-1.5 not-italic font-semibold">{label}:</span>}
-      {fuente && <span className="mr-1.5 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold not-italic uppercase">{fuente}</span>}“{cita}”
+      {fuente && <span className="mr-1.5 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold not-italic uppercase">{fuente}</span>}
+      {'"'}{cita}{'"'}
     </span>
+  )
+}
+
+function CitaBlock({ cita, fuente }: { cita: string; fuente?: string }) {
+  if (!cita) return null
+  return (
+    <blockquote className="mt-3 border-l-2 border-accent pl-3">
+      <p className="text-xs text-text-muted">
+        {tr('profile.read.inCV')}
+        {fuente && <span className="ml-1 mr-1 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold uppercase not-italic">{fuente}</span>}
+        {' '}<span className="italic">{'"'}{cita}{'"'}</span>
+      </p>
+    </blockquote>
+  )
+}
+
+function ReadingSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="p-5 sm:p-6">
+      <h3 className="mb-3 text-base font-semibold text-foreground">{title}</h3>
+      {children}
+    </div>
   )
 }
 
@@ -253,8 +276,6 @@ function ReadingView({
     titleRef.current?.focus()
   }, [])
 
-  // Agrupa las recomendaciones. Si la lectura no tiene campo "grupo" (versiones anteriores),
-  // se muestran todas juntas bajo un grupo genérico.
   const tieneGrupos = lectura.recomendaciones.some((r) => r.grupo)
   const gruposConRecs = tieneGrupos
     ? GRUPO_ORDER.filter((g) => lectura.recomendaciones.some((r) => r.grupo === g))
@@ -262,89 +283,116 @@ function ReadingView({
 
   return (
     <div className="ai-result mx-auto max-w-2xl">
-      <div className="mb-8 text-center">
+      <div className="mb-8">
         <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('profile.read.eyebrow', { role: puesto })}</p>
         <h2 ref={titleRef} tabIndex={-1} className="outline-none">
           {tr('flow.h1.profile')}
         </h2>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5">
-          <p className="text-base font-medium leading-snug text-accent-ink">{lectura.comunicaHoy ?? lectura.notaComunica}</p>
-          {(lectura.senales?.length ?? 0) > 0 && (
-            <>
-              <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-widest text-accent-ink">{tr('profile.read.signals')}</p>
-              <SignalList signals={lectura.senales ?? []} />
-            </>
-          )}
+      {/* Señales compactas (si las hay) */}
+      {(lectura.senales?.length ?? 0) > 0 && (
+        <div className="mb-6 rounded-2xl border border-accent/30 bg-accent-soft px-5 py-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-accent-ink">{tr('profile.read.signals')}</p>
+          <SignalList signals={lectura.senales ?? []} />
           <p className="mt-3 text-xs leading-relaxed text-accent-ink">{tr('profile.read.signalsNote', { role: puesto })}</p>
         </div>
+      )}
 
-        <div className="card">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('profile.read.first')}</p>
+      {/* Card principal: secciones separadas por línea */}
+      <div className="card divide-y divide-border-color overflow-hidden p-0">
+        <ReadingSection title={tr('profile.read.first')}>
           <p className="text-sm leading-relaxed text-foreground">{lectura.primeraImpresion}</p>
-          <p className="mt-3 text-sm leading-relaxed text-text-muted">{lectura.consistenciaMarca}</p>
-        </div>
+          {lectura.primeraImpresionCita && <CitaBlock cita={lectura.primeraImpresionCita} />}
+        </ReadingSection>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <ObservationList title={tr('profile.read.good')} items={lectura.fortalezas} />
-          <ObservationList title={tr('profile.read.missing')} items={lectura.ausencias} citeLabel={tr('profile.read.closest')} />
-        </div>
-
-        {gruposConRecs.length > 0 && (
-          <div className="card">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('profile.read.changes')}</p>
-            <p className="mb-4 text-sm text-text-muted">{tr('profile.read.changesHint.v3')}</p>
-            <div className="space-y-5">
-              {gruposConRecs.map((grupo) => {
-                const recs = grupo === '_todas'
-                  ? lectura.recomendaciones
-                  : lectura.recomendaciones.filter((r) => r.grupo === grupo)
-                return (
-                  <div key={grupo}>
-                    {tieneGrupos && (
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">{GRUPO_LABEL[grupo]}</p>
-                    )}
-                    <ul className="space-y-3">
-                      {recs.map((r, i) => (
-                        <li key={i} className="rounded-xl border border-border-color p-4">
-                          <p className="text-sm font-semibold text-foreground">{r.cambio}</p>
-                          <p className="mt-1 text-sm text-text-muted">{r.porQue}</p>
-                          {r.cita && (
-                            <p className="mt-2 border-l-2 border-border-color pl-3">
-                              <Cita cita={r.cita} fuente={r.fuente} />
-                            </p>
-                          )}
-                          {r.tipo === 'decision_personal' && (
-                            <p className="mt-2 inline-block rounded-full bg-secondary px-2.5 py-0.5 text-xs text-text-muted">
-                              {tr('profile.read.convention')}
-                            </p>
-                          )}
-                          {r.grupo === 'experienciaQuePodriaSumar' && (
-                            <p className="mt-2 inline-block rounded-full border border-dashed border-text-muted/60 px-2.5 py-0.5 text-xs text-text-muted">
-                              {tr('profile.read.toConfirm')}
-                            </p>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )
-              })}
+        {lectura.fortalezas.length > 0 && (
+          <ReadingSection title={tr('profile.read.good')}>
+            <div className="space-y-4">
+              {lectura.fortalezas.map((f, i) => (
+                <div key={i}>
+                  <p className="text-sm leading-relaxed text-foreground">{f.observacion}</p>
+                  {f.cita && <CitaBlock cita={f.cita} fuente={f.fuente} />}
+                </div>
+              ))}
             </div>
-          </div>
+          </ReadingSection>
         )}
+
+        {lectura.ausencias.length > 0 && (
+          <ReadingSection title={tr('profile.read.missing')}>
+            <div className="space-y-4">
+              {lectura.ausencias.map((a, i) => (
+                <div key={i}>
+                  <p className="text-sm leading-relaxed text-foreground">{a.observacion}</p>
+                  {a.cita && <CitaBlock cita={a.cita} fuente={a.fuente} />}
+                </div>
+              ))}
+            </div>
+          </ReadingSection>
+        )}
+
+        <ReadingSection title={tr('profile.read.consistency')}>
+          <p className="text-sm leading-relaxed text-foreground">{lectura.consistenciaMarca}</p>
+          {lectura.consistenciaMarcaCita && <CitaBlock cita={lectura.consistenciaMarcaCita} />}
+        </ReadingSection>
       </div>
+
+      {/* Recomendaciones del coach */}
+      {gruposConRecs.length > 0 && (
+        <div className="card mt-6">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">{tr('profile.read.changes')}</p>
+          <p className="mb-5 text-sm text-text-muted">{tr('profile.read.changesHint.v3')}</p>
+          <div className="space-y-6">
+            {gruposConRecs.map((grupo) => {
+              const recs = grupo === '_todas'
+                ? lectura.recomendaciones
+                : lectura.recomendaciones.filter((r) => r.grupo === grupo)
+              return (
+                <div key={grupo}>
+                  {tieneGrupos && grupo !== '_todas' && (
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">{GRUPO_LABEL[grupo]}</p>
+                  )}
+                  <div className="divide-y divide-border-color">
+                    {recs.map((r, i) => (
+                      <div key={i} className="py-4 first:pt-0 last:pb-0 sm:grid sm:grid-cols-[8rem_1fr] sm:gap-6">
+                        {r.elemento ? (
+                          <p className="mb-1.5 text-sm font-semibold text-foreground sm:mb-0">{r.elemento}</p>
+                        ) : (
+                          <div />
+                        )}
+                        <div>
+                          <p className="text-sm text-text-muted">{r.porQue}</p>
+                          <p className="mt-1 text-sm text-foreground">{r.cambio}</p>
+                          {r.cita && <CitaBlock cita={r.cita} fuente={r.fuente} />}
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {r.tipo === 'decision_personal' && (
+                              <span className="inline-block rounded-full bg-secondary px-2.5 py-0.5 text-xs text-text-muted">
+                                {tr('profile.read.convention')}
+                              </span>
+                            )}
+                            {r.grupo === 'experienciaQuePodriaSumar' && (
+                              <span className="inline-block rounded-full border border-dashed border-text-muted/60 px-2.5 py-0.5 text-xs text-text-muted">
+                                {tr('profile.read.toConfirm')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 rounded-2xl bg-ink p-6 text-center text-white">
         <p className="mb-4 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
           {tr('profile.read.cta')}
         </p>
-        <button
-          onClick={onContinue}
-          className="btn-advance px-7 py-3"
-        >
+        <button onClick={onContinue} className="btn-advance px-7 py-3">
           {tr('profile.read.start')}
         </button>
       </div>
@@ -352,21 +400,6 @@ function ReadingView({
   )
 }
 
-function ObservationList({ title, items, citeLabel }: { title: string; items: Observation[]; citeLabel?: string }) {
-  return (
-    <div className="card">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted">{title}</p>
-      <ul className="space-y-3">
-        {items.map((it, i) => (
-          <li key={i} className="text-sm leading-relaxed text-foreground">
-            {it.observacion}
-            <Cita cita={it.cita} fuente={it.fuente} label={citeLabel} />
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
 
 const SIGNAL_STYLE: Record<SignalState, string> = {
   entiende: 'bg-primary-soft text-primary',

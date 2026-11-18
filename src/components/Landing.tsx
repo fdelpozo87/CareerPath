@@ -59,7 +59,7 @@ function PathItem({ id, letter, onChoose }: { id: Path; letter: 'A' | 'B' | 'C';
 function PathCard({ id, letter, onChoose }: { id: Path; letter: 'A' | 'B' | 'C'; onChoose: (p: Path) => void }) {
   const { title, body } = textOf(letter)
   return (
-    <div className="group card relative flex flex-col overflow-hidden rounded-3xl p-0 transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_18px_40px_-18px_rgb(106_63_193/0.35)] focus-within:border-primary/40 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+    <div className="group card relative flex flex-col overflow-hidden rounded-3xl p-0 transition duration-250 hover:-translate-y-2 hover:scale-[1.015] hover:border-primary/40 hover:shadow-[0_28px_52px_-12px_rgb(106_63_193/0.45)] focus-within:border-primary/40 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100">
       <span className={`relative block h-44 px-8 pb-6 pt-10 ${illustrationBg[id]}`}>
         <span className="absolute left-6 top-5 flex h-7 w-7 items-center justify-center rounded-full bg-card font-display text-xs font-bold text-primary" aria-hidden="true">
           {letter}
@@ -186,7 +186,7 @@ export default function Landing({ onChoosePath, processes, onResume, onDelete, s
       <div className="section-container">
         {showPaths && (
           <>
-            <h1 className="mx-auto mb-10 max-w-6xl leading-tight">
+            <h1 className="mx-auto mb-12 max-w-6xl text-5xl font-extrabold leading-[1.0] tracking-[-0.03em] sm:text-6xl md:text-7xl">
               {tr(name ? 'landing.hello' : 'landing.helloAnon', { name: name ?? '' })} <span className="text-primary-dark">{tr('landing.ask')}</span>
             </h1>
 

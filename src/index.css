@@ -16,11 +16,11 @@
   --font-sans: 'DM Sans Variable', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
 
-  --color-background: #faf9fc;
+  --color-background: #f5f0fb;
   --color-foreground: #1f1533;
   --color-card: #ffffff;
-  --color-secondary: #f1ecfb;
-  --color-border-color: #e3dcf3;
+  --color-secondary: #ece5f8;
+  --color-border-color: #ddd2ee;
   --color-text-muted: #5e566d;
 
   --color-primary: #6a3fc1;
@@ -53,11 +53,11 @@
 @media not print {
   :root[data-theme='dark'] {
     color-scheme: dark;
-    --color-background: #150e24;
+    --color-background: #0f0820;
     --color-foreground: #f4f0fb;
-    --color-card: #1f1533;
-    --color-secondary: #2a1e45;
-    --color-border-color: #3d2f5e;
+    --color-card: #1a1030;
+    --color-secondary: #241740;
+    --color-border-color: #3a2a58;
     --color-text-muted: #b8afcb;
 
     --color-primary: #b79cf2;

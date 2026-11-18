@@ -368,10 +368,12 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
                 <div className="flex min-w-0 flex-1 flex-col">{chatView}</div>
                 {/* Paneles derecha */}
                 <div className="flex h-full w-[28rem] flex-shrink-0 flex-col gap-2">
-                  <div className="flex flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
+                  {/* ReadingPanel: capped at half the column; shrinks to header when collapsed */}
+                  <div className="flex max-h-[50%] flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
                     <ReadingPanel puesto={puesto} lectura={lectura} />
                   </div>
-                  <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
+                  {/* CvProgressPanel: takes all remaining space; shrinks to header when collapsed */}
+                  <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
                     <CvProgressPanel
                       recomendaciones={lectura.recomendaciones}
                       aplicadas={aplicadas}

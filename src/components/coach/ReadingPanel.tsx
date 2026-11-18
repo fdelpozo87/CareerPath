@@ -19,9 +19,7 @@ export function ReadingPanel({ puesto, lectura }: ReadingPanelProps) {
       : []
 
   return (
-    <div
-      className={`flex flex-col border-b border-border-color ${collapsed ? 'flex-shrink-0' : 'max-h-[50%]'}`}
-    >
+    <div className={`flex flex-col overflow-hidden ${collapsed ? '' : 'flex-1 min-h-0'}`}>
       {/* Header / toggle */}
       <button
         type="button"
@@ -53,7 +51,7 @@ export function ReadingPanel({ puesto, lectura }: ReadingPanelProps) {
       </button>
 
       {!collapsed && (
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           {/* Señales */}
           {(lectura.senales?.length ?? 0) > 0 && (
             <div className="mb-3 rounded-xl border border-accent/30 bg-accent-soft px-3 py-2.5">

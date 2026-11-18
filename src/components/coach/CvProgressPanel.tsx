@@ -88,7 +88,7 @@ export function CvProgressPanel({ recomendaciones, aplicadas, onApply, onUndo }:
       </button>
 
       {/* Body */}
-      {!collapsed && <div className="flex-1 space-y-2 overflow-y-auto px-4 pb-4">
+      {!collapsed && <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-4">
         {recomendaciones.length === 0 && (
           <p className="text-xs text-text-muted">{tr('cv.panel.empty')}</p>
         )}

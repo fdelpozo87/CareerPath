@@ -367,14 +367,18 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
                 {/* Chat */}
                 <div className="flex min-w-0 flex-1 flex-col">{chatView}</div>
                 {/* Paneles derecha */}
-                <div className="flex w-96 flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
-                  <ReadingPanel puesto={puesto} lectura={lectura} />
-                  <CvProgressPanel
-                    recomendaciones={lectura.recomendaciones}
-                    aplicadas={aplicadas}
-                    onApply={handleApplyCv}
-                    onUndo={handleUndoCv}
-                  />
+                <div className="flex w-96 flex-shrink-0 flex-col gap-2 overflow-hidden">
+                  <div className="flex flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
+                    <ReadingPanel puesto={puesto} lectura={lectura} />
+                  </div>
+                  <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
+                    <CvProgressPanel
+                      recomendaciones={lectura.recomendaciones}
+                      aplicadas={aplicadas}
+                      onApply={handleApplyCv}
+                      onUndo={handleUndoCv}
+                    />
+                  </div>
                 </div>
               </div>
 

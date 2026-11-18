@@ -10,6 +10,7 @@ interface CvProgressPanelProps {
 }
 
 export function CvProgressPanel({ recomendaciones, aplicadas, onApply, onUndo }: CvProgressPanelProps) {
+  const [collapsed, setCollapsed] = useState(false)
   const [drafts, setDrafts] = useState<Record<number, string>>({})
 
   const isApplied = (i: number) => aplicadas.some((a) => a.index === i)
@@ -50,24 +51,44 @@ export function CvProgressPanel({ recomendaciones, aplicadas, onApply, onUndo }:
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-shrink-0 items-center justify-between px-4 py-3">
+      {/* Header / toggle */}
+      <button
+        type="button"
+        onClick={() => setCollapsed((c) => !c)}
+        className="flex flex-shrink-0 items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary/50"
+        aria-expanded={!collapsed}
+      >
         <span className="text-xs font-semibold uppercase tracking-widest text-text-muted">
           {tr('cv.panel.title')}
         </span>
-        {hasAny && (
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+        <div className="flex items-center gap-3">
+          {hasAny && !collapsed && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleDownload() }}
+              className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+            >
+              {tr('cv.panel.download')}
+            </button>
+          )}
+          <svg
+            viewBox="0 0 12 12"
+            className="h-3.5 w-3.5 flex-shrink-0 text-foreground transition-transform"
+            style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
           >
-            {tr('cv.panel.download')}
-          </button>
-        )}
-      </div>
+            <polyline points="2,4 6,8 10,4" />
+          </svg>
+        </div>
+      </button>
 
       {/* Body */}
-      <div className="flex-1 space-y-2 overflow-y-auto px-4 pb-4">
+      {!collapsed && <div className="flex-1 space-y-2 overflow-y-auto px-4 pb-4">
         {recomendaciones.length === 0 && (
           <p className="text-xs text-text-muted">{tr('cv.panel.empty')}</p>
         )}
@@ -144,7 +165,7 @@ export function CvProgressPanel({ recomendaciones, aplicadas, onApply, onUndo }:
         {recomendaciones.length === 0 && (
           <p className="text-xs leading-relaxed text-text-muted">{tr('cv.panel.empty')}</p>
         )}
-      </div>
+      </div>}
     </div>
   )
 }

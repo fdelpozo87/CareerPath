@@ -38,13 +38,19 @@ export function ReadingPanel({ puesto, lectura }: ReadingPanelProps) {
             <span className="ml-2 text-xs text-text-muted opacity-70">· {puesto}</span>
           )}
         </div>
-        <span
-          className="ml-2 text-xs text-text-muted transition-transform"
-          style={{ display: 'inline-block', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+        <svg
+          viewBox="0 0 12 12"
+          className="ml-2 h-3.5 w-3.5 flex-shrink-0 text-foreground transition-transform"
+          style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
           aria-hidden="true"
         >
-          ▾
-        </span>
+          <polyline points="2,4 6,8 10,4" />
+        </svg>
       </button>
 
       {!collapsed && (

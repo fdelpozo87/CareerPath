@@ -50,7 +50,7 @@ export function CvProgressPanel({ recomendaciones, aplicadas, onApply, onUndo }:
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div className={`flex flex-col overflow-hidden ${collapsed ? '' : 'flex-1 min-h-0'}`}>
       {/* Header / toggle */}
       <button
         type="button"

@@ -20,8 +20,7 @@ export function ReadingPanel({ puesto, lectura }: ReadingPanelProps) {
 
   return (
     <div
-      className="flex flex-shrink-0 flex-col border-b border-border-color"
-      style={{ maxHeight: collapsed ? undefined : '50%' }}
+      className={`flex flex-col border-b border-border-color ${collapsed ? 'flex-shrink-0' : 'max-h-[50%]'}`}
     >
       {/* Header / toggle */}
       <button

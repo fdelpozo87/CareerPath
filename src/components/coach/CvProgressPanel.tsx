@@ -7,10 +7,17 @@ interface CvProgressPanelProps {
   aplicadas: RecomendacionAplicada[]
   onApply: (rec: RecomendacionAplicada) => void
   onUndo: (index: number) => void
+  onCollapsedChange?: (collapsed: boolean) => void
 }
 
-export function CvProgressPanel({ recomendaciones, aplicadas, onApply, onUndo }: CvProgressPanelProps) {
+export function CvProgressPanel({ recomendaciones, aplicadas, onApply, onUndo, onCollapsedChange }: CvProgressPanelProps) {
   const [collapsed, setCollapsed] = useState(false)
+
+  const toggleCollapsed = () => {
+    const next = !collapsed
+    setCollapsed(next)
+    onCollapsedChange?.(next)
+  }
   const [drafts, setDrafts] = useState<Record<number, string>>({})
 
   const isApplied = (i: number) => aplicadas.some((a) => a.index === i)
@@ -54,7 +61,7 @@ export function CvProgressPanel({ recomendaciones, aplicadas, onApply, onUndo }:
       {/* Header / toggle */}
       <button
         type="button"
-        onClick={() => setCollapsed((c) => !c)}
+        onClick={toggleCollapsed}
         className="flex flex-shrink-0 items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary/50"
         aria-expanded={!collapsed}
       >

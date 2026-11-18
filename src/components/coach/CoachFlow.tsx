@@ -108,6 +108,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
   const [docStatus, setDocStatus] = useState<string | null>(null)
   const inFlight = useRef(false)
   const [mobileTab, setMobileTab] = useState<'chat' | 'analysis' | 'cv'>('chat')
+  const [cvCollapsed, setCvCollapsed] = useState(false)
 
   useEffect(() => saveSession(session), [session])
 
@@ -372,13 +373,14 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
                   <div className="flex max-h-[50%] flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
                     <ReadingPanel puesto={puesto} lectura={lectura} />
                   </div>
-                  {/* CvProgressPanel: takes all remaining space; shrinks to header when collapsed */}
-                  <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
+                  {/* CvProgressPanel: flex-1 solo cuando está expandido */}
+                  <div className={`flex flex-col overflow-hidden rounded-2xl border border-border-color bg-card ${cvCollapsed ? '' : 'flex-1 min-h-0'}`}>
                     <CvProgressPanel
                       recomendaciones={lectura.recomendaciones}
                       aplicadas={aplicadas}
                       onApply={handleApplyCv}
                       onUndo={handleUndoCv}
+                      onCollapsedChange={setCvCollapsed}
                     />
                   </div>
                 </div>

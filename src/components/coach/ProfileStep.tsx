@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { documentsToText, extractPdfText, requestProfileReading } from '../../lib/coach/api'
 import { checkPdf, emptyDraft, type DocDraft } from '../../lib/coach/docs'
-import type { DocTipo, ProfileDoc, ProfileReading, ProfileSignal, SignalState } from '../../lib/coach/types'
-import { tr, type Key } from '../../lib/i18n'
+import type { DocTipo, ProfileDoc, ProfileReading } from '../../lib/coach/types'
+import { tr } from '../../lib/i18n'
 import { trackEvent } from '../../lib/tracking'
 import { CoachAvatar } from '../Logo'
 import { LinkedInHowTo } from './DocInputs'
+import { CitaBlock, ReadingSection, SignalList, GRUPO_LABEL, GRUPO_ORDER } from './reading-shared'
+export { SignalList } from './reading-shared'
 
 // Camino B — "cómo te lee un reclutador" (§4 guardrail v3). La lectura alimenta el Diagnóstico.
 // La persona no selecciona recomendaciones de una lista: reacciona a la lectura y luego
@@ -217,48 +219,6 @@ function UploadIcon() {
   )
 }
 
-function Cita({ cita, fuente, label }: { cita: string; fuente?: string; label?: string }) {
-  if (!cita) return null
-  return (
-    <span className="mt-1 block text-xs italic text-text-muted">
-      {label && <span className="mr-1.5 not-italic font-semibold">{label}:</span>}
-      {fuente && <span className="mr-1.5 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold not-italic uppercase">{fuente}</span>}
-      {'"'}{cita}{'"'}
-    </span>
-  )
-}
-
-function CitaBlock({ cita, fuente }: { cita: string; fuente?: string }) {
-  if (!cita) return null
-  return (
-    <blockquote className="mt-3 border-l-2 border-accent pl-3">
-      <p className="text-xs text-text-muted">
-        {tr('profile.read.inCV')}
-        {fuente && <span className="ml-1 mr-1 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold uppercase not-italic">{fuente}</span>}
-        {' '}<span className="italic">{'"'}{cita}{'"'}</span>
-      </p>
-    </blockquote>
-  )
-}
-
-function ReadingSection({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="p-5 sm:p-6">
-      <h3 className="mb-3 text-base font-semibold text-foreground">{title}</h3>
-      {children}
-    </div>
-  )
-}
-
-const GRUPO_LABEL: Record<string, string> = {
-  queHacesYQueOfreces: 'Qué buscas y qué ofreces',
-  experienciaQuePodriaSumar: 'Experiencia que podría sumar',
-  loQueFaltaONoCuenta: 'Lo que falta o no se encuentra',
-  detallesForma: 'Detalles de forma',
-  convencionesMercado: 'Convenciones del mercado',
-}
-
-const GRUPO_ORDER = ['queHacesYQueOfreces', 'experienciaQuePodriaSumar', 'loQueFaltaONoCuenta', 'detallesForma', 'convencionesMercado']
 
 // §4.6.1 — La persona no selecciona recomendaciones de una lista: reacciona a la lectura
 // y en la conversación con el coach decide si trabaja por su cuenta o junto al coach.
@@ -401,23 +361,3 @@ function ReadingView({
 }
 
 
-const SIGNAL_STYLE: Record<SignalState, string> = {
-  entiende: 'bg-primary-soft text-primary',
-  insinua: 'border border-accent text-accent-ink',
-  ausente: 'border border-dashed border-text-muted/60 text-text-muted',
-}
-
-/** Qué busca quien filtra perfiles y cuánto de eso se entiende hoy: reemplaza a la nota. */
-export function SignalList({ signals }: { signals: ProfileSignal[] }) {
-  return (
-    <ul role="list" className="space-y-2">
-      {signals.map((s, i) => (
-        <li key={i} className="text-sm leading-relaxed text-foreground">
-          <span className={`mr-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${SIGNAL_STYLE[s.estado]}`}>{tr(`profile.signal.${s.estado}` as Key)}</span>
-          <span className="font-semibold">{s.tema}.</span> {s.comentario}
-          <Cita cita={s.cita} />
-        </li>
-      ))}
-    </ul>
-  )
-}

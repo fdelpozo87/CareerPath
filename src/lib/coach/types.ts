@@ -146,6 +146,18 @@ export interface Report {
 
 export type Phase = 'perfil' | 'chat' | 'informe'
 
+/** Un cambio del CV confirmado en el Diagnóstico: antes y después. */
+export interface RecomendacionAplicada {
+  /** Posición en ProfileReading.recomendaciones. */
+  index: number
+  /** Etiqueta del elemento (ej. "Titular"). */
+  elemento: string
+  /** Texto original del CV (cita). */
+  original: string
+  /** Texto nuevo acordado en la conversación. */
+  nuevo: string
+}
+
 export interface Session {
   /** Identifica al proceso: cada persona puede tener varios guardados a la vez. */
   id: string
@@ -168,6 +180,8 @@ export interface Session {
   documentos: ProfileDoc[]
   /** elegidas: deprecated desde v3 del guardrail (§4.6.1). Se mantiene para backward compat con sesiones guardadas. */
   perfil?: { puesto: string; lectura: ProfileReading; elegidas?: number[] }
+  /** Cambios de CV confirmados en el Diagnóstico de Camino B. Campo opcional: backward compat con sesiones viejas. */
+  cvAplicadas?: RecomendacionAplicada[]
   informe?: Report
   /** Índices de acciones del informe que la persona asumió como compromiso. */
   compromisos?: number[]

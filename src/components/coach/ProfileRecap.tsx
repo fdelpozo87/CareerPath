@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import type { Session } from '../../lib/coach/types'
 import { tr } from '../../lib/i18n'
-import { SignalList } from './ProfileStep'
+import { SignalList } from './reading-shared'
 
 // Camino B: la lectura del perfil queda a mano arriba del chat (cerrada, para no quitar lugar
 // a la conversación). El coach trabaja las recomendaciones una por vez en la etapa de Plan de Acción (§4.6.3).

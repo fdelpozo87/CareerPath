@@ -14,6 +14,9 @@ import ThemeToggle from '../ThemeToggle'
 import { ChatView } from './ChatView'
 import { ProfileStep } from './ProfileStep'
 import { ReportView } from './ReportView'
+import { ReadingPanel } from './ReadingPanel'
+import { CvProgressPanel } from './CvProgressPanel'
+import type { RecomendacionAplicada } from '../../lib/coach/types'
 
 // Orquesta el proceso: (Camino B: lectura del perfil) → Diagnóstico →
 // Discovery → Plan de Acción → informe con compromisos elegidos.
@@ -104,6 +107,7 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
   const [demo, setDemo] = useState(false)
   const [docStatus, setDocStatus] = useState<string | null>(null)
   const inFlight = useRef(false)
+  const [mobileTab, setMobileTab] = useState<'chat' | 'analysis' | 'cv'>('chat')
 
   useEffect(() => saveSession(session), [session])
 
@@ -219,6 +223,20 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
   const handleCloseOffer = (index: number) =>
     setSession((prev) => ({ ...prev, messages: prev.messages.map((m, i) => (i === index ? { ...m, ofertaCerrada: true } : m)) }))
 
+  const handleApplyCv = (rec: RecomendacionAplicada) =>
+    setSession((prev) => ({
+      ...prev,
+      cvAplicadas: [...(prev.cvAplicadas ?? []).filter((a) => a.index !== rec.index), rec],
+      updatedAt: new Date().toISOString(),
+    }))
+
+  const handleUndoCv = (index: number) =>
+    setSession((prev) => ({
+      ...prev,
+      cvAplicadas: (prev.cvAplicadas ?? []).filter((a) => a.index !== index),
+      updatedAt: new Date().toISOString(),
+    }))
+
   const handleAttachDoc = async (tipo: DocTipo, file: File) => {
     setDocStatus(tipo === 'cv' ? tr('flow.reading.cv') : tr('flow.reading.linkedin'))
     try {
@@ -318,22 +336,84 @@ export function CoachFlow({ initialSession, onExit, onRestart, account, confirmD
           />
         )}
 
-        {session.phase === 'chat' && (
-          <ChatView
-            session={session}
-            thinking={thinking}
-            error={error}
-            demo={demo}
-            onSend={handleSend}
-            onRetry={handleRetry}
-            onAdvance={handleAdvance}
-            onResumeTopic={handleResumeTopic}
-            onAttachDoc={handleAttachDoc}
-            docStatus={docStatus}
-            onCloseOffer={handleCloseOffer}
-            onStartPath={onStartPath}
-          />
-        )}
+        {session.phase === 'chat' && (() => {
+          const isCaminoB = session.path === 'perfil' && session.perfil
+          const chatView = (
+            <ChatView
+              session={session}
+              thinking={thinking}
+              error={error}
+              demo={demo}
+              onSend={handleSend}
+              onRetry={handleRetry}
+              onAdvance={handleAdvance}
+              onResumeTopic={handleResumeTopic}
+              onAttachDoc={handleAttachDoc}
+              docStatus={docStatus}
+              onCloseOffer={handleCloseOffer}
+              onStartPath={onStartPath}
+            />
+          )
+
+          if (!isCaminoB) return chatView
+
+          const { puesto, lectura } = session.perfil!
+          const aplicadas = session.cvAplicadas ?? []
+
+          return (
+            <>
+              {/* Desktop: layout 2 columnas (chat + side panels) */}
+              <div className="hidden h-full lg:flex lg:gap-4">
+                {/* Chat */}
+                <div className="flex min-w-0 flex-1 flex-col">{chatView}</div>
+                {/* Paneles derecha */}
+                <div className="flex w-96 flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-border-color bg-card">
+                  <ReadingPanel puesto={puesto} lectura={lectura} />
+                  <CvProgressPanel
+                    recomendaciones={lectura.recomendaciones}
+                    aplicadas={aplicadas}
+                    onApply={handleApplyCv}
+                    onUndo={handleUndoCv}
+                  />
+                </div>
+              </div>
+
+              {/* Mobile: tabs */}
+              <div className="flex h-full flex-col lg:hidden">
+                <div className="flex flex-shrink-0 border-b border-border-color">
+                  {(['chat', 'analysis', 'cv'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setMobileTab(tab)}
+                      className={`flex-1 py-2 text-xs font-semibold transition-colors ${mobileTab === tab ? 'border-b-2 border-primary text-primary' : 'text-text-muted'}`}
+                    >
+                      {tab === 'chat' ? tr('cv.mobile.tab.chat') : tab === 'analysis' ? tr('cv.mobile.tab.analysis') : tr('cv.mobile.tab.cv')}
+                    </button>
+                  ))}
+                </div>
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  {mobileTab === 'chat' && chatView}
+                  {mobileTab === 'analysis' && (
+                    <div className="h-full overflow-y-auto">
+                      <ReadingPanel puesto={puesto} lectura={lectura} />
+                    </div>
+                  )}
+                  {mobileTab === 'cv' && (
+                    <div className="flex h-full flex-col">
+                      <CvProgressPanel
+                        recomendaciones={lectura.recomendaciones}
+                        aplicadas={aplicadas}
+                        onApply={handleApplyCv}
+                        onUndo={handleUndoCv}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )
+        })()}
 
         {session.phase === 'informe' &&
           (session.informe ? (

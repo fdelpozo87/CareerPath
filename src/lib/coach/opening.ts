@@ -8,16 +8,32 @@ import type { Path, Stage, TurnResult } from './types'
 
 /** `lang`: el idioma del texto (por defecto, el de la interfaz). */
 export function scriptedOpening(path: Path, stage: Stage, lang: Lang = getLang()): TurnResult | null {
-  if (path !== 'quiebre' || stage !== 'diagnostico') return null
-  return {
-    mensaje: translate(lang, 'chat.opening.quiebre'),
-    temaEnFoco: 'goal',
-    temasOmitidos: [],
-    objetivosCubiertos: [],
-    listoParaAvanzar: false,
-    derivacion: false,
-    sintesisEtapa: '',
-    sintesisItems: [],
-    preguntaPuente: '',
+  if (stage !== 'diagnostico') return null
+  if (path === 'quiebre') {
+    return {
+      mensaje: translate(lang, 'chat.opening.quiebre'),
+      temaEnFoco: 'goal',
+      temasOmitidos: [],
+      objetivosCubiertos: [],
+      listoParaAvanzar: false,
+      derivacion: false,
+      sintesisEtapa: '',
+      sintesisItems: [],
+      preguntaPuente: '',
+    }
   }
+  if (path === 'perfil') {
+    return {
+      mensaje: translate(lang, 'chat.opening.perfil'),
+      temaEnFoco: '',
+      temasOmitidos: [],
+      objetivosCubiertos: [],
+      listoParaAvanzar: false,
+      derivacion: false,
+      sintesisEtapa: '',
+      sintesisItems: [],
+      preguntaPuente: '',
+    }
+  }
+  return null
 }

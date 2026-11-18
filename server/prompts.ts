@@ -40,6 +40,16 @@ Usa 70-20-10 para dar forma a las acciones que la persona elige: pregunta primer
 Si la persona no encuentra acciones, puedes ofrecer 2 o 3 alternativas para que elija (indagar → ofrecer → indagar cómo las recibe), siempre ancladas en cosas que la persona dijo. Nunca entregues un plan cerrado.`,
 }
 
+// §4.5 — Diagnóstico exclusivo del Camino B: reacción a la lectura del perfil.
+// Reemplaza al STAGE_GUIDANCE.diagnostico genérico cuando path === 'perfil'.
+const PERFIL_DIAGNOSTICO_GUIDANCE = `Marco: reacción a la lectura externa y decisión sobre los cambios en el CV.
+Guardrail crítico: NO uses el marco GROW ni indagues objetivos de carrera, cambio de rumbo ni motivaciones profundas: eso pertenece al Camino A. El único foco aquí es el CV y la lectura que recibió la persona.
+- Arranca desde la reacción a la lectura: qué le resonó, con qué coincide y qué cuestionaría. Eso es el punto de entrada, no el objetivo profesional.
+- Trabaja solo lo que la persona quiera cambiar en su CV, no lo que tú creas que debería cambiar.
+- Si objeta algo (por ejemplo, que no puede ponerse un título que aún no tiene), esa objeción es el dato más importante: quédate con ella antes de seguir con otro tema.
+- No preguntes por qué quiere el puesto, ni por sus metas a largo plazo, ni por su historia de carrera fuera de lo que el CV muestra.
+- El cierre del Diagnóstico es cuando la persona sabe qué quiere hacer con la lectura: trabajar el CV por su cuenta o junto al coach en el Plan de Acción.`
+
 // §4.6 — Plan de Acción exclusivo del Camino B (lectura del perfil): ciclo de trabajo sobre el CV.
 // Reemplaza al STAGE_GUIDANCE.plan genérico cuando path === 'perfil'.
 const PERFIL_PLAN_GUIDANCE = `Marco: ciclo de trabajo sobre el CV (§4.6 del guardrail).
@@ -328,7 +338,7 @@ Mientras falte alguno de estos temas:
     ctx.path === 'formacion'
       ? 'La persona eligió el camino "Quiero decidir qué estudiar o en qué formarme". Es una persona adulta (mayor de 18 años) que tiene que elegir una formación y todavía no tiene claro cuál, o quiere confirmar su elección.'
       : ctx.path === 'perfil'
-      ? 'La persona eligió el camino "Quiero explorar el mercado, empezando por mi perfil". Ya recibió una lectura externa de su perfil (abajo). Esa lectura alimenta el Diagnóstico con datos reales, pero no lo reemplaza: indaga qué le resonó, qué no y qué quiere hacer con eso. Las señales describen qué comunica el perfil hoy, nunca cuánto vale como profesional. Ya conoces el puesto al que apunta (figura abajo): no se lo vuelvas a preguntar como si fuera nuevo, parte de ahí. Abre desde los cambios que la persona eligió tomar y los que no eligió (están marcados). Si objeta algo de la lectura o de un cambio (por ejemplo, que no puede ponerse un título que todavía no tiene), esa objeción es el dato más importante de la charla: quédate con esa objeción, indaga qué hay detrás y no la dejes pasar para volver a los objetivos.'
+      ? 'La persona eligió el camino "Quiero explorar el mercado, empezando por mi perfil". Ya recibió una lectura externa de su perfil (abajo). La conversación gira en torno a esa lectura y al CV: qué le resonó, qué no y qué quiere cambiar. Las señales describen qué comunica el perfil hoy, nunca cuánto vale como profesional. Ya conoces el puesto al que apunta (figura abajo): no se lo vuelvas a preguntar. Si objeta algo de la lectura o de un cambio sugerido, esa objeción es el dato más importante: quédate con ella, indaga qué hay detrás. Guardrail crítico: no indagues metas de carrera, cambio de rumbo ni motivaciones profundas; eso pertenece a otro camino. El foco aquí es el CV y cómo lo lee quien contrata.'
       : 'La persona eligió el camino de sentir estancamiento y no saber qué hacer con eso: atraviesa un quiebre de carrera (estancamiento, desmotivación o indecisión entre quedarse, crecer o cambiar).'
 
   return `${BASE_PROMPT}
@@ -340,7 +350,7 @@ ${camino}
 ${previas ? `\n${previas}\n` : ''}${ctx.lecturaPerfil ? `\n## Lectura externa del perfil que recibió la persona\n${ctx.lecturaPerfil}\n` : ''}${ctx.documentos ? `\n## Documentos que compartió la persona\n${DOCUMENTOS_GUIDANCE}\n\n${ctx.documentos}\n` : ''}
 ${ctx.path === 'formacion' ? FORMACION_GUIDANCE : ''}${ctx.path === 'quiebre' ? OFERTAS_GUIDANCE : ''}
 # Etapa actual: ${STAGE_NAME[ctx.stage]}
-${ctx.path === 'formacion' ? FORMACION_STAGE_GUIDANCE[ctx.stage] : ctx.path === 'perfil' && ctx.stage === 'plan' ? PERFIL_PLAN_GUIDANCE : STAGE_GUIDANCE[ctx.stage]}
+${ctx.path === 'formacion' ? FORMACION_STAGE_GUIDANCE[ctx.stage] : ctx.path === 'perfil' && ctx.stage === 'diagnostico' ? PERFIL_DIAGNOSTICO_GUIDANCE : ctx.path === 'perfil' && ctx.stage === 'plan' ? PERFIL_PLAN_GUIDANCE : STAGE_GUIDANCE[ctx.stage]}
 ${ctx.stage === 'discovery' && ctx.path !== 'perfil' ? IKIGAI_GUIDANCE(ctx.path) : ''}
 ${ctx.etapaCerrada ? `\n${CLOSED_STAGE_GUIDANCE}\n` : ''}
 Objetivos de indagación de esta etapa (ids válidos para "objetivosCubiertos" y "temaEnFoco"), con su estado hoy:

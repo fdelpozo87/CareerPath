@@ -365,18 +365,13 @@ function ReadingView({
                           <p className="text-sm text-text-muted">{r.porQue}</p>
                           <p className="mt-1 text-sm text-foreground">{r.cambio}</p>
                           {r.cita && <CitaBlock cita={r.cita} fuente={r.fuente} />}
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {r.tipo === 'decision_personal' && (
+                          {r.tipo === 'decision_personal' && (
+                            <div className="mt-2">
                               <span className="inline-block rounded-full bg-secondary px-2.5 py-0.5 text-xs text-text-muted">
                                 {tr('profile.read.convention')}
                               </span>
-                            )}
-                            {r.grupo === 'experienciaQuePodriaSumar' && (
-                              <span className="inline-block rounded-full border border-dashed border-text-muted/60 px-2.5 py-0.5 text-xs text-text-muted">
-                                {tr('profile.read.toConfirm')}
-                              </span>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -388,13 +383,18 @@ function ReadingView({
         </div>
       )}
 
-      <div className="mt-8 rounded-2xl bg-ink p-6 text-center text-white">
-        <p className="mb-4 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>
-          {tr('profile.read.cta')}
-        </p>
-        <button onClick={onContinue} className="btn-advance px-7 py-3">
-          {tr('profile.read.start')}
-        </button>
+      <div className="mt-8 rounded-2xl border border-border-color bg-card p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 pt-0.5"><CoachAvatar /></div>
+          <div className="flex-1 rounded-2xl rounded-tl-sm bg-primary-soft px-4 py-3">
+            <p className="text-sm leading-relaxed text-foreground">{tr('chat.opening.perfil')}</p>
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end">
+          <button onClick={onContinue} className="btn-advance px-7 py-3">
+            {tr('profile.read.start')}
+          </button>
+        </div>
       </div>
     </div>
   )
